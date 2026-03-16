@@ -347,11 +347,15 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       </div>
       <div class="field">
         <label>Futter / Mahlzeit</label>
-        <textarea id="f-futter" placeholder="z.B. Rindermuskelfleisch 300g, Leber 50g, Karotte..."></textarea>
-        <div id="prev-hint" class="prev-hint" onclick="usePrev()">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Letzten Eintrag übernehmen: <b id="prev-text"></b>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select id="f-futter-select" style="flex:1" onchange="futterSelectChanged()">
+            <option value="">– bisherige Einträge laden –</option>
+          </select>
+          <button class="btn-today" onclick="loadFutterDropdown()" id="btn-futter-reload" title="Aktualisieren">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 8A5.5 5.5 0 112.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.5 2v3h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
+        <textarea id="f-futter" placeholder="z.B. Rindermuskelfleisch 300g, Leber 50g, Karotte..."></textarea>
       </div>
       <div class="protocol-box">
         <div class="protocol-title">📋 Protokoll Ausschlussdiät</div>
@@ -700,7 +704,7 @@ const SPREADSHEET_ID = '1k__ZEMOOTjxvKnGC0gyIrIZDNvLG7TPXAgm0-HZEOS8';
 const CLIENT_ID = '691155115903-q69fuj564d7kaag2vk3fg2nffk2lhpnf.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 
-let tokenClient, accessToken='', userEmail='', lastFutter='', lastRaumklima='';
+let tokenClient, accessToken='', userEmail='', lastRaumklima='';
 let medState='', bettState='', ersteGabeState='', zweiWoState='', provState='', aVerdState='';
 let selectedSymKat=[], selectedKoerper=[], schweregradVal='', alReaktVal='';
 let currentMode='eingabe', currentViewTab='v-umwelt';
@@ -722,12 +726,9 @@ function loadSettings(){
     if(s) settings={...settings,...JSON.parse(s)};
     const t=localStorage.getItem('hund_token');
     const e=localStorage.getItem('hund_email');
-    const lf=localStorage.getItem('hund_last_futter');
     const lr=localStorage.getItem('hund_last_raumklima');
-    if(lf){lastFutter=lf;}
     if(lr){lastRaumklima=lr;}
     if(t&&e){accessToken=t;userEmail=e;showMain();}
-    if(lf){showPrevHint();}
   }catch(e){}
   document.getElementById('sheet-umwelt').value=settings.sheetUmwelt;
   document.getElementById('sheet-symptom').value=settings.sheetSymptom;
@@ -783,11 +784,6 @@ function showMain(){
   ['u-datum','s-datum','f-datum','al-datum','t-datum','m-von'].forEach(id=>setToday(id));
   // Pre-fill last Raumklima
   if(lastRaumklima) document.getElementById('u-raumklima').value=lastRaumklima;
-  // Pre-fill Futter
-  if(lastFutter){
-    document.getElementById('f-futter').value=lastFutter;
-    showPrevHint();
-  }
   // Default Bett to "Unverändert"
   const bettBtns=document.querySelectorAll('#tab-umwelt .tog-btn');
   bettBtns[0].classList.add('sel'); bettState='Unverändert';
@@ -803,10 +799,10 @@ function switchTab(tab){
     const s=document.getElementById('tab-'+t);
     if(s){s.classList.toggle('active',t===tab);s.style.display=t===tab?'block':'none';}
   });
-  // Re-fill futter field every time the tab is opened
-  if(tab==='futter' && lastFutter){
-    const el=document.getElementById('f-futter');
-    if(!el.value) el.value=lastFutter;
+  // Auto-load futter dropdown when switching to futter tab
+  if(tab==='futter'){
+    const sel=document.getElementById('f-futter-select');
+    if(sel.options.length <= 1) loadFutterDropdown();
   }
 }
 
@@ -902,12 +898,40 @@ function toggleAVerd(val){
   document.getElementById('averd-nein').classList.toggle('sel',aVerdState==='nein');
 }
 
-function showPrevHint(){
-  if(!lastFutter)return;
-  document.getElementById('prev-text').textContent=lastFutter.length>30?lastFutter.slice(0,30)+'…':lastFutter;
-  document.getElementById('prev-hint').style.display='flex';
+async function loadFutterDropdown(){
+  const sel = document.getElementById('f-futter-select');
+  const btn = document.getElementById('btn-futter-reload');
+  btn.disabled = true;
+  sel.innerHTML = '<option value="">⏳ Wird geladen…</option>';
+  try{
+    const rows = await readSheet(settings.sheetFutter);
+    const {dataRows} = findDataRows(rows, 'futter');
+    // Collect unique futter values, most recent first
+    const seen = new Set();
+    const unique = [];
+    for(const r of [...dataRows].reverse()){
+      const val = (r[1]||'').toString().trim();
+      if(val && !seen.has(val)){ seen.add(val); unique.push(val); }
+    }
+    sel.innerHTML = '<option value="">– Eintrag wählen –</option>';
+    unique.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v.length > 60 ? v.slice(0,60)+'…' : v;
+      opt.title = v; // full text on hover
+      sel.appendChild(opt);
+    });
+    if(unique.length === 0) sel.innerHTML = '<option value="">Noch keine Einträge</option>';
+  }catch(e){
+    sel.innerHTML = `<option value="">Fehler: ${e.message}</option>`;
+  }
+  btn.disabled = false;
 }
-function usePrev(){document.getElementById('f-futter').value=lastFutter;}
+
+function futterSelectChanged(){
+  const val = document.getElementById('f-futter-select').value;
+  if(val) document.getElementById('f-futter').value = val;
+}
 
 /* ====== SHEETS API ====== */
 async function appendRow(sheet,values){
@@ -1170,15 +1194,14 @@ async function submitFutter(){
       document.getElementById('f-beschreibung').value,
       document.getElementById('f-notizen').value
     ]);
-    lastFutter=futter;
-    try{localStorage.setItem('hund_last_futter',futter);}catch(e){}
-    showPrevHint();
     setStatus('status-f','ok','✓ Gespeichert!');
     // Keep futter pre-filled, only clear the extra fields
     document.getElementById('f-beschreibung').value='';
     document.getElementById('f-notizen').value='';
     ersteGabeState='';zweiWoState='';provState='';
     document.querySelectorAll('#tab-futter .tog-btn').forEach(b=>b.classList.remove('sel'));
+    // Refresh dropdown so new entry appears
+    loadFutterDropdown();
   }catch(e){setStatus('status-f','err','Fehler: '+e.message);}
   btn.disabled=false;
 }
