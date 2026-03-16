@@ -784,12 +784,30 @@ function showMain(){
   // Pre-fill last Raumklima
   if(lastRaumklima) document.getElementById('u-raumklima').value=lastRaumklima;
   // Pre-fill Futter
-  if(lastFutter) document.getElementById('f-futter').value=lastFutter;
+  if(lastFutter){
+    document.getElementById('f-futter').value=lastFutter;
+    showPrevHint();
+  }
   // Default Bett to "Unverändert"
   const bettBtns=document.querySelectorAll('#tab-umwelt .tog-btn');
   bettBtns[0].classList.add('sel'); bettState='Unverändert';
   // Auto-load weather & pollen
   setTimeout(loadUmweltData, 300);
+}
+
+function switchTab(tab){
+  const tabs=['umwelt','symptom','futter','ausschluss','allergen','tierarzt','medikamente','einst'];
+  const tabEls=document.querySelectorAll('#eingabe-tabs .tab');
+  tabs.forEach((t,i)=>{
+    if(tabEls[i]) tabEls[i].classList.toggle('active',t===tab);
+    const s=document.getElementById('tab-'+t);
+    if(s){s.classList.toggle('active',t===tab);s.style.display=t===tab?'block':'none';}
+  });
+  // Re-fill futter field every time the tab is opened
+  if(tab==='futter' && lastFutter){
+    const el=document.getElementById('f-futter');
+    if(!el.value) el.value=lastFutter;
+  }
 }
 
 /* ====== HELPERS ====== */
@@ -823,15 +841,6 @@ function switchMode(mode){
   document.getElementById('mode-ansicht-panel').style.display=mode==='ansicht'?'block':'none';
 }
 
-function switchTab(tab){
-  const tabs=['umwelt','symptom','futter','ausschluss','allergen','tierarzt','medikamente','einst'];
-  const tabEls=document.querySelectorAll('#eingabe-tabs .tab');
-  tabs.forEach((t,i)=>{
-    if(tabEls[i]) tabEls[i].classList.toggle('active',t===tab);
-    const s=document.getElementById('tab-'+t);
-    if(s){s.classList.toggle('active',t===tab);s.style.display=t===tab?'block':'none';}
-  });
-}
 
 function switchViewTab(tab){
   currentViewTab=tab;
