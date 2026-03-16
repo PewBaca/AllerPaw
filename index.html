@@ -724,9 +724,10 @@ function loadSettings(){
     const e=localStorage.getItem('hund_email');
     const lf=localStorage.getItem('hund_last_futter');
     const lr=localStorage.getItem('hund_last_raumklima');
-    if(t&&e){accessToken=t;userEmail=e;showMain();}
-    if(lf){lastFutter=lf;showPrevHint();}
+    if(lf){lastFutter=lf;}
     if(lr){lastRaumklima=lr;}
+    if(t&&e){accessToken=t;userEmail=e;showMain();}
+    if(lf){showPrevHint();}
   }catch(e){}
   document.getElementById('sheet-umwelt').value=settings.sheetUmwelt;
   document.getElementById('sheet-symptom').value=settings.sheetSymptom;
