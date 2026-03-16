@@ -161,6 +161,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .divider span{font-size:12px;color:var(--sub);white-space:nowrap;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
 
+/* Protocol box for Ausschlussdiät */
+.protocol-box{background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);padding:1rem 1rem .25rem;margin-bottom:1.25rem}
+.protocol-box .protocol-title{font-size:11px;color:var(--c2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
+.protocol-box .field{margin-bottom:.75rem}
+.protocol-box .field:last-child{margin-bottom:.25rem}
+
 /* Refresh btn */
 .refresh-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);color:var(--sub);cursor:pointer;font-family:inherit;margin-bottom:1rem}
 .refresh-btn:active{background:var(--border)}
@@ -241,12 +247,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       </div>
       <div class="field">
         <label>Bett</label>
-        <div class="toggle-grid three">
+        <div class="toggle-grid">
           <div class="tog-btn" onclick="toggleBett(this)">Unverändert</div>
-          <div class="tog-btn" onclick="toggleBett(this)">Neu bezogen</div>
-          <div class="tog-btn" onclick="toggleBett(this)">Gewaschen</div>
+          <div class="tog-btn" onclick="toggleBett(this)">Gewechselt</div>
         </div>
-        <input type="text" id="u-bett" placeholder="Sonstiges..." style="margin-top:8px">
       </div>
       <div class="field">
         <label>Medikament gegeben</label>
@@ -339,25 +343,28 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
           Letzten Eintrag übernehmen: <b id="prev-text"></b>
         </div>
       </div>
-      <div class="field">
-        <label>Erste Gabe</label>
-        <div class="toggle-grid">
-          <div class="tog-btn" id="erstegabe-nein" onclick="toggleErsteGabe('nein')">Nein</div>
-          <div class="tog-btn" id="erstegabe-ja" onclick="toggleErsteGabe('ja')">Ja – neu eingeführt</div>
+      <div class="protocol-box">
+        <div class="protocol-title">📋 Protokoll Ausschlussdiät</div>
+        <div class="field">
+          <label>Erste Gabe</label>
+          <div class="toggle-grid">
+            <div class="tog-btn" id="erstegabe-nein" onclick="toggleErsteGabe('nein')">Nein</div>
+            <div class="tog-btn" id="erstegabe-ja" onclick="toggleErsteGabe('ja')">Ja – neu eingeführt</div>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>Zwei Wochen Fütterung abgeschlossen</label>
-        <div class="toggle-grid">
-          <div class="tog-btn" id="zweiwo-nein" onclick="toggleZweiWo('nein')">Nein</div>
-          <div class="tog-btn" id="zweiwo-ja" onclick="toggleZweiWo('ja')">Ja</div>
+        <div class="field">
+          <label>Zwei Wochen Fütterung abgeschlossen</label>
+          <div class="toggle-grid">
+            <div class="tog-btn" id="zweiwo-nein" onclick="toggleZweiWo('nein')">Nein</div>
+            <div class="tog-btn" id="zweiwo-ja" onclick="toggleZweiWo('ja')">Ja ✓</div>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>Provokation</label>
-        <div class="toggle-grid">
-          <div class="tog-btn" id="prov-nein" onclick="toggleProv('nein')">Nein</div>
-          <div class="tog-btn" id="prov-ja" onclick="toggleProv('ja')">Ja</div>
+        <div class="field">
+          <label>Provokation</label>
+          <div class="toggle-grid">
+            <div class="tog-btn" id="prov-nein" onclick="toggleProv('nein')">Nein</div>
+            <div class="tog-btn" id="prov-ja" onclick="toggleProv('ja')">Ja ⚠️</div>
+          </div>
         </div>
       </div>
       <div class="field">
@@ -683,7 +690,7 @@ const SPREADSHEET_ID = '1k__ZEMOOTjxvKnGC0gyIrIZDNvLG7TPXAgm0-HZEOS8';
 const CLIENT_ID = '691155115903-q69fuj564d7kaag2vk3fg2nffk2lhpnf.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 
-let tokenClient, accessToken='', userEmail='', lastFutter='';
+let tokenClient, accessToken='', userEmail='', lastFutter='', lastRaumklima='';
 let medState='', bettState='', ersteGabeState='', zweiWoState='', provState='', aVerdState='';
 let selectedSymKat=[], selectedKoerper=[], schweregradVal='', alReaktVal='';
 let currentMode='eingabe', currentViewTab='v-umwelt';
@@ -706,8 +713,10 @@ function loadSettings(){
     const t=localStorage.getItem('hund_token');
     const e=localStorage.getItem('hund_email');
     const lf=localStorage.getItem('hund_last_futter');
+    const lr=localStorage.getItem('hund_last_raumklima');
     if(t&&e){accessToken=t;userEmail=e;showMain();}
     if(lf){lastFutter=lf;showPrevHint();}
+    if(lr){lastRaumklima=lr;}
   }catch(e){}
   document.getElementById('sheet-umwelt').value=settings.sheetUmwelt;
   document.getElementById('sheet-symptom').value=settings.sheetSymptom;
@@ -761,6 +770,13 @@ function showMain(){
   document.getElementById('main-screen').style.display='block';
   document.getElementById('user-email').textContent=userEmail;
   ['u-datum','s-datum','f-datum','al-datum','t-datum','m-von'].forEach(id=>setToday(id));
+  // Pre-fill last Raumklima
+  if(lastRaumklima) document.getElementById('u-raumklima').value=lastRaumklima;
+  // Pre-fill Futter
+  if(lastFutter) document.getElementById('f-futter').value=lastFutter;
+  // Default Bett to "Unverändert"
+  const bettBtns=document.querySelectorAll('#tab-umwelt .tog-btn');
+  bettBtns[0].classList.add('sel'); bettState='Unverändert';
 }
 
 /* ====== HELPERS ====== */
@@ -819,8 +835,8 @@ function switchViewTab(tab){
 function toggleBett(el){
   const was=el.classList.contains('sel');
   document.querySelectorAll('#tab-umwelt .tog-btn').forEach(b=>b.classList.remove('sel'));
-  if(!was){el.classList.add('sel');bettState=el.textContent;document.getElementById('u-bett').value='';}
-  else bettState='';
+  if(!was){el.classList.add('sel');bettState=el.textContent;}
+  else{bettState='Unverändert';document.querySelectorAll('#tab-umwelt .tog-btn')[0].classList.add('sel');}
 }
 function toggleMed(val){
   medState=medState===val?'':val;
@@ -914,7 +930,7 @@ async function submitUmwelt(){
   if(!datum){setStatus('status-u','err','Bitte Datum auswählen.');return;}
   const btn=document.getElementById('btn-u');btn.disabled=true;
   setStatus('status-u','loading','Wird gespeichert…');
-  const bettVal=bettState||document.getElementById('u-bett').value;
+  const bettVal=bettState||'Unverändert';
   try{
     await appendRow(settings.sheetUmwelt,[
       formatDate(datum),
@@ -926,9 +942,15 @@ async function submitUmwelt(){
       document.getElementById('u-notizen').value
     ]);
     setStatus('status-u','ok','✓ Gespeichert!');
-    ['u-wetter','u-pollen','u-raumklima','u-bett','u-notizen'].forEach(id=>document.getElementById(id).value='');
-    medState='';bettState='';
+    // Save Raumklima for next entry
+    lastRaumklima=document.getElementById('u-raumklima').value;
+    try{localStorage.setItem('hund_last_raumklima',lastRaumklima);}catch(e){}
+    ['u-wetter','u-pollen','u-bett','u-notizen'].forEach(id=>document.getElementById(id).value='');
+    // Keep Raumklima pre-filled for next entry
+    medState='';bettState='Unverändert';
     document.querySelectorAll('#tab-umwelt .tog-btn').forEach(b=>b.classList.remove('sel'));
+    // Re-select "Unverändert" as default
+    document.querySelectorAll('#tab-umwelt .tog-btn')[0].classList.add('sel');
   }catch(e){setStatus('status-u','err','Fehler: '+e.message);}
   btn.disabled=false;
 }
@@ -977,7 +999,7 @@ async function submitFutter(){
     try{localStorage.setItem('hund_last_futter',futter);}catch(e){}
     showPrevHint();
     setStatus('status-f','ok','✓ Gespeichert!');
-    document.getElementById('f-futter').value='';
+    // Keep futter pre-filled, only clear the extra fields
     document.getElementById('f-beschreibung').value='';
     document.getElementById('f-notizen').value='';
     ersteGabeState='';zweiWoState='';provState='';
