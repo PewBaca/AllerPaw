@@ -950,8 +950,10 @@ const POLLEN_NAMES = {
   Erle:'Erle', Ambrosia:'Ambrosia'
 };
 // DWD value scale: 0=keine, 0-1=keine-gering, 1=gering, 1-2=gering-mittel,
-// 2=mittel, 2-3=mittel-hoch, 3=hoch — we want >= 2 (mittel = Stufe 2+)
-const POLLEN_MIN_LEVEL = 2;
+// 2=mittel, 2-3=stark, 3=sehr stark
+// We want: "2" (mittel), "2-3" (stark), "3" (sehr stark) — exclude "1-2" (gering-mittel)
+// "1-2" has max=2 but MIN=1, "2" has min=max=2 — distinguish by checking raw value directly
+const POLLEN_MIN_LEVEL = 2.0;
 
 async function loadUmweltData(){
   const bar = document.getElementById('autoload-status');
@@ -1071,10 +1073,10 @@ async function fetchPollen(){
 
 function parsePollenLevel(raw){
   if(!raw || raw === '-1') return -1;
-  // "2-3" → take the higher value
+  // Use MINIMUM of range: "1-2" → 1 (excluded), "2" → 2 (included), "2-3" → 2 (included), "3" → 3 (included)
   if(raw.includes('-')){
     const parts = raw.split('-').map(Number);
-    return Math.max(...parts);
+    return Math.min(...parts);
   }
   return parseFloat(raw) || 0;
 }
@@ -1082,7 +1084,7 @@ function parsePollenLevel(raw){
 function formatPollenLevel(raw){
   const map = {
     '0':'keine','0-1':'keine–gering','1':'gering','1-2':'gering–mittel',
-    '2':'mittel','2-3':'mittel–hoch','3':'hoch'
+    '2':'mittel','2-3':'stark','3':'sehr stark'
   };
   return map[raw] || raw;
 }
