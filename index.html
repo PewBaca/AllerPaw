@@ -1483,8 +1483,9 @@ const RECHNER = (() => {
     const cookingFactor=1-(params['kochverlust_b_vitamine']||0.30);
     const totals={};let totalGrams=0;
     currentRecipe.ingredients.forEach(ing=>{const grams=ing.grams||0;totalGrams+=grams;const nutrMap=STORE.getNutrMap(ing.zutaten_id,ing.name);Object.entries(nutrMap).forEach(([nutrName,val100g])=>{let val=val100g*grams/100;if(ing.cooked&&cookingLoss.has(nutrName))val*=cookingFactor;totals[nutrName]=(totals[nutrName]||0)+val;});});
-    const kcalFaktP=params['kcal_faktor_protein']||3.5;const kcalFaktF=params['kcal_faktor_fett']||8.5;
-    const proteinVal=totals['Rohprotein']||0;const fettVal=totals['Fett']||0;const kcalIst=proteinVal*kcalFaktP+fettVal*kcalFaktF;
+    const kcalFaktP=params['kcal_faktor_protein']||3.5;const kcalFaktF=params['kcal_faktor_fett']||8.5;const kcalFaktK=params['kcal_faktor_kohlenhydrate']||3.5;
+    const proteinVal=totals['Rohprotein']||0;const fettVal=totals['Fett']||0;const kohlenhydrateVal=totals['Kohlenhydrate']||totals['Stärke']||0;
+    const kcalIst=proteinVal*kcalFaktP+fettVal*kcalFaktF+kohlenhydrateVal*kcalFaktK;
     const kp=STORE.getKalorienParam(currentHundId);
     const kcalBedarf=(kp.kcalManual&&kp.kcalManual>0)?kp.kcalManual:(kp.rerFaktor70*Math.pow(kg,kp.rerExponent)*kp.rerFaktor);
     const portionen=params['portionen_pro_tag']||2;
