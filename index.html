@@ -1282,8 +1282,8 @@ const SHEETS = (() => {
     const token = AUTH.getToken();
     if (!token) throw new Error('Nicht angemeldet');
     // Google Sheets API: Blattname + expliziter Range ohne Zeilenlimit
-    // Nur Blattname funktioniert nicht zuverlässig → 'SheetName'!A:AZ verwenden
-    const range = encodeURIComponent("'" + sheet.replace(/'/g, "''") + "'!A:AZ");
+    // Sheets API Range: SheetName!A1:Z (ohne Anführungszeichen, ohne Zeilenlimit)
+    const range = encodeURIComponent(sheet + '!A:Z');
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (res.status === 401) { AUTH.handleExpired(); throw new Error('Sitzung abgelaufen.'); }
