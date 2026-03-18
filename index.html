@@ -1283,17 +1283,35 @@ const SHEETS = (() => {
     return res.json();
   }
 
-  // Blatt lesen (gibt alle Zeilen zurück)
+  // Cache für Blatt-Namen pro Spreadsheet (verhindert wiederholte Metadata-Abfragen)
+  const _sheetNameCache = {};
+
+  // Blatt lesen – löst Blattnamen über Metadata auf um "unable to parse range" zu vermeiden
   async function readSheet(sheet, spreadsheetId) {
     const token = AUTH.getToken();
     if (!token) throw new Error('Nicht angemeldet');
-    // Google Sheets API: Blattname + expliziter Range ohne Zeilenlimit
-    // Sheets API Range: SheetName!A1:Z (ohne Anführungszeichen, ohne Zeilenlimit)
-    const range = encodeURIComponent(sheet + '!A:Z');
+
+    // Echten Blattnamen aus Spreadsheet-Metadata holen (gecacht)
+    if (!_sheetNameCache[spreadsheetId]) {
+      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+      const metaRes = await fetch(metaUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (metaRes.status === 401) { AUTH.handleExpired(); throw new Error('Sitzung abgelaufen.'); }
+      if (!metaRes.ok) { const e = await metaRes.json().catch(()=>({})); throw new Error(e?.error?.message || 'HTTP '+metaRes.status); }
+      const meta = await metaRes.json();
+      _sheetNameCache[spreadsheetId] = (meta.sheets||[]).map(s => s.properties.title);
+    }
+
+    // Exakten Namen suchen (case-insensitive Fallback)
+    const names = _sheetNameCache[spreadsheetId];
+    const exact = names.find(s => s === sheet) || names.find(s => s.toLowerCase() === sheet.toLowerCase());
+    if (!exact) throw new Error(`Blatt "${sheet}" nicht gefunden. Vorhanden: ${names.join(', ')}`);
+
+    // Nur den Blattnamen als Range übergeben – Sheets API liest dann das ganze Blatt
+    const range = encodeURIComponent(exact);
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (res.status === 401) { AUTH.handleExpired(); throw new Error('Sitzung abgelaufen.'); }
-    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || 'HTTP ' + res.status); }
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || 'HTTP '+res.status); }
     const data = await res.json();
     return data.values || [];
   }
@@ -1366,7 +1384,7 @@ const SHEETS = (() => {
     }));
   }
 
-  return { appendRow, readSheet, writeRange, createSheet, deleteSheet, getSheetsList, getSheetsWithIds };
+  return { appendRow, readSheet, writeRange, createSheet, deleteSheet, getSheetsList, getSheetsWithIds, _sheetNameCache };
 })();
 
 
@@ -1424,6 +1442,8 @@ const AUTH = (() => {
   function signOut() {
     if (window.google && accessToken) google.accounts.oauth2.revoke(accessToken);
     accessToken = ''; userEmail = '';
+    // Sheet-Name-Cache leeren
+    Object.keys(SHEETS._sheetNameCache||{}).forEach(k => delete SHEETS._sheetNameCache[k]);
     try {
       localStorage.removeItem('hundapp_token');
       localStorage.removeItem('hundapp_email');
