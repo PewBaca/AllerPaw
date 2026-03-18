@@ -793,11 +793,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       </div>
 
       <!-- Nährstoffanalyse Akkordeon -->
-      <div class="fr-section-toggle" onclick="UI.toggleSection('nutr',this)">
+      <div class="fr-section-toggle open" onclick="UI.toggleSection('nutr',this)">
         📊 Nährstoffanalyse <span style="font-size:11px;color:var(--sub);margin-left:4px">(Nährstoff antippen für Info)</span>
         <span class="fst-arrow">▼</span>
       </div>
-      <div class="fr-section-body" id="fr-sec-nutr">
+      <div class="fr-section-body open" id="fr-sec-nutr">
         <div class="fr-nutr-table">
           <div class="fr-nutr-head">
             <span>Nährstoff</span>
@@ -1281,7 +1281,7 @@ const SHEETS = (() => {
   async function readSheet(sheet, spreadsheetId) {
     const token = AUTH.getToken();
     if (!token) throw new Error('Nicht angemeldet');
-    const range = encodeURIComponent(sheet + '!A1:ZZ2000');
+    const range = encodeURIComponent(sheet);
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (res.status === 401) { AUTH.handleExpired(); throw new Error('Sitzung abgelaufen.'); }
@@ -1588,10 +1588,19 @@ const STORE = (() => {
       });
   }
 
-  // Nährstoff-Map für eine Zutat (zutaten_id → {nutr_name: value})
-  function getNutrMap(zutatId) {
+  // Nährstoff-Map für eine Zutat: primär per zutaten_id, Fallback per Name
+  function getNutrMap(zutatId, zutatName) {
     const map = {};
-    zutatNutr.filter(r => r.zutaten_id === zutatId).forEach(r => { map[r.naehrstoff_name] = r.wert_pro_100g; });
+    // Primärsuche per ID
+    let entries = zutatNutr.filter(r => r.zutaten_id === zutatId);
+    // Fallback: falls keine Einträge per ID, suche per Zutaten-Name
+    if (!entries.length && zutatName) {
+      const z = zutaten.find(z => z.name === zutatName);
+      if (z && z.zutaten_id) {
+        entries = zutatNutr.filter(r => r.zutaten_id === z.zutaten_id);
+      }
+    }
+    entries.forEach(r => { map[r.naehrstoff_name] = r.wert_pro_100g; });
     return map;
   }
 
@@ -1647,6 +1656,11 @@ const STORE = (() => {
 
   // Nach Reload Cache aktualisieren
   function addHund(h)   { hunde.push(h); }
+  // Hund-Felder im Cache aktualisieren (nach writeRange)
+  function updateHund(id, fields) {
+    const h = hunde.find(x => x.hund_id === id);
+    if (h) Object.assign(h, fields);
+  }
   function addZutat(z)  { zutaten.push(z); }
   function addZutatNutr(entries) { zutatNutr.push(...entries); }
 
@@ -1654,8 +1668,8 @@ const STORE = (() => {
     loadAll,
     getHunde, getParameter, getNaehrstoffe, getBedarf,
     getZutaten, getRezepte, getRezeptZutaten, getToleranz,
-    getNutrMap, getTolerance, getKalorienParam, getNaehrstoffInfo, getBedarfByName,
-    addHund, addZutat, addZutatNutr,
+    getNutrMap, getTolerance, getKalorienParam, getNaehrstoffInfo, getBedarfByName, getZutaten,
+    addHund, updateHund, addZutat, addZutatNutr,
   };
 })();
 
@@ -2913,6 +2927,11 @@ const RECHNER = (() => {
   // Hauptberechnung: Nährstoffe, Kalorien, Verhältnisse
   function recalc() {
     if (!currentRecipe) return;
+    // Gewichtsanzeige immer aktuell halten
+    const kgVal = parseFloat(document.getElementById('fr-dog-weight2')?.value) || 27;
+    const mkgVal = calcMkg(kgVal);
+    const mkg2El = document.getElementById('fr-mkg2');
+    if (mkg2El) mkg2El.textContent = mkgVal.toFixed(2);
 
     const kg  = parseFloat(document.getElementById('fr-dog-weight2')?.value) || 27;
     const mkg = calcMkg(kg);
@@ -2930,7 +2949,7 @@ const RECHNER = (() => {
     currentRecipe.ingredients.forEach(ing => {
       const grams = ing.grams || 0;
       totalGrams += grams;
-      const nutrMap = STORE.getNutrMap(ing.zutaten_id);
+      const nutrMap = STORE.getNutrMap(ing.zutaten_id, ing.name);
       Object.entries(nutrMap).forEach(([nutrName, val100g]) => {
         let val = val100g * grams / 100;
         if (ing.cooked && cookingLoss.has(nutrName)) val *= cookingFactor;
@@ -2947,7 +2966,10 @@ const RECHNER = (() => {
 
     // Kalorienbedarf individuell (RER-Formel oder manuell)
     const kp = STORE.getKalorienParam(currentHundId);
-    const kcalBedarf = kp.kcalManual || (kp.rerFaktor70 * Math.pow(kg, kp.rerExponent) * kp.rerFaktor);
+    // kcal_manuell=0 bedeutet "nicht gesetzt" (None im Sheet), also Formel verwenden
+    const kcalBedarf = (kp.kcalManual && kp.kcalManual > 0)
+      ? kp.kcalManual
+      : (kp.rerFaktor70 * Math.pow(kg, kp.rerExponent) * kp.rerFaktor);
 
     // Portionsinfo aktualisieren
     const portionen = params['portionen_pro_tag'] || 2;
@@ -2994,12 +3016,20 @@ const RECHNER = (() => {
   function renderNutrTable(totals, mkg) {
     const rowsEl = document.getElementById('fr-nutr-rows');
     const bedarf = STORE.getBedarf();
-    const groups = {};
 
-    // Nach Gruppen sortieren
+    // Wenn Bedarfsdaten noch nicht aus Sheets geladen → klare Meldung
+    if (!bedarf || !bedarf.length) {
+      rowsEl.innerHTML = '<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">' +
+        '⚠️ Bedarfsdaten nicht geladen.<br><small>Bitte Verbindung prüfen und Seite neu laden.</small></div>';
+      return;
+    }
+
+    const groups = {};
+    // Nach Gruppen sortieren (Gruppe aus Naehrstoffe-Blatt, via Join in STORE)
     bedarf.forEach(b => {
-      if (!groups[b.gruppe || 'Sonstiges']) groups[b.gruppe || 'Sonstiges'] = [];
-      groups[b.gruppe || 'Sonstiges'].push(b);
+      const g = b.gruppe || 'Sonstiges';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(b);
     });
 
     let html = '';
@@ -3086,6 +3116,11 @@ const STAMMDATEN = (() => {
   }
 
   // ── Hunde ────────────────────────────────────────────────────────
+
+  // Zeilennummer-Cache: hund_id → Zeilennr. im Sheet (für Updates)
+  let hundeRowMap = {};
+
+  // Hunde-Liste mit Bearbeiten/Deaktivieren
   function loadHunde() {
     const el = document.getElementById('sd-hunde-list');
     const hunde = STORE.getHunde();
@@ -3094,63 +3129,146 @@ const STAMMDATEN = (() => {
       return;
     }
     el.innerHTML = hunde.map(h => `
-      <div class="card">
-        <div class="card-title">${UI.esc(h.name)} ${h.aktiv === 'nein' ? '<span class="badge badge-warn">inaktiv</span>' : ''}</div>
-        <div style="font-size:13px;color:var(--sub);line-height:1.8">
-          ${h.rasse ? 'Rasse: ' + UI.esc(h.rasse) + '<br>' : ''}
-          ${h.geburtsdatum ? 'Geb.: ' + UI.esc(h.geburtsdatum) + '<br>' : ''}
-          ${h.geschlecht ? 'Geschlecht: ' + UI.esc(h.geschlecht) + (h.kastriert ? ', kastriert' : '') + '<br>' : ''}
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div class="card-title" style="margin-bottom:6px">
+              ${UI.esc(h.name)}
+              ${h.aktiv === 'nein' ? ' <span class="badge badge-warn" style="font-size:11px">inaktiv</span>' : ' <span class="badge badge-ok" style="font-size:11px">aktiv</span>'}
+            </div>
+            <div style="font-size:13px;color:var(--sub);line-height:1.9">
+              ${h.rasse        ? '🐾 ' + UI.esc(h.rasse) + '<br>' : ''}
+              ${h.geburtsdatum ? '🎂 ' + UI.esc(h.geburtsdatum) + '<br>' : ''}
+              ${h.geschlecht   ? (h.geschlecht==='m'?'♂ männlich':'♀ weiblich') + (h.kastriert==='ja'?' · kastriert':'') + '<br>' : ''}
+              ${h.notizen      ? '📝 ' + UI.esc(h.notizen) : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button class="edit-btn" onclick="STAMMDATEN.showHundModal(${h.hund_id})">✏️ Bearbeiten</button>
+            <button class="del-small-btn" onclick="STAMMDATEN.toggleHundAktiv(${h.hund_id},'${UI.esc(h.name)}','${h.aktiv||'ja'}')">
+              ${h.aktiv === 'nein' ? '✅ Aktivieren' : '🚫 Deaktivieren'}
+            </button>
+          </div>
         </div>
       </div>
     `).join('');
   }
 
-  function showHundModal(hund) {
-    const h = hund || {};
-    UI.openModal(hund ? 'Hund bearbeiten' : 'Neuen Hund anlegen', `
-      <div class="field"><label>Name</label><input type="text" id="hund-name" value="${UI.esc(h.name||'')}" placeholder="z.B. Milow"></div>
-      <div class="field"><label>Rasse</label><input type="text" id="hund-rasse" value="${UI.esc(h.rasse||'')}" placeholder="z.B. Labrador-Mix"></div>
-      <div class="field"><label>Geburtsdatum</label><input type="date" id="hund-geb" value="${UI.esc(h.geburtsdatum||'')}"></div>
-      <div class="field"><label>Geschlecht</label>
+  // Modal: Neuen Hund anlegen oder existierenden bearbeiten
+  function showHundModal(hundId) {
+    const hunde = STORE.getHunde();
+    const h = hundId ? (hunde.find(x => x.hund_id === hundId) || {}) : {};
+    const isEdit = !!hundId;
+
+    // Geburtsdatum DD.MM.YYYY → YYYY-MM-DD für input[type=date]
+    let gebVal = h.geburtsdatum || '';
+    if (gebVal && gebVal.includes('.')) {
+      const parts = gebVal.split('.');
+      if (parts.length === 3) gebVal = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    }
+
+    UI.openModal(isEdit ? `🐕 ${UI.esc(h.name||'')} bearbeiten` : 'Neuen Hund anlegen', `
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="hund-name" value="${UI.esc(h.name||'')}" placeholder="z.B. Milow">
+      </div>
+      <div class="field">
+        <label>Rasse</label>
+        <input type="text" id="hund-rasse" value="${UI.esc(h.rasse||'')}" placeholder="z.B. Labrador-Mix">
+      </div>
+      <div class="field">
+        <label>Geburtsdatum</label>
+        <input type="date" id="hund-geb" value="${UI.esc(gebVal)}">
+      </div>
+      <div class="field">
+        <label>Geschlecht</label>
         <select id="hund-geschlecht">
           <option value="">– wählen –</option>
-          <option value="m" ${h.geschlecht==='m'?'selected':''}>männlich</option>
-          <option value="w" ${h.geschlecht==='w'?'selected':''}>weiblich</option>
+          <option value="m" ${h.geschlecht==='m'?'selected':''}>♂ männlich</option>
+          <option value="w" ${h.geschlecht==='w'?'selected':''}>♀ weiblich</option>
         </select>
       </div>
-      <div class="field"><label>Kastriert</label>
+      <div class="field">
+        <label>Kastriert</label>
         <select id="hund-kastriert">
-          <option value="nein" ${h.kastriert==='nein'?'selected':''}>Nein</option>
+          <option value="nein" ${(h.kastriert||'nein')==='nein'?'selected':''}>Nein</option>
           <option value="ja" ${h.kastriert==='ja'?'selected':''}>Ja</option>
         </select>
       </div>
-      <div class="field"><label>Notizen</label><textarea id="hund-notizen">${UI.esc(h.notizen||'')}</textarea></div>
-      <button class="btn-primary" onclick="STAMMDATEN.saveHund(${h.hund_id||'null'})">Speichern</button>
+      <div class="field">
+        <label>Status</label>
+        <select id="hund-aktiv">
+          <option value="ja"  ${(h.aktiv||'ja')==='ja'?'selected':''}>✅ Aktiv</option>
+          <option value="nein" ${h.aktiv==='nein'?'selected':''}>🚫 Inaktiv</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Notizen</label>
+        <textarea id="hund-notizen" placeholder="z.B. Besonderheiten, Allergien…">${UI.esc(h.notizen||'')}</textarea>
+      </div>
+      <button class="btn-primary" onclick="STAMMDATEN.saveHund(${hundId||'null'})">
+        ${isEdit ? '💾 Änderungen speichern' : '+ Hund anlegen'}
+      </button>
       <div class="status" id="status-hund"></div>
     `);
   }
 
+  // Hund speichern: neu → appendRow, bearbeiten → writeRange (ganze Zeile)
   async function saveHund(existingId) {
     const name = document.getElementById('hund-name')?.value.trim();
     if (!name) { UI.setStatus('status-hund','err','Bitte Name eingeben.'); return; }
-    const sid = CONFIG.get().stammdatenId;
-    const hunde = STORE.getHunde();
-    const newId = existingId || (Math.max(0, ...hunde.map(h=>h.hund_id)) + 1);
+
+    const sid    = CONFIG.get().stammdatenId;
+    const gebRaw = document.getElementById('hund-geb')?.value || '';
+    // YYYY-MM-DD → DD.MM.YYYY
+    let gebFmt = gebRaw;
+    if (gebRaw.includes('-')) { const [y,m,d] = gebRaw.split('-'); gebFmt = `${d}.${m}.${y}`; }
+
+    const aktiv  = document.getElementById('hund-aktiv')?.value     || 'ja';
+    const rasse  = document.getElementById('hund-rasse')?.value.trim()    || '';
+    const gesch  = document.getElementById('hund-geschlecht')?.value       || '';
+    const kastr  = document.getElementById('hund-kastriert')?.value        || 'nein';
+    const notizen= document.getElementById('hund-notizen')?.value.trim()   || '';
+
+    UI.setStatus('status-hund','loading','Wird gespeichert…');
     try {
-      await SHEETS.appendRow('Hunde', [
-        newId, name,
-        document.getElementById('hund-rasse')?.value || '',
-        document.getElementById('hund-geb')?.value || '',
-        document.getElementById('hund-geschlecht')?.value || '',
-        document.getElementById('hund-kastriert')?.value || '',
-        'ja',
-        document.getElementById('hund-notizen')?.value || '',
-      ], sid);
-      STORE.addHund({ hund_id: newId, name, aktiv: 'ja' });
+      if (existingId) {
+        // Bearbeiten: Zeile im Sheet finden und ganz überschreiben
+        const rows = await SHEETS.readSheet('Hunde', sid);
+        const idx  = rows.findIndex(r => String(r[0]).trim() === String(existingId));
+        if (idx < 0) throw new Error('Zeile für Hund ' + existingId + ' nicht gefunden.');
+        const rowNum = idx + 1; // 1-basiert
+        await SHEETS.writeRange('Hunde', `A${rowNum}:H${rowNum}`,
+          [[existingId, name, rasse, gebFmt, gesch, kastr, aktiv, notizen]], sid);
+        STORE.updateHund(existingId, { name, rasse, geburtsdatum: gebFmt, geschlecht: gesch, kastriert: kastr, aktiv, notizen });
+      } else {
+        // Neu anlegen
+        const hunde = STORE.getHunde();
+        const newId = Math.max(0, ...hunde.map(h => h.hund_id)) + 1;
+        await SHEETS.appendRow('Hunde', [newId, name, rasse, gebFmt, gesch, kastr, aktiv, notizen], sid);
+        STORE.addHund({ hund_id: newId, name, rasse, geburtsdatum: gebFmt, geschlecht: gesch, kastriert: kastr, aktiv, notizen });
+      }
       UI.setStatus('status-hund','ok','✓ Gespeichert!');
       UI.syncHundSelects();
-      setTimeout(() => { UI.closeModal(); loadHunde(); }, 1000);
-    } catch(e) { UI.setStatus('status-hund','err','Fehler: '+e.message); }
+      setTimeout(() => { UI.closeModal(); loadHunde(); }, 900);
+    } catch(e) { UI.setStatus('status-hund','err','Fehler: ' + e.message); }
+  }
+
+  // Hund aktivieren / deaktivieren (setzt Spalte G)
+  async function toggleHundAktiv(hundId, name, aktuell) {
+    const neuAktiv = aktuell === 'nein' ? 'ja' : 'nein';
+    const verb     = neuAktiv === 'nein' ? 'deaktivieren' : 'aktivieren';
+    if (!confirm(`"${name}" wirklich ${verb}?`)) return;
+    const sid = CONFIG.get().stammdatenId;
+    try {
+      const rows   = await SHEETS.readSheet('Hunde', sid);
+      const idx    = rows.findIndex(r => String(r[0]).trim() === String(hundId));
+      if (idx < 0) throw new Error('Hund nicht gefunden');
+      await SHEETS.writeRange('Hunde', `G${idx+1}`, [[neuAktiv]], sid);
+      STORE.updateHund(hundId, { aktiv: neuAktiv });
+      UI.syncHundSelects();
+      loadHunde();
+    } catch(e) { alert('Fehler: ' + e.message); }
   }
 
   // ── Zutaten ──────────────────────────────────────────────────────
@@ -3253,7 +3371,7 @@ const STAMMDATEN = (() => {
     } catch(e) { UI.setStatus('status-param','err','Fehler: '+e.message); }
   }
 
-  return { loadCurrentTab, loadTab, loadHunde, showHundModal, saveHund, loadZutaten, showZutatModal, saveZutat, loadParameter, saveParameter };
+  return { loadCurrentTab, loadTab, loadHunde, showHundModal, saveHund, toggleHundAktiv, loadZutaten, showZutatModal, saveZutat, loadParameter, saveParameter };
 })();
 
 
