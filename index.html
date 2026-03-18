@@ -1086,7 +1086,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="number" id="cfg-pollen-region" placeholder="50 (Berlin)" oninput="CONFIG.save()">
         <div style="font-size:11px;color:var(--sub);margin-top:4px">Berlin=50 · Hamburg=10 · München=91 · Frankfurt=82</div>
       </div>
-      <button class="btn-primary" onclick="CONFIG.testConnection()">🔌 Verbindung testen</button>
+      <div style="display:flex;gap:8px;margin-top:.5rem">
+        <button class="btn-primary" style="flex:1" onclick="CONFIG.testConnection()">🔌 Verbindung testen</button>
+        <button class="btn-secondary" style="margin-top:0;flex:1" onclick="AUTH.reAuth()">🔑 Neu anmelden (Scope)</button>
+      </div>
+      <div style="font-size:12px;color:var(--sub);margin-top:.5rem">
+        Bei "insufficient authentication scopes": auf "Neu anmelden" klicken und Google-Zugriff neu genehmigen.
+      </div>
       <div class="status" id="status-conn"></div>
     </div>
 
@@ -1411,7 +1417,7 @@ const AUTH = (() => {
         APP.onLogin();
       }
     });
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken({ prompt: 'consent', hint: AUTH.getEmail()||'' });
   }
 
   // Abmelden
@@ -1438,7 +1444,42 @@ const AUTH = (() => {
   function getEmail()    { return userEmail; }
   function isLoggedIn()  { return !!accessToken; }
 
-  return { loadSaved, signIn, signOut, handleExpired, getToken, getEmail, isLoggedIn };
+  // Neu anmelden mit erzwungenem Consent (löscht alten Token, holt neuen mit vollem Scope)
+  function reAuth() {
+    // Alten Token invalidieren
+    if (window.google && accessToken) {
+      try { google.accounts.oauth2.revoke(accessToken); } catch(e) {}
+    }
+    accessToken = '';
+    try {
+      localStorage.removeItem('hundapp_token');
+      localStorage.removeItem('hundapp_email');
+    } catch(e) {}
+    // Neu anmelden mit consent-Prompt (erzwingt Scope-Auswahl)
+    if (!window.google) { alert('Google noch nicht geladen. Bitte Seite neu laden.'); return; }
+    const cfg = CONFIG.get();
+    if (!cfg.clientId) { alert('Bitte zuerst Client-ID eintragen.'); return; }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cfg.clientId,
+      scope: SCOPE,
+      callback: async (resp) => {
+        if (resp.error) { alert('Login fehlgeschlagen: ' + resp.error); return; }
+        accessToken = resp.access_token;
+        try {
+          const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+            { headers: { 'Authorization': 'Bearer ' + accessToken } });
+          const d = await r.json();
+          userEmail = d.email || 'Angemeldet';
+          localStorage.setItem('hundapp_token', accessToken);
+          localStorage.setItem('hundapp_email', userEmail);
+        } catch(e) { userEmail = 'Angemeldet'; }
+        APP.onLogin();
+      }
+    });
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+
+  return { loadSaved, signIn, signOut, handleExpired, reAuth, getToken, getEmail, isLoggedIn };
 })();
 
 
@@ -3522,11 +3563,32 @@ const APP = (() => {
   // Nach erfolgreichem Login
   async function onLogin() {
     UI.showLoader('Stammdaten werden geladen…');
+
+    // Prüfen ob Token wirklich Sheets-Zugriff hat
+    // (gespeicherte Tokens können mit unzureichendem Scope sein)
+    const cfg = CONFIG.get();
+    if (cfg.stammdatenId) {
+      try {
+        await SHEETS.readSheet('Hunde', cfg.stammdatenId);
+      } catch(e) {
+        if (e.message && (e.message.includes('insufficient') || e.message.includes('403') || e.message.includes('401'))) {
+          // Token hat nicht genug Rechte → neu anmelden
+          console.warn('Token ungültig, neu anmelden:', e.message);
+          AUTH.signOut();
+          setTimeout(() => {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-screen').style.display = 'none';
+            alert('Bitte erneut anmelden – der Zugriff auf Google Sheets muss neu genehmigt werden.');
+          }, 100);
+          return;
+        }
+      }
+    }
+
     try {
       await STORE.loadAll();
     } catch(e) {
       console.warn('Stammdaten-Ladefehler:', e.message);
-      // Trotzdem weitermachen (App funktioniert eingeschränkt)
     }
 
     // UI initialisieren
