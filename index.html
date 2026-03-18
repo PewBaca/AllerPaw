@@ -1283,30 +1283,41 @@ const SHEETS = (() => {
     return res.json();
   }
 
-  // Cache für Blatt-Namen pro Spreadsheet (verhindert wiederholte Metadata-Abfragen)
-  const _sheetNameCache = {};
+  // Cache für Blatt-Namen pro Spreadsheet
+  // Promise-basiert: verhindert parallele Duplikat-Requests beim gleichzeitigen Laden
+  const _sheetNameCache = {};   // spreadsheetId → string[]
+  const _sheetNamePending = {}; // spreadsheetId → Promise (läuft gerade)
 
-  // Blatt lesen – löst Blattnamen über Metadata auf um "unable to parse range" zu vermeiden
+  // Metadata einmalig vorladen (aufrufen BEVOR parallele readSheet-Calls starten)
+  async function prefetchSheetNames(spreadsheetId) {
+    if (_sheetNameCache[spreadsheetId]) return; // schon gecacht
+    if (!_sheetNamePending[spreadsheetId]) {
+      const token = AUTH.getToken();
+      _sheetNamePending[spreadsheetId] = fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`,
+        { headers: { 'Authorization': 'Bearer ' + token } }
+      ).then(r => r.json()).then(meta => {
+        _sheetNameCache[spreadsheetId] = (meta.sheets||[]).map(s => s.properties.title);
+        delete _sheetNamePending[spreadsheetId];
+      });
+    }
+    await _sheetNamePending[spreadsheetId];
+  }
+
+  // Blatt lesen
   async function readSheet(sheet, spreadsheetId) {
     const token = AUTH.getToken();
     if (!token) throw new Error('Nicht angemeldet');
 
-    // Echten Blattnamen aus Spreadsheet-Metadata holen (gecacht)
-    if (!_sheetNameCache[spreadsheetId]) {
-      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
-      const metaRes = await fetch(metaUrl, { headers: { 'Authorization': 'Bearer ' + token } });
-      if (metaRes.status === 401) { AUTH.handleExpired(); throw new Error('Sitzung abgelaufen.'); }
-      if (!metaRes.ok) { const e = await metaRes.json().catch(()=>({})); throw new Error(e?.error?.message || 'HTTP '+metaRes.status); }
-      const meta = await metaRes.json();
-      _sheetNameCache[spreadsheetId] = (meta.sheets||[]).map(s => s.properties.title);
-    }
+    // Metadata sicherstellen (gecacht oder warten bis laufender Fetch fertig)
+    await prefetchSheetNames(spreadsheetId);
 
     // Exakten Namen suchen (case-insensitive Fallback)
-    const names = _sheetNameCache[spreadsheetId];
-    const exact = names.find(s => s === sheet) || names.find(s => s.toLowerCase() === sheet.toLowerCase());
-    if (!exact) throw new Error(`Blatt "${sheet}" nicht gefunden. Vorhanden: ${names.join(', ')}`);
+    const names = _sheetNameCache[spreadsheetId] || [];
+    const exact = names.find(s => s === sheet)
+               || names.find(s => s.toLowerCase() === sheet.toLowerCase())
+               || sheet; // letzter Fallback: Namen so wie er ist
 
-    // Nur den Blattnamen als Range übergeben – Sheets API liest dann das ganze Blatt
     const range = encodeURIComponent(exact);
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
@@ -1384,7 +1395,7 @@ const SHEETS = (() => {
     }));
   }
 
-  return { appendRow, readSheet, writeRange, createSheet, deleteSheet, getSheetsList, getSheetsWithIds, _sheetNameCache };
+  return { appendRow, readSheet, writeRange, createSheet, deleteSheet, getSheetsList, getSheetsWithIds, prefetchSheetNames, _sheetNameCache };
 })();
 
 
@@ -1530,8 +1541,16 @@ const STORE = (() => {
 
     UI.setLoaderMsg('Lade Stammdaten…');
 
+    // Metadata beider Spreadsheets vorab laden (1 Call je Datei, nicht 10)
+    // Danach können alle Sheets parallel gelesen werden ohne Duplikat-Metadata-Calls
+    UI.setLoaderMsg('Verbindung wird geprüft…');
+    await Promise.allSettled([
+      SHEETS.prefetchSheetNames(sid),
+      SHEETS.prefetchSheetNames(CONFIG.get().tagebuchId),
+    ]);
+
     // Jedes Blatt einzeln mit Fehlertoleranz laden
-    // Promise.allSettled statt Promise.all → ein Fehler bricht nicht alles ab
+    UI.setLoaderMsg('Lade Stammdaten…');
     const settled = await Promise.allSettled([
       SHEETS.readSheet('Hunde',              sid),
       SHEETS.readSheet('Parameter',          sid),
