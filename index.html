@@ -2,13 +2,8 @@
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  HUND MANAGER – Universelle Hundeernährungs- & Gesundheits-App  ║
-  ║  Version 2.0 | Modular | Multi-Hund | Google Sheets Backend     ║
-  ║                                                                  ║
-  ║  ERSTE EINRICHTUNG FÜR NEUE NUTZER:                              ║
-  ║  1. Google Sheets Dateien kopieren (Links in der Anleitung)      ║
-  ║  2. Google Cloud OAuth Client-ID erstellen                       ║
-  ║  3. IDs im Setup-Bildschirm eintragen                            ║
-  ║  → Vollständige Anleitung im ⚙️ Setup-Tab                        ║
+  ║  Version 2.1 | Modular | Multi-Hund | Google Sheets Backend     ║
+  ║  NEU: Alle 39 Nährstoffe · Einheitenumrechnung · Ref-Kopie      ║
   ╚══════════════════════════════════════════════════════════════════╝
 -->
 <html lang="de">
@@ -188,10 +183,28 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .fr-custom-toggle{font-size:12px;color:var(--c2);cursor:pointer;padding:4px 0;display:inline-block;margin-top:6px}
 .fr-custom-form{display:none;margin-top:10px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)}
 .fr-custom-form.open{display:block}
-.fr-custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;max-height:300px;overflow-y:auto}
+
+/* ── NEU: Nährstoff-Eingabe mit Einheitenumrechnung ─── */
+.nutr-input-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.nutr-input-row input{flex:1;min-width:0;padding:6px 8px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)}
+.unit-badge{font-size:11px;color:var(--sub);white-space:nowrap;min-width:28px;text-align:left;font-weight:600}
+.conv-btns{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px}
+.conv-btn{padding:2px 6px;font-size:10px;border:1px solid var(--c2);border-radius:3px;background:transparent;color:var(--c2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.conv-btn:active{background:var(--c2);color:#fff}
+.nutr-section-header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--c2);margin:12px 0 6px;padding:4px 6px;background:var(--fr-bg);border-radius:4px;border-left:3px solid var(--c2)}
+
+/* ── NEU: Nährstoff-Grid für alle 39 ─── */
+.fr-nutr-full-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:420px;overflow-y:auto;padding:4px 2px}
 .cf-field{display:flex;flex-direction:column;gap:3px}
 .cf-field label{font-size:10px;color:var(--sub);text-transform:uppercase;font-weight:600;letter-spacing:.04em}
 .cf-field input{padding:6px 8px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)}
+/* Ref-Kopie Box */
+.ref-copy-box{background:var(--fr-bg);border:1px solid var(--c2);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px}
+.ref-copy-box label{font-size:11px;font-weight:700;color:var(--c2);text-transform:none;letter-spacing:0;margin-bottom:4px}
+.ref-copy-row{display:flex;gap:6px;align-items:center}
+.ref-copy-row select{flex:1;padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)}
+.ref-copy-btn{padding:7px 12px;background:var(--c2);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;font-family:inherit}
+
 .fr-recipe-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;align-items:center;}
 .fr-recipe-card .rc-info{flex:1;cursor:pointer}
 .fr-recipe-card .rc-info h3{font-size:15px;font-weight:600;margin-bottom:3px}
@@ -353,8 +366,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <div class="po-item"><span class="po-val" id="fr-total-g">0</span><span class="po-label">g Tagesration</span></div>
         <div class="po-item"><span class="po-val" id="fr-portion-g">0</span><span class="po-label">g je Portion</span></div>
         <div class="po-item"><span class="po-val" id="fr-kcal-ist">0</span><span class="po-label">kcal Ist</span></div>
-      <div class="po-item"><span class="po-val" id="fr-kcal-bedarf">0</span><span class="po-label">kcal Bedarf</span></div>
-      <div class="po-item"><span class="po-val" id="fr-kcal-portion">0</span><span class="po-label">kcal je Portion</span></div>
+        <div class="po-item"><span class="po-val" id="fr-kcal-bedarf">0</span><span class="po-label">kcal Bedarf</span></div>
+        <div class="po-item"><span class="po-val" id="fr-kcal-portion">0</span><span class="po-label">kcal je Portion</span></div>
       </div>
       <div class="kcal-bar-wrap" id="fr-kcal-bar-wrap"><div class="kcal-bar" id="fr-kcal-bar"></div></div>
       <div class="fr-ratios">
@@ -393,13 +406,21 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
             </div>
             <span class="fr-custom-toggle" onclick="UI.toggleCustomForm()">✏️ Neue Zutat manuell erfassen</span>
             <div class="fr-custom-form" id="fr-custom-form">
+              <!-- Referenzprodukt -->
+              <div class="ref-copy-box">
+                <label>📋 Von Referenzprodukt kopieren (Nährstoffe übernehmen)</label>
+                <div class="ref-copy-row">
+                  <select id="fr-ref-zutat-select"><option value="">— Vorlage wählen —</option></select>
+                  <button class="ref-copy-btn" onclick="RECHNER.copyFromReference()">Kopieren</button>
+                </div>
+              </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
                 <div class="field" style="margin-bottom:0"><label>Name</label><input type="text" id="fr-custom-name" placeholder="z.B. Pferd (Muskelfleisch)"></div>
                 <div class="field" style="margin-bottom:0"><label>Hersteller</label><input type="text" id="fr-custom-hersteller" placeholder="z.B. barfers"></div>
               </div>
               <div class="field" style="margin-bottom:8px"><label>Kategorie</label><select id="fr-custom-kategorie"><option value="">— wählen —</option></select></div>
-              <div class="fr-custom-grid" id="fr-custom-nutr-grid"></div>
-              <button class="btn-primary" style="margin-top:10px;padding:10px" onclick="RECHNER.saveCustomIngredient()">Zutat speichern & einfügen</button>
+              <div id="fr-custom-nutr-grid"></div>
+              <button class="btn-primary" style="margin-top:10px;padding:10px" onclick="RECHNER.saveCustomIngredient()">Zutat speichern &amp; einfügen</button>
             </div>
           </div>
         </div>
@@ -626,7 +647,15 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </div>
     <div id="sd-zutaten" class="section">
       <p class="section-title">🥩 Zutaten verwalten</p>
-      <button class="btn-primary" style="margin-bottom:1rem" onclick="STAMMDATEN.showZutatModal()">+ Neue Zutat hinzufügen</button>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="btn-primary" style="flex:1;margin-top:0" onclick="STAMMDATEN.showZutatModal()">+ Neue Zutat</button>
+        <div style="display:flex;gap:6px;flex:2;min-width:0">
+          <input type="text" id="sd-zutat-search" placeholder="🔍 Suchen…" style="flex:1;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)" oninput="STAMMDATEN.filterZutaten()">
+          <select id="sd-zutat-kat-filter" style="padding:10px 12px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);max-width:120px" onchange="STAMMDATEN.filterZutaten()">
+            <option value="">Alle Kat.</option>
+          </select>
+        </div>
+      </div>
       <div id="sd-zutaten-list"><div class="view-loading"><div class="spinner"></div></div></div>
     </div>
     <div id="sd-parameter" class="section">
@@ -668,7 +697,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       <h3>📖 Anleitung für neue Nutzer</h3>
       <p>Folge diesen Schritten um das System für dich einzurichten:</p>
       <div class="setup-step"><h4><span class="step-num">1</span>Google Sheets Dateien kopieren</h4><p>Öffne die folgenden Links und erstelle eine Kopie in deinem eigenen Google Drive (<strong>Datei → Kopie erstellen</strong>):</p><div class="code-box">Hund_Stammdaten:<br>→ In deinen Google Drive kopieren</div><div class="code-box" style="margin-top:6px">Hund_Tagebuch:<br>→ In deinen Google Drive kopieren</div><p style="margin-top:.5rem">Nach dem Kopieren findest du die <strong>Spreadsheet-ID</strong> in der URL deines Browsers.</p></div>
-      <div class="setup-step"><h4><span class="step-num">2</span>Google Cloud OAuth Client-ID erstellen</h4><p>1. Gehe zu <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>2. Neues Projekt erstellen (oder bestehendes wählen)<br>3. <strong>APIs &amp; Services → Bibliothek</strong> → „Google Sheets API" aktivieren<br>4. <strong>APIs &amp; Services → Anmeldedaten</strong> → OAuth-Client-ID erstellen<br>5. Anwendungstyp: <strong>Webanwendung</strong><br>6. Autorisierte JavaScript-Quellen: die Domain wo du diese Datei hostest (oder <code>http://localhost</code> für lokale Tests)<br>7. Client-ID kopieren und oben eintragen</p></div>
+      <div class="setup-step"><h4><span class="step-num">2</span>Google Cloud OAuth Client-ID erstellen</h4><p>1. Gehe zu <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>2. Neues Projekt erstellen (oder bestehendes wählen)<br>3. <strong>APIs &amp; Services → Bibliothek</strong> → „Google Sheets API" aktivieren<br>4. <strong>APIs &amp; Services → Anmeldedaten</strong> → OAuth-Client-ID erstellen<br>5. Anwendungstyp: <strong>Webanwendung</strong><br>6. Autorisierte JavaScript-Quellen: die Domain wo du diese Datei hostest<br>7. Client-ID kopieren und oben eintragen</p></div>
       <div class="setup-step"><h4><span class="step-num">3</span>IDs eintragen und testen</h4><p>Trage alle IDs in den Feldern oben ein und klicke auf „Verbindung testen".</p></div>
       <div class="setup-step"><h4><span class="step-num">4</span>Ersten Hund anlegen</h4><p>Gehe zu <strong>🗂️ Stammdaten → 🐕 Hunde</strong> und lege deinen ersten Hund an.</p></div>
       <div class="setup-step"><h4><span class="step-num">5</span>App installieren (optional)</h4><p><strong>iPhone:</strong> Teilen-Button → „Zum Home-Bildschirm"<br><strong>Android:</strong> Menü (⋮) → „Zum Startbildschirm hinzufügen"</p></div>
@@ -676,7 +705,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     <div class="settings-box">
       <h3>ℹ️ App-Info</h3>
       <p style="font-size:12px;color:var(--sub);line-height:1.8">
-        Version 2.0 · Multi-Hund · Modular<br>
+        Version 2.1 · Multi-Hund · Modular<br>
+        NEU: Alle 39 NRC-Nährstoffe · Einheitenumrechnung · Referenzprodukt-Kopie<br>
         Datenbank: Google Sheets (Hund_Stammdaten + Hund_Tagebuch)<br>
         NRC 2006 Bedarfswerte · Toleranzen individuell anpassbar<br>
         Wetter: DWD via BrightSky API · Pollen: DWD OpenData
@@ -707,6 +737,180 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 <script src="https://accounts.google.com/gsi/client" async></script>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════════
+   KONSTANTE: Alle 39 NRC 2006 Nährstoffe mit IDs & Einheiten
+   ═══════════════════════════════════════════════════════════════════ */
+const NRC_NAEHRSTOFFE = [
+  // Gruppe: Energie & Makronährstoffe
+  {id:1,  name:'Energie',                    einheit:'kcal', gruppe:'Energie & Makro',    bedarf:100,    konv:null},
+  {id:2,  name:'Rohprotein',                 einheit:'g',    gruppe:'Energie & Makro',    bedarf:3.28,   konv:['g','mg']},
+  {id:3,  name:'Fett',                       einheit:'g',    gruppe:'Energie & Makro',    bedarf:1.8,    konv:['g','mg']},
+  // Gruppe: Mengenelemente
+  {id:4,  name:'Calcium',                    einheit:'g',    gruppe:'Mengenelemente',     bedarf:0.13,   konv:['g','mg']},
+  {id:5,  name:'Phosphor',                   einheit:'g',    gruppe:'Mengenelemente',     bedarf:0.1,    konv:['g','mg']},
+  {id:6,  name:'Magnesium',                  einheit:'mg',   gruppe:'Mengenelemente',     bedarf:19.7,   konv:['mg','g','µg']},
+  {id:7,  name:'Natrium',                    einheit:'mg',   gruppe:'Mengenelemente',     bedarf:26.2,   konv:['mg','g','µg']},
+  {id:8,  name:'Kalium',                     einheit:'g',    gruppe:'Mengenelemente',     bedarf:0.14,   konv:['g','mg']},
+  // Gruppe: Spurenelemente
+  {id:9,  name:'Eisen',                      einheit:'mg',   gruppe:'Spurenelemente',     bedarf:1,      konv:['mg','g','µg']},
+  {id:10, name:'Kupfer',                     einheit:'mg',   gruppe:'Spurenelemente',     bedarf:0.2,    konv:['mg','µg','g']},
+  {id:11, name:'Zink',                       einheit:'mg',   gruppe:'Spurenelemente',     bedarf:2,      konv:['mg','g','µg']},
+  {id:12, name:'Mangan',                     einheit:'mg',   gruppe:'Spurenelemente',     bedarf:0.16,   konv:['mg','µg','g']},
+  {id:13, name:'Selen',                      einheit:'µg',   gruppe:'Spurenelemente',     bedarf:11.8,   konv:['µg','mg']},
+  {id:14, name:'Jod',                        einheit:'µg',   gruppe:'Spurenelemente',     bedarf:29.8,   konv:['µg','mg']},
+  // Gruppe: Fettlösliche Vitamine
+  {id:15, name:'Vitamin A',                  einheit:'IE',   gruppe:'Vitamine (fettlösl)',bedarf:167,    konv:['IE','µg']},
+  {id:16, name:'Vitamin D',                  einheit:'IE',   gruppe:'Vitamine (fettlösl)',bedarf:18,     konv:['IE','µg']},
+  {id:17, name:'Vitamin E',                  einheit:'mg',   gruppe:'Vitamine (fettlösl)',bedarf:1,      konv:['mg','IE','µg']},
+  // Gruppe: B-Vitamine
+  {id:18, name:'Vitamin B1 (Thiamin)',        einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0.074,  konv:['mg','µg']},
+  {id:19, name:'Vitamin B2 (Riboflavin)',     einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0.171,  konv:['mg','µg']},
+  {id:20, name:'Vitamin B6 (Pyridoxin)',      einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0.049,  konv:['mg','µg']},
+  {id:21, name:'Vitamin B12 (Cobalamin)',     einheit:'µg',   gruppe:'B-Vitamine',         bedarf:1.15,   konv:['µg','mg']},
+  {id:22, name:'Vitamin B3 (Niacin)',         einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0.57,   konv:['mg','µg']},
+  {id:23, name:'Vitamin B5 (Pantothensäure)', einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0.49,   konv:['mg','µg']},
+  {id:24, name:'Vitamin B9 (Folsäure)',       einheit:'µg',   gruppe:'B-Vitamine',         bedarf:8.9,    konv:['µg','mg']},
+  {id:25, name:'Vitamin B4 (Cholin)',         einheit:'mg',   gruppe:'B-Vitamine',         bedarf:56,     konv:['mg','g','µg']},
+  {id:26, name:'Vitamin C (Ascorbinsäure)',   einheit:'mg',   gruppe:'B-Vitamine',         bedarf:0,      konv:['mg','µg']},
+  // Gruppe: Fettsäuren
+  {id:27, name:'Linolsäure',                 einheit:'g',    gruppe:'Fettsäuren',         bedarf:0.36,   konv:['g','mg']},
+  {id:28, name:'α-Linolensäure',             einheit:'g',    gruppe:'Fettsäuren',         bedarf:0.014,  konv:['g','mg']},
+  {id:29, name:'EPA + DHA',                  einheit:'g',    gruppe:'Fettsäuren',         bedarf:0.03,   konv:['g','mg']},
+  // Gruppe: Aminosäuren
+  {id:30, name:'Arginin',                    einheit:'mg',   gruppe:'Aminosäuren',        bedarf:110,    konv:['mg','g']},
+  {id:31, name:'Histidin',                   einheit:'mg',   gruppe:'Aminosäuren',        bedarf:62,     konv:['mg','g']},
+  {id:32, name:'Isoleucin',                  einheit:'mg',   gruppe:'Aminosäuren',        bedarf:120,    konv:['mg','g']},
+  {id:33, name:'Leucin',                     einheit:'mg',   gruppe:'Aminosäuren',        bedarf:220,    konv:['mg','g']},
+  {id:34, name:'Lysin',                      einheit:'mg',   gruppe:'Aminosäuren',        bedarf:110,    konv:['mg','g']},
+  {id:35, name:'Methionin/Cystin',           einheit:'mg',   gruppe:'Aminosäuren',        bedarf:210,    konv:['mg','g']},
+  {id:36, name:'Phenylalanin/Tyrosin',       einheit:'mg',   gruppe:'Aminosäuren',        bedarf:240,    konv:['mg','g']},
+  {id:37, name:'Threonin',                   einheit:'mg',   gruppe:'Aminosäuren',        bedarf:140,    konv:['mg','g']},
+  {id:38, name:'Tryptophan',                 einheit:'mg',   gruppe:'Aminosäuren',        bedarf:46,     konv:['mg','g']},
+  {id:39, name:'Valin',                      einheit:'mg',   gruppe:'Aminosäuren',        bedarf:160,    konv:['mg','g']},
+];
+
+/* ═══════════════════════════════════════════════════════════════════
+   HILFSFUNKTION: Einheitenumrechnung
+   ═══════════════════════════════════════════════════════════════════ */
+const UNIT_CONV = {
+  // Faktoren: Eingabe-Einheit → Basis-Einheit (g)
+  // dann Basis → Ziel-Einheit
+  convert(value, fromUnit, toUnit) {
+    if(fromUnit === toUnit) return value;
+    // Normiere auf µg als Kleinsteinheit für Vitamine/Spurenelemente
+    // Nutze allgemeine Faktoren
+    const toMicro = {g:1e6, mg:1e3, µg:1, IE:1}; // Näherung für IE: variiert je Vitamin
+    const ie_factors = {
+      'Vitamin A': {µgToIE: 3.33},   // 1 µg Retinol = 3.33 IE
+      'Vitamin D': {µgToIE: 40},     // 1 µg = 40 IE
+      'Vitamin E': {mgToIE: 1.49},   // 1 mg d-alpha-Tocopherol ≈ 1.49 IE
+    };
+    if(fromUnit === toUnit) return value;
+    const units = ['µg','mg','g'];
+    const fi = units.indexOf(fromUnit), ti = units.indexOf(toUnit);
+    if(fi !== -1 && ti !== -1) {
+      const inMicro = value * Math.pow(1000, fi);
+      return inMicro / Math.pow(1000, ti);
+    }
+    // IE-Umrechnungen
+    if(fromUnit==='IE' && toUnit==='µg') return value / 3.33;
+    if(fromUnit==='µg' && toUnit==='IE') return value * 3.33;
+    if(fromUnit==='IE' && toUnit==='mg') return value / 3330;
+    if(fromUnit==='mg' && toUnit==='IE') return value * 3330;
+    return value;
+  },
+  label(from, to) {
+    const arrows = {'g→mg':'×1000','mg→g':'÷1000','mg→µg':'×1000','µg→mg':'÷1000','g→µg':'×1e6','µg→g':'÷1e6','IE→µg':'÷3.33','µg→IE':'×3.33','mg→IE':'×3330','IE→mg':'÷3330'};
+    return arrows[from+'→'+to] || (from+'→'+to);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE: NUTR_INPUT – Nährstoff-Eingabe-Komponente mit Umrechnung
+   ═══════════════════════════════════════════════════════════════════ */
+const NUTR_INPUT = (() => {
+  // Rendert ein Nährstoff-Input-Feld mit Umrechnungs-Buttons
+  // prefix: eindeutiger ID-Präfix, nutrDef: Eintrag aus NRC_NAEHRSTOFFE
+  function renderField(prefix, nutrDef) {
+    const inputId = `${prefix}_${nutrDef.id}`;
+    const safeUnit = nutrDef.einheit;
+    // Umrechnungs-Buttons
+    let convHtml = '';
+    if(nutrDef.konv && nutrDef.konv.length > 1) {
+      const btns = [];
+      for(let i = 0; i < nutrDef.konv.length - 1; i++) {
+        const from = nutrDef.konv[i], to = nutrDef.konv[i+1];
+        btns.push(`<button type="button" class="conv-btn" onclick="NUTR_INPUT.doConvert('${inputId}','${from}','${to}')" title="${from} → ${to}">${UNIT_CONV.label(from,to)}: ${from}→${to}</button>`);
+      }
+      if(btns.length) convHtml = `<div class="conv-btns">${btns.join('')}</div>`;
+    }
+    return `<div class="cf-field">
+      <label>${nutrDef.name} <span style="color:var(--c2);font-size:9px">#${nutrDef.id}</span></label>
+      <div class="nutr-input-row">
+        <input type="number" id="${inputId}" placeholder="0" step="any" min="0" inputmode="decimal">
+        <span class="unit-badge">${safeUnit}/100g</span>
+      </div>
+      ${convHtml}
+    </div>`;
+  }
+
+  // Rendert alle 39 Nährstoffe gruppiert
+  function renderAll(prefix) {
+    const groups = {};
+    NRC_NAEHRSTOFFE.forEach(n => {
+      if(!groups[n.gruppe]) groups[n.gruppe] = [];
+      groups[n.gruppe].push(n);
+    });
+    let html = '';
+    Object.entries(groups).forEach(([gruppe, items]) => {
+      html += `<div class="nutr-section-header">📂 ${gruppe}</div>`;
+      html += `<div class="fr-nutr-full-grid">`;
+      items.forEach(n => { html += renderField(prefix, n); });
+      html += `</div>`;
+    });
+    return html;
+  }
+
+  // Wert in einem Feld umrechnen
+  function doConvert(inputId, fromUnit, toUnit) {
+    const el = document.getElementById(inputId);
+    if(!el) return;
+    const val = parseFloat(el.value);
+    if(isNaN(val) || val === 0) return;
+    const converted = UNIT_CONV.convert(val, fromUnit, toUnit);
+    el.value = converted < 0.001 ? converted.toExponential(3) : parseFloat(converted.toPrecision(6));
+  }
+
+  // Liest alle Werte aus und gibt Map zurück: {nutrName → wert}
+  function readValues(prefix) {
+    const result = {};
+    NRC_NAEHRSTOFFE.forEach(n => {
+      const el = document.getElementById(`${prefix}_${n.id}`);
+      result[n.name] = parseFloat(el?.value) || 0;
+    });
+    return result;
+  }
+
+  // Schreibt Werte in die Felder
+  function writeValues(prefix, valMap) {
+    NRC_NAEHRSTOFFE.forEach(n => {
+      const el = document.getElementById(`${prefix}_${n.id}`);
+      if(el && valMap[n.name] !== undefined) el.value = valMap[n.name] || '';
+    });
+  }
+
+  // Leert alle Felder
+  function clearValues(prefix) {
+    NRC_NAEHRSTOFFE.forEach(n => {
+      const el = document.getElementById(`${prefix}_${n.id}`);
+      if(el) el.value = '';
+    });
+  }
+
+  return {renderAll, renderField, doConvert, readValues, writeValues, clearValues};
+})();
+
+
 /* ═══════════════════════════════════════════════════════════════════
    MODULE: CONFIG
    ═══════════════════════════════════════════════════════════════════ */
@@ -915,6 +1119,12 @@ const STORE = (() => {
     bedarf=parseRows(rBedarf,['naehrstoff_id','naehrstoff_name','einheit','bedarf_pro_mkg','quelle'],2)
       .map(r=>{const nutrInfo=naehrstoffe.find(n=>n.naehrstoff_id===(parseInt(r.naehrstoff_id)||0));return{naehrstoff_id:parseInt(r.naehrstoff_id)||0,name:r.naehrstoff_name,einheit:r.einheit,bedarf_pro_mkg:parseFloat(r.bedarf_pro_mkg)||0,quelle:r.quelle,gruppe:nutrInfo?.gruppe||'Sonstiges'};})
       .filter(r=>r.name);
+    // Fehlende Bedarfswerte aus NRC_NAEHRSTOFFE ergänzen
+    NRC_NAEHRSTOFFE.forEach(n => {
+      if(!bedarf.find(b=>b.naehrstoff_id===n.id)) {
+        bedarf.push({naehrstoff_id:n.id,name:n.name,einheit:n.einheit,bedarf_pro_mkg:n.bedarf,quelle:'NRC 2006',gruppe:n.gruppe});
+      }
+    });
     zutaten=parseRows(rZutaten,['zutaten_id','name','hersteller','kategorie','aktiv'],2)
       .map(r=>({...r,zutaten_id:parseInt(r.zutaten_id)||0})).filter(r=>r.name);
     zutatNutr=parseRows(rZutatNutr,['zutaten_id','naehrstoff_id','naehrstoff_name','wert_pro_100g'],2)
@@ -946,11 +1156,17 @@ const STORE = (() => {
   function getToleranz(){return toleranzen;}
   function getNaehrstoffInfo(name){return naehrstoffe.find(n=>n.name===name)||null;}
   function getBedarfByName(name){return bedarf.find(b=>b.name===name)||null;}
+  function getZutatNutr(zutatId){return zutatNutr.filter(r=>r.zutaten_id===zutatId);}
   function addHund(h){hunde.push(h);}
   function updateHund(id,fields){const h=hunde.find(x=>x.hund_id===id);if(h)Object.assign(h,fields);}
   function addZutat(z){zutaten.push(z);}
+  function updateZutat(id,fields){const z=zutaten.find(x=>x.zutaten_id===id);if(z)Object.assign(z,fields);}
   function addZutatNutr(entries){zutatNutr.push(...entries);}
-  return {loadAll,getHunde,getParameter,getNaehrstoffe,getBedarf,getZutaten,getRezepte,getRezeptZutaten,getToleranz,getNutrMap,getTolerance,getKalorienParam,getNaehrstoffInfo,getBedarfByName,addHund,updateHund,addZutat,addZutatNutr};
+  function replaceZutatNutr(zutatId, entries){
+    const kept = zutatNutr.filter(r=>r.zutaten_id!==zutatId);
+    zutatNutr.length=0; zutatNutr.push(...kept,...entries);
+  }
+  return {loadAll,getHunde,getParameter,getNaehrstoffe,getBedarf,getZutaten,getRezepte,getRezeptZutaten,getToleranz,getNutrMap,getTolerance,getKalorienParam,getNaehrstoffInfo,getBedarfByName,getZutatNutr,addHund,updateHund,addZutat,updateZutat,addZutatNutr,replaceZutatNutr};
 })();
 
 
@@ -964,7 +1180,15 @@ const UI = (() => {
   function switchStammdatenTab(tab){['hunde','zutaten','parameter'].forEach(t=>{const el=document.getElementById('sd-'+t);if(el){el.classList.toggle('active',t===tab);el.style.display=t===tab?'block':'none';}});const btns=document.querySelectorAll('#panel-stammdaten .tab');['hunde','zutaten','parameter'].forEach((t,i)=>btns[i]?.classList.toggle('active',t===tab));STAMMDATEN.loadTab(tab);}
   function switchMode(mode){document.getElementById('mode-eingabe')?.classList.toggle('active',mode==='eingabe');document.getElementById('mode-ansicht')?.classList.toggle('active',mode==='ansicht');document.getElementById('mode-eingabe-panel').style.display=mode==='eingabe'?'block':'none';document.getElementById('mode-ansicht-panel').style.display=mode==='ansicht'?'block':'none';}
   function toggleSection(id,el){el.classList.toggle('open');document.getElementById('fr-sec-'+id)?.classList.toggle('open');}
-  function toggleCustomForm(){document.getElementById('fr-custom-form')?.classList.toggle('open');}
+  function toggleCustomForm(){
+    const form = document.getElementById('fr-custom-form');
+    if(!form) return;
+    form.classList.toggle('open');
+    if(form.classList.contains('open')) {
+      RECHNER.initCustomNutrGrid();
+      RECHNER.populateRefZutatSelect();
+    }
+  }
   function showSetupFromLogin(){document.getElementById('login-screen').style.display='none';document.getElementById('main-screen').style.display='block';document.getElementById('top-nav').style.display='none';switchTopPanel('einst');}
   function showLoader(msg){document.getElementById('app-loader').style.display='flex';document.getElementById('loader-msg').textContent=msg||'Wird geladen…';}
   function hideLoader(){document.getElementById('app-loader').style.display='none';}
@@ -972,7 +1196,7 @@ const UI = (() => {
   function setStatus(id,type,msg){const el=document.getElementById(id);if(!el)return;el.className='status '+type;el.textContent=msg;}
   function setToday(id){const d=new Date();const el=document.getElementById(id);if(el)el.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   function formatDate(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'.'+m+'.'+y;}
-  function esc(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function openModal(title,bodyHtml){document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').innerHTML=bodyHtml;document.getElementById('modal-overlay').style.display='flex';}
   function closeModal(event){if(event&&event.target!==document.getElementById('modal-overlay'))return;document.getElementById('modal-overlay').style.display='none';}
   function showNutrPopup(nutrName){const info=STORE.getNaehrstoffInfo(nutrName);const bedarfInfo=STORE.getBedarfByName(nutrName);if(!info&&!bedarfInfo)return;document.getElementById('nutr-popup-name').textContent=info?.name||nutrName;document.getElementById('nutr-popup-meta').textContent=`${info?.einheit||''} · ${info?.gruppe||''} · Bedarf: ${bedarfInfo?.bedarf_pro_mkg||'–'} ${info?.einheit||''}/kg^0,75 (${bedarfInfo?.quelle||''})`;let html='';if(info?.beschreibung)html+=`<div class="nutr-section-label">Was ist das?</div><p>${esc(info.beschreibung)}</p>`;if(info?.funktion)html+=`<div class="nutr-section-label">Funktion</div><p>${esc(info.funktion)}</p>`;if(info?.mangel_symptome)html+=`<div class="nutr-section-label">Mangel-Symptome</div><p>${esc(info.mangel_symptome)}</p>`;if(info?.quellen)html+=`<div class="nutr-section-label">Quellen</div><p>${esc(info.quellen)}</p>`;if(info?.obergrenze_info)html+=`<div class="nutr-section-label">⚠️ Obergrenze</div><p>${esc(info.obergrenze_info)}</p>`;document.getElementById('nutr-popup-content').innerHTML=html;document.getElementById('nutr-popup').style.display='flex';}
@@ -1063,8 +1287,6 @@ const WETTER = (() => {
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE: TAGEBUCH
-   ─ KORRIGIERT: Sheet-Namen passen zu den tatsächlichen Tab-Namen
-   ─ in Hund_Tagebuch (laut Screenshot / Verbindungstest)
    ═══════════════════════════════════════════════════════════════════ */
 const TAGEBUCH = (() => {
   function getHundId(){return parseInt(document.getElementById('tb-hund-select')?.value)||1;}
@@ -1076,7 +1298,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-u');btn.disabled=true;
     UI.setStatus('status-u','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Umweltagebuch' statt 'Umwelt'
       await SHEETS.appendRow('Umweltagebuch',[
         getHundId(),fd(datum),
         document.getElementById('u-temp-min').value,
@@ -1102,7 +1323,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-s');btn.disabled=true;
     UI.setStatus('status-s','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Symptomtagebuch' statt 'Symptome'
       await SHEETS.appendRow('Symptomtagebuch',[
         getHundId(),fd(datum),
         FORM.getSymKat(document.getElementById('s-kat-extra').value),
@@ -1126,7 +1346,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-f');btn.disabled=true;
     UI.setStatus('status-f','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Futtertagebuch' statt 'Futter'
       await SHEETS.appendRow('Futtertagebuch',[
         getHundId(),fd(datum),futter,
         document.getElementById('f-produkt').value,
@@ -1147,7 +1366,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-a');btn.disabled=true;
     UI.setStatus('status-a','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Ausschlussdiät' statt 'Ausschluss'
       await SHEETS.appendRow('Ausschlussdiät',[
         getHundId(),zutat,FORM.getAVerd(),
         document.getElementById('a-kategorie').value,
@@ -1169,7 +1387,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-al');btn.disabled=true;
     UI.setStatus('status-al','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Bekannte Allergene' statt 'Allergene'
       await SHEETS.appendRow('Bekannte Allergene',[
         getHundId(),allergen,
         document.getElementById('al-kategorie').value,
@@ -1190,7 +1407,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-t');btn.disabled=true;
     UI.setStatus('status-t','loading','Wird gespeichert…');
     try {
-      // ✅ KORRIGIERT: 'Tierarztbesuche' statt 'Tierarzt'
       await SHEETS.appendRow('Tierarztbesuche',[
         getHundId(),fd(datum),
         document.getElementById('t-arzt').value,
@@ -1213,7 +1429,6 @@ const TAGEBUCH = (() => {
     const btn=document.getElementById('btn-m');btn.disabled=true;
     UI.setStatus('status-m','loading','Wird gespeichert…');
     try {
-      // 'Medikamente' – bleibt unverändert, Name stimmt bereits überein
       await SHEETS.appendRow('Medikamente',[
         getHundId(),name,
         document.getElementById('m-typ').value,
@@ -1256,11 +1471,8 @@ const TAGEBUCH = (() => {
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE: ANSICHT
-   ─ KORRIGIERT: SHEET_MAP spiegelt tatsächliche Tab-Namen wider
    ═══════════════════════════════════════════════════════════════════ */
 const ANSICHT = (() => {
-
-  // ✅ KORRIGIERT: Alle Sheet-Namen an tatsächliche Tab-Namen in Hund_Tagebuch angepasst
   const SHEET_MAP = {
     umwelt:     'Umweltagebuch',
     symptom:    'Symptomtagebuch',
@@ -1278,12 +1490,10 @@ const ANSICHT = (() => {
     try {
       const sheet=SHEET_MAP[which];
       const rows=await SHEETS.readSheet(sheet,CONFIG.get().tagebuchId);
-      // slice(2): Zeile 1 = Titel, Zeile 2 = Header, Daten ab Zeile 3
       const dataRows=rows.slice(2).filter(r=>r&&r.some(v=>v!==null&&v!==undefined&&String(v).trim()!==''));
       if(!dataRows.length){el.innerHTML='<div class="view-empty"><div class="icon">📭</div>Noch keine Einträge.<br><small style="font-size:11px;color:var(--sub)">Sheet: '+sheet+' · Zeilen: '+rows.length+'</small></div>';return;}
       const hundId=String(parseInt(document.getElementById('tb-hund-select')?.value)||1);
-      // Trim auf beiden Seiten für robuste hund_id Filterung
-     const filtered = dataRows.filter(r => {
+      const filtered = dataRows.filter(r => {
         const col0 = String(r[0] || '').trim();
         if (!col0) return true;
         if (col0.includes('.') || col0.includes('-')) return true;
@@ -1398,6 +1608,7 @@ const RECHNER = (() => {
     if(katSel){katSel.innerHTML='<option value="">🏷 Alle Kategorien</option>';[...new Set(STORE.getZutaten().map(z=>z.kategorie).filter(Boolean))].sort().forEach(c=>{const opt=document.createElement('option');opt.value=c;opt.textContent=c;katSel.appendChild(opt);});}
     if(herSel){herSel.innerHTML='<option value="">🏭 Alle Hersteller</option>';[...new Set(STORE.getZutaten().map(z=>z.hersteller).filter(Boolean))].sort().forEach(h=>{const opt=document.createElement('option');opt.value=h;opt.textContent=h;herSel.appendChild(opt);});}
     filterIngredients();
+    populateRefZutatSelect();
   }
 
   function filterIngredients(){
@@ -1408,6 +1619,61 @@ const RECHNER = (() => {
     let total=0;
     Object.entries(groups).forEach(([kat,items])=>{const grp=document.createElement('optgroup');grp.label=kat+' ('+items.length+')';items.forEach(z=>{const opt=document.createElement('option');opt.value=z.zutaten_id;opt.textContent=z.name+(z.hersteller?' · '+z.hersteller:'');grp.appendChild(opt);total++;});sel.appendChild(grp);});
     if(!total){const opt=document.createElement('option');opt.disabled=true;opt.textContent='Keine Zutaten für diese Filter';sel.appendChild(opt);}
+  }
+
+  // ── NEU: Referenzprodukt-Dropdown befüllen
+  function populateRefZutatSelect() {
+    const sel = document.getElementById('fr-ref-zutat-select');
+    if(!sel) return;
+    sel.innerHTML = '<option value="">— Vorlage wählen —</option>';
+    const groups = {};
+    STORE.getZutaten().filter(z=>z.aktiv!=='nein').sort((a,b)=>a.name.localeCompare(b.name,'de')).forEach(z=>{
+      const kat = z.kategorie || 'Sonstiges';
+      if(!groups[kat]) groups[kat] = [];
+      groups[kat].push(z);
+    });
+    Object.entries(groups).forEach(([kat, items]) => {
+      const grp = document.createElement('optgroup');
+      grp.label = kat;
+      items.forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z.zutaten_id;
+        opt.textContent = z.name + (z.hersteller ? ' · '+z.hersteller : '');
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+  }
+
+  // ── NEU: Referenzprodukt-Nährstoffe kopieren
+  function copyFromReference() {
+    const sel = document.getElementById('fr-ref-zutat-select');
+    const zutatId = parseInt(sel?.value);
+    if(!zutatId) { alert('Bitte eine Vorlage wählen.'); return; }
+    const zutat = STORE.getZutaten().find(z => z.zutaten_id === zutatId);
+    const nutrEntries = STORE.getZutatNutr(zutatId);
+    if(!nutrEntries.length) { alert('Für diese Zutat sind keine Nährstoffe gespeichert.'); return; }
+    // Nährstoffnamen → Werte Map
+    const valMap = {};
+    nutrEntries.forEach(e => { valMap[e.naehrstoff_name] = e.wert_pro_100g; });
+    NUTR_INPUT.writeValues('cfn', valMap);
+    // Optionally: Hersteller/Kategorie vorausfüllen
+    const herEl = document.getElementById('fr-custom-hersteller');
+    const katEl = document.getElementById('fr-custom-kategorie');
+    if(herEl && !herEl.value && zutat?.hersteller) herEl.value = zutat.hersteller;
+    if(katEl && zutat?.kategorie) katEl.value = zutat.kategorie;
+    // Zeige Bestätigung
+    const count = Object.values(valMap).filter(v => v > 0).length;
+    const infoEl = document.createElement('div');
+    infoEl.className = 'status ok';
+    infoEl.textContent = `✓ ${count} Nährstoffe von „${zutat?.name || '?'}" übernommen.`;
+    infoEl.style.display = 'block';
+    infoEl.style.marginTop = '6px';
+    const box = document.querySelector('.ref-copy-box');
+    const old = box?.querySelector('.status');
+    if(old) old.remove();
+    box?.appendChild(infoEl);
+    setTimeout(() => infoEl.remove(), 4000);
   }
 
   function addIngredient(){
@@ -1430,10 +1696,12 @@ const RECHNER = (() => {
     list.innerHTML=currentRecipe.ingredients.map((ing,i)=>{const zutat=STORE.getZutaten().find(z=>z.zutaten_id===ing.zutaten_id)||{};const kat=zutat.kategorie||'';return`<div class="fr-ing-row"><div class="ing-name">${UI.esc(ing.name)}<small>${kat?`<span class="kat-badge">${UI.esc(kat)}</span>`:''}</small></div><input type="number" value="${ing.grams}" min="0" step="0.1" onchange="RECHNER.updateGrams(${i},this.value)" inputmode="decimal"><div style="display:flex;align-items:center;justify-content:center;gap:4px"><button class="cooked-toggle${ing.cooked?' on':''}" onclick="RECHNER.toggleCooked(${i})" title="${ing.cooked?'Gekocht':'Roh'}"></button><span style="font-size:10px;color:var(--sub)">${ing.cooked?'🔥':'🥩'}</span></div><button class="del-btn" onclick="RECHNER.removeIngredient(${i})">✕</button></div>`;}).join('');
   }
 
+  // ── NEU: Custom Nährstoff-Grid mit allen 39 NRC-Nährstoffen
   function initCustomNutrGrid(){
-    const grid=document.getElementById('fr-custom-nutr-grid');if(!grid)return;
-    const mainNutr=['Rohprotein','Fett','Calcium','Phosphor','Magnesium','Natrium','Eisen','Kupfer','Zink','Selen','Jod','Vitamin A','Vitamin D','Vitamin E','Linolsäure','α-Linolensäure','EPA + DHA'];
-    grid.innerHTML=mainNutr.map(name=>{const b=STORE.getBedarfByName(name);const unit=b?.einheit||'?';return`<div class="cf-field"><label>${UI.esc(name)} [${unit}/100g]</label><input type="number" id="cfn-${name.replace(/[^a-zA-Z0-9]/g,'_')}" placeholder="0" step="any" min="0"></div>`;}).join('');
+    const grid=document.getElementById('fr-custom-nutr-grid');
+    if(!grid || grid.dataset.initialized === '1') return;
+    grid.innerHTML = NUTR_INPUT.renderAll('cfn');
+    grid.dataset.initialized = '1';
   }
 
   async function saveCustomIngredient(){
@@ -1445,13 +1713,22 @@ const RECHNER = (() => {
     const sid=CONFIG.get().stammdatenId;
     try {
       await SHEETS.appendRow('Zutaten',[newId,name,hersteller,kategorie,'ja'],sid);
-      const bedarf=STORE.getBedarf();
-      const mainNutr=['Rohprotein','Fett','Calcium','Phosphor','Magnesium','Natrium','Eisen','Kupfer','Zink','Selen','Jod','Vitamin A','Vitamin D','Vitamin E','Linolsäure','α-Linolensäure','EPA + DHA'];
-      for(const nutrName of mainNutr){const el=document.getElementById('cfn-'+nutrName.replace(/[^a-zA-Z0-9]/g,'_'));const val=parseFloat(el?.value)||0;const b=bedarf.find(bd=>bd.name===nutrName);if(b)await SHEETS.appendRow('Zutaten_Naehrstoffe',[newId,b.naehrstoff_id||'',nutrName,val],sid);}
+      // Alle 39 Nährstoffe aus dem Grid lesen und speichern
+      const nutrValues = NUTR_INPUT.readValues('cfn');
+      const nutrEntries = [];
+      for(const nutr of NRC_NAEHRSTOFFE) {
+        const val = nutrValues[nutr.name] || 0;
+        // Nur Einträge mit Wert > 0 oder immer speichern (hier: immer alle 39)
+        await SHEETS.appendRow('Zutaten_Naehrstoffe',[newId, nutr.id, nutr.name, val], sid);
+        nutrEntries.push({zutaten_id:newId, naehrstoff_id:nutr.id, naehrstoff_name:nutr.name, wert_pro_100g:val});
+      }
       STORE.addZutat({zutaten_id:newId,name,hersteller,kategorie,aktiv:'ja'});
+      STORE.addZutatNutr(nutrEntries);
       initIngredientSelect();
-      document.getElementById('fr-custom-name').value='';document.getElementById('fr-custom-hersteller').value='';document.getElementById('fr-custom-form').classList.remove('open');
-      alert('✓ Zutat "'+name+'" gespeichert und hinzugefügt!');
+      document.getElementById('fr-custom-name').value='';document.getElementById('fr-custom-hersteller').value='';
+      NUTR_INPUT.clearValues('cfn');
+      document.getElementById('fr-custom-form').classList.remove('open');
+      alert('✓ Zutat "'+name+'" mit allen Nährstoffen gespeichert!');
       currentRecipe?.ingredients.push({zutaten_id:newId,name,grams:100,cooked:false});
       baseIngredients=(currentRecipe?.ingredients||[]).map(i=>({...i,grams:i.grams/scaleFactor}));
       renderIngredients();recalc();
@@ -1517,7 +1794,7 @@ const RECHNER = (() => {
 
   function renderNutrTable(totals,mkg){
     const rowsEl=document.getElementById('fr-nutr-rows');const bedarf=STORE.getBedarf();
-    if(!bedarf||!bedarf.length){rowsEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">⚠️ Bedarfsdaten nicht geladen.<br><small>Bitte Verbindung prüfen und Seite neu laden.</small></div>';return;}
+    if(!bedarf||!bedarf.length){rowsEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">⚠️ Bedarfsdaten nicht geladen.</div>';return;}
     const groups={};bedarf.forEach(b=>{const g=b.gruppe||'Sonstiges';if(!groups[g])groups[g]=[];groups[g].push(b);});
     let html='';
     Object.entries(groups).forEach(([gruppe,items])=>{
@@ -1538,15 +1815,17 @@ const RECHNER = (() => {
     rowsEl.innerHTML=html||'<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">Keine Bedarfsdaten geladen.</div>';
   }
 
-  return {onHundChanged,updateWeight,updateWeight2,setScale,applyScale,showList,loadRecipeList,openRecipe,newRecipe,deleteRecipe,addIngredient,updateGrams,toggleCooked,removeIngredient,initIngredientSelect,filterIngredients,initCustomNutrGrid,saveCustomIngredient,saveRecipe,recalc};
+  return {onHundChanged,updateWeight,updateWeight2,setScale,applyScale,showList,loadRecipeList,openRecipe,newRecipe,deleteRecipe,addIngredient,updateGrams,toggleCooked,removeIngredient,initIngredientSelect,filterIngredients,initCustomNutrGrid,saveCustomIngredient,saveRecipe,recalc,populateRefZutatSelect,copyFromReference};
 })();
 
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE: STAMMDATEN
+   NEU: Zutaten vollständig bearbeitbar mit allen 39 Nährstoffen
    ═══════════════════════════════════════════════════════════════════ */
 const STAMMDATEN = (() => {
   let currentTab='hunde';
+  let _allZutaten = []; // Kopie für Filter
   function loadCurrentTab(){loadTab(currentTab);}
   function loadTab(tab){currentTab=tab;if(tab==='hunde')loadHunde();if(tab==='zutaten')loadZutaten();if(tab==='parameter')loadParameter();}
 
@@ -1595,16 +1874,194 @@ const STAMMDATEN = (() => {
     catch(e){alert('Fehler: '+e.message);}
   }
 
+  // ── NEU: Zutaten mit Suche/Filter und Edit-Funktionalität
   function loadZutaten(){
-    const el=document.getElementById('sd-zutaten-list');const zutaten=STORE.getZutaten();
-    if(!zutaten.length){el.innerHTML='<div class="view-empty"><div class="icon">🥩</div>Noch keine Zutaten.</div>';return;}
+    const el=document.getElementById('sd-zutaten-list');
+    const zutaten=STORE.getZutaten();
+    _allZutaten = [...zutaten];
+
+    // Kategorie-Filter befüllen
+    const katFilter = document.getElementById('sd-zutat-kat-filter');
+    if(katFilter) {
+      const cats = [...new Set(zutaten.map(z=>z.kategorie).filter(Boolean))].sort();
+      const cur = katFilter.value;
+      katFilter.innerHTML = '<option value="">Alle Kat.</option>';
+      cats.forEach(c=>{const opt=document.createElement('option');opt.value=c;opt.textContent=c;if(c===cur)opt.selected=true;katFilter.appendChild(opt);});
+    }
+
+    renderZutatenList(zutaten);
+  }
+
+  function filterZutaten() {
+    const search = document.getElementById('sd-zutat-search')?.value.toLowerCase() || '';
+    const kat = document.getElementById('sd-zutat-kat-filter')?.value || '';
+    const filtered = _allZutaten.filter(z => {
+      const matchSearch = !search || z.name.toLowerCase().includes(search) || (z.hersteller||'').toLowerCase().includes(search);
+      const matchKat = !kat || z.kategorie === kat;
+      return matchSearch && matchKat;
+    });
+    renderZutatenList(filtered);
+  }
+
+  function renderZutatenList(zutaten) {
+    const el = document.getElementById('sd-zutaten-list');
+    if(!zutaten.length){el.innerHTML='<div class="view-empty"><div class="icon">🥩</div>Keine Zutaten gefunden.</div>';return;}
     const sorted=[...zutaten].sort((a,b)=>(a.kategorie||'').localeCompare(b.kategorie||'')||a.name.localeCompare(b.name,'de'));
-    el.innerHTML=`<table class="crud-table"><thead><tr><th>ID</th><th>Name</th><th>Hersteller</th><th>Kategorie</th></tr></thead><tbody>${sorted.map(z=>`<tr><td style="color:var(--sub);font-size:11px">${UI.esc(String(z.zutaten_id))}</td><td style="font-weight:500">${UI.esc(z.name)}</td><td style="color:var(--sub)">${UI.esc(z.hersteller||'–')}</td><td><span class="badge badge-ok" style="font-size:10px">${UI.esc(z.kategorie||'–')}</span></td></tr>`).join('')}</tbody></table>`;
+    el.innerHTML=`<div style="font-size:12px;color:var(--sub);margin-bottom:8px">${sorted.length} Zutat${sorted.length!==1?'en':''}</div>
+    <table class="crud-table"><thead><tr><th>Name</th><th>Hersteller</th><th>Kat.</th><th>Aktionen</th></tr></thead><tbody>
+    ${sorted.map(z=>`<tr>
+      <td style="font-weight:500">${UI.esc(z.name)}<br><span style="font-size:10px;color:var(--sub)">#${z.zutaten_id}</span></td>
+      <td style="color:var(--sub);font-size:12px">${UI.esc(z.hersteller||'–')}</td>
+      <td><span class="badge badge-ok" style="font-size:10px">${UI.esc(z.kategorie||'–')}</span></td>
+      <td class="actions">
+        <button class="edit-btn" onclick="STAMMDATEN.showZutatEditModal(${z.zutaten_id})">✏️</button>
+        <button class="del-small-btn" onclick="STAMMDATEN.toggleZutatAktiv(${z.zutaten_id},'${UI.esc(z.name)}','${z.aktiv||'ja'}')">${z.aktiv==='nein'?'✅':'🚫'}</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  // ── NEU: Zutat-Bearbeitungs-Modal mit allen 39 Nährstoffen
+  function showZutatEditModal(zutatId) {
+    const z = STORE.getZutaten().find(x => x.zutaten_id === zutatId);
+    if(!z) return;
+    const cats = [...new Set(STORE.getZutaten().map(x=>x.kategorie).filter(Boolean))].sort();
+    const catOptions = cats.map(c=>`<option value="${UI.esc(c)}" ${c===z.kategorie?'selected':''}>${UI.esc(c)}</option>`).join('');
+
+    // Bestehende Nährstoff-Werte laden
+    const existingNutr = STORE.getZutatNutr(zutatId);
+    const existingMap = {};
+    existingNutr.forEach(e => { existingMap[e.naehrstoff_name] = e.wert_pro_100g; });
+
+    const nutrPrefix = `sd_zutat_${zutatId}`;
+    const refCats = [...new Set(STORE.getZutaten().filter(x=>x.zutaten_id!==zutatId).map(x=>x.kategorie).filter(Boolean))].sort();
+
+    UI.openModal(`✏️ ${UI.esc(z.name)} bearbeiten`, `
+      <div class="field"><label>Name *</label><input type="text" id="sd-zutat-name" value="${UI.esc(z.name)}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem">
+        <div class="field" style="margin-bottom:0"><label>Hersteller</label><input type="text" id="sd-zutat-hersteller" value="${UI.esc(z.hersteller||'')}"></div>
+        <div class="field" style="margin-bottom:0"><label>Kategorie</label><select id="sd-zutat-kategorie">${catOptions}</select></div>
+      </div>
+
+      <!-- Referenzprodukt-Kopie im Edit-Modal -->
+      <div class="ref-copy-box">
+        <label>📋 Nährstoffe von Referenzprodukt übernehmen</label>
+        <div class="ref-copy-row">
+          <select id="sd-ref-select">
+            <option value="">— Vorlage wählen —</option>
+            ${STORE.getZutaten().filter(x=>x.zutaten_id!==zutatId&&x.aktiv!=='nein').sort((a,b)=>a.name.localeCompare(b.name,'de')).map(x=>`<option value="${x.zutaten_id}">${UI.esc(x.name)}${x.hersteller?' · '+UI.esc(x.hersteller):''}</option>`).join('')}
+          </select>
+          <button class="ref-copy-btn" onclick="STAMMDATEN.copyRefToEdit('${nutrPrefix}')">Kopieren</button>
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:var(--sub);margin-bottom:6px">
+        ${existingNutr.length > 0 ? `✅ ${existingNutr.length} Nährstoffwerte vorhanden` : '⚠️ Noch keine Nährstoffe eingetragen'}
+      </div>
+      <div id="sd-nutr-grid-${zutatId}">${NUTR_INPUT.renderAll(nutrPrefix)}</div>
+
+      <button class="btn-primary" style="margin-top:1rem" onclick="STAMMDATEN.saveZutatEdit(${zutatId},'${nutrPrefix}')">💾 Speichern</button>
+      <div class="status" id="status-sd-zutat"></div>
+    `);
+
+    // Bestehende Werte einfügen (setTimeout wegen DOM-Aufbau)
+    setTimeout(() => { NUTR_INPUT.writeValues(nutrPrefix, existingMap); }, 50);
+  }
+
+  // ── NEU: Referenzprodukt-Kopie im Edit-Modal
+  function copyRefToEdit(nutrPrefix) {
+    const sel = document.getElementById('sd-ref-select');
+    const zutatId = parseInt(sel?.value);
+    if(!zutatId) { alert('Bitte eine Vorlage wählen.'); return; }
+    const nutrEntries = STORE.getZutatNutr(zutatId);
+    if(!nutrEntries.length) { alert('Für diese Vorlage sind keine Nährstoffe gespeichert.'); return; }
+    const valMap = {};
+    nutrEntries.forEach(e => { valMap[e.naehrstoff_name] = e.wert_pro_100g; });
+    NUTR_INPUT.writeValues(nutrPrefix, valMap);
+    const zutat = STORE.getZutaten().find(z => z.zutaten_id === zutatId);
+    const count = Object.values(valMap).filter(v => v > 0).length;
+    const box = document.querySelector('.ref-copy-box');
+    const old = box?.querySelector('.ref-status');
+    if(old) old.remove();
+    const info = document.createElement('div');
+    info.className = 'status ok ref-status';
+    info.textContent = `✓ ${count} Nährstoffe von „${zutat?.name || '?'}" übernommen.`;
+    info.style.display = 'block';
+    info.style.marginTop = '6px';
+    box?.appendChild(info);
+    setTimeout(() => info.remove(), 4000);
+  }
+
+  // ── NEU: Zutat-Bearbeitung speichern (inkl. alle 39 Nährstoffe)
+  async function saveZutatEdit(zutatId, nutrPrefix) {
+    const name = document.getElementById('sd-zutat-name')?.value.trim();
+    if(!name) { UI.setStatus('status-sd-zutat','err','Bitte Name eingeben.'); return; }
+    const hersteller = document.getElementById('sd-zutat-hersteller')?.value.trim() || '';
+    const kategorie = document.getElementById('sd-zutat-kategorie')?.value || 'Sonstiges';
+    const sid = CONFIG.get().stammdatenId;
+    UI.setStatus('status-sd-zutat','loading','Wird gespeichert…');
+    try {
+      // Stammdaten der Zutat aktualisieren
+      const rows = await SHEETS.readSheet('Zutaten', sid);
+      const idx = rows.findIndex(r => String(r[0]).trim() === String(zutatId));
+      if(idx >= 0) {
+        await SHEETS.writeRange('Zutaten', `A${idx+1}:E${idx+1}`, [[zutatId, name, hersteller, kategorie, STORE.getZutaten().find(z=>z.zutaten_id===zutatId)?.aktiv||'ja']], sid);
+      }
+      STORE.updateZutat(zutatId, {name, hersteller, kategorie});
+
+      // Nährstoffe: alle 39 Werte aus Grid lesen
+      const nutrValues = NUTR_INPUT.readValues(nutrPrefix);
+
+      // Bestehende Nährstoff-Zeilen in Sheets finden und aktualisieren
+      // Strategie: Alle Zeilen für diese Zutat in Zutaten_Naehrstoffe lesen, dann updaten oder neue anhängen
+      const nutrRows = await SHEETS.readSheet('Zutaten_Naehrstoffe', sid);
+      const zutatNutrRows = nutrRows.map((r,i)=>({row:r,lineIdx:i+1})).filter(({row})=>String(row[0]).trim()===String(zutatId));
+
+      // Map: naehrstoff_id → Zeilennummer
+      const existingLineMap = {};
+      zutatNutrRows.forEach(({row,lineIdx}) => {
+        const nid = parseInt(row[1])||0;
+        if(nid) existingLineMap[nid] = lineIdx;
+      });
+
+      const newNutrEntries = [];
+      for(const nutr of NRC_NAEHRSTOFFE) {
+        const val = nutrValues[nutr.name] || 0;
+        if(existingLineMap[nutr.id]) {
+          // Zeile updaten
+          await SHEETS.writeRange('Zutaten_Naehrstoffe', `A${existingLineMap[nutr.id]}:D${existingLineMap[nutr.id]}`, [[zutatId, nutr.id, nutr.name, val]], sid);
+        } else {
+          // Neue Zeile anhängen
+          await SHEETS.appendRow('Zutaten_Naehrstoffe', [zutatId, nutr.id, nutr.name, val], sid);
+        }
+        newNutrEntries.push({zutaten_id:zutatId, naehrstoff_id:nutr.id, naehrstoff_name:nutr.name, wert_pro_100g:val});
+      }
+      STORE.replaceZutatNutr(zutatId, newNutrEntries);
+
+      UI.setStatus('status-sd-zutat','ok','✓ Gespeichert!');
+      setTimeout(() => { UI.closeModal(); loadZutaten(); RECHNER.initIngredientSelect(); }, 1200);
+    } catch(e) { UI.setStatus('status-sd-zutat','err','Fehler: '+e.message); }
+  }
+
+  // ── NEU: Zutat aktivieren/deaktivieren
+  async function toggleZutatAktiv(zutatId, name, aktuell) {
+    const neuAktiv = aktuell === 'nein' ? 'ja' : 'nein';
+    const verb = neuAktiv === 'nein' ? 'deaktivieren' : 'aktivieren';
+    if(!confirm(`"${name}" wirklich ${verb}?`)) return;
+    const sid = CONFIG.get().stammdatenId;
+    try {
+      const rows = await SHEETS.readSheet('Zutaten', sid);
+      const idx = rows.findIndex(r => String(r[0]).trim() === String(zutatId));
+      if(idx >= 0) await SHEETS.writeRange('Zutaten', `E${idx+1}`, [[neuAktiv]], sid);
+      STORE.updateZutat(zutatId, {aktiv: neuAktiv});
+      loadZutaten();
+      RECHNER.initIngredientSelect();
+    } catch(e) { alert('Fehler: '+e.message); }
   }
 
   function showZutatModal(){
     const cats=[...new Set(STORE.getZutaten().map(z=>z.kategorie).filter(Boolean))].sort();
-    UI.openModal('Neue Zutat',`<div class="field"><label>Name</label><input type="text" id="zutat-name" placeholder="z.B. Pferd (Muskelfleisch)"></div><div class="field"><label>Hersteller</label><input type="text" id="zutat-hersteller" placeholder="z.B. barfers"></div><div class="field"><label>Kategorie</label><select id="zutat-kat"><option value="">– wählen –</option>${cats.map(c=>`<option value="${UI.esc(c)}">${UI.esc(c)}</option>`).join('')}</select></div><p style="font-size:12px;color:var(--sub);margin-bottom:.5rem">Nährstoffe können nach dem Anlegen im Futterrechner über "Neue Zutat manuell erfassen" hinzugefügt werden.</p><button class="btn-primary" onclick="STAMMDATEN.saveZutat()">Speichern</button><div class="status" id="status-zutat"></div>`);
+    UI.openModal('Neue Zutat',`<div class="field"><label>Name</label><input type="text" id="zutat-name" placeholder="z.B. Pferd (Muskelfleisch)"></div><div class="field"><label>Hersteller</label><input type="text" id="zutat-hersteller" placeholder="z.B. barfers"></div><div class="field"><label>Kategorie</label><select id="zutat-kat"><option value="">– wählen –</option>${cats.map(c=>`<option value="${UI.esc(c)}">${UI.esc(c)}</option>`).join('')}</select></div><p style="font-size:12px;color:var(--sub);margin-bottom:.5rem">Nährstoffe können nach dem Anlegen über ✏️ Bearbeiten eingetragen werden.</p><button class="btn-primary" onclick="STAMMDATEN.saveZutat()">Speichern</button><div class="status" id="status-zutat"></div>`);
   }
 
   async function saveZutat(){
@@ -1633,13 +2090,12 @@ const STAMMDATEN = (() => {
     } catch(e){UI.setStatus('status-param','err','Fehler: '+e.message);}
   }
 
-  return {loadCurrentTab,loadTab,loadHunde,showHundModal,saveHund,toggleHundAktiv,loadZutaten,showZutatModal,saveZutat,loadParameter,saveParameter};
+  return {loadCurrentTab,loadTab,loadHunde,showHundModal,saveHund,toggleHundAktiv,loadZutaten,filterZutaten,renderZutatenList,showZutatEditModal,copyRefToEdit,saveZutatEdit,toggleZutatAktiv,showZutatModal,saveZutat,loadParameter,saveParameter};
 })();
 
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE: APP
-   ─ Initialisierung & Start
    ═══════════════════════════════════════════════════════════════════ */
 const APP = {
   currentHundId: 1,
@@ -1665,19 +2121,14 @@ const APP = {
     try {
       await STORE.loadAll();
       UI.syncHundSelects();
-      // Datum-Felder initialisieren
       ['u-datum','s-datum','f-datum','a-datum','t-datum','m-von'].forEach(id => UI.setToday(id));
-      // Letzte Raumklima-Werte wiederherstellen
       try {
         const rk = localStorage.getItem('hundapp_raumklima');
         if (rk) { const [t,h] = rk.split('|'); if(t) document.getElementById('u-raumtemp').value=t; if(h) document.getElementById('u-raumfeuchtig').value=h; }
       } catch(e) {}
-      // Futterrechner initialisieren
       RECHNER.updateWeight();
       RECHNER.initIngredientSelect();
-      RECHNER.initCustomNutrGrid();
       UI.populateCategorySelect();
-      // Rezeptliste laden
       const firstHundId = parseInt(document.getElementById('fr-hund-select')?.value) || 1;
       RECHNER.onHundChanged();
       await RECHNER.loadRecipeList();
@@ -1692,7 +2143,6 @@ const APP = {
   }
 };
 
-// App starten wenn DOM bereit
 document.addEventListener('DOMContentLoaded', () => APP.init());
 </script>
 </body>
