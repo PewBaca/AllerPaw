@@ -1,13 +1,25 @@
 1 TODO
-update nutrions database
-redo nutriton value with a more flexible way to enter data
+
+Make the code more modular?
 
 Nutrition table
+update nutrions database
+
+redo nutriton value with a more flexible way to enter data 
+(better calculator where you can enter the value with units and it will recalculate it in the proper data format)
 rework Nutrition table to support min max and average values
 Comment section / Info section for individual nutrition. Eg what is it for and why you should use it. 
 
-create a premix for you food ration (eg calculate, vegetable innards) to individually create meals out of premade mixtures (eg. main food + innards + vegetables)
 
+Food calculator
+create a premix for your food ration (eg calculate, vegetable innards) to individually create meals out of premade mixtures (eg. main food + innards + vegetables)
+A complete meal can the be selected in the diary with adjusted values or pre created 
+Mix 1 total amount  (amount 1, amount 2 amount 3)
+Mix 2 total amount 
+ -> Stores to correct ammount broken down to the individual ammoun t
+
+warning/notifaction when selecting certain food 
+individual calories for the dog
  
 
 2 IDEAS
