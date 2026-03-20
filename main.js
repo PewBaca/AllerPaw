@@ -27,6 +27,10 @@ import * as ANSICHT    from './ansicht.js';
 import * as RECHNER    from './rechner.js';
 import * as STAMMDATEN from './stammdaten.js';
 
+// Callback registrieren damit auth.js nach Login onLogin() aufrufen kann
+// ohne main.js zirkular zu importieren
+AUTH.setOnLoginCallback(() => onLogin());
+
 // ════════════════════════════════════════════════════════════════
 //  GLOBALE EXPORTS (für HTML onclick= Handler)
 // ════════════════════════════════════════════════════════════════
@@ -93,7 +97,8 @@ export async function onLogin() {
     await STORE.loadAll();
   } catch (e) {
     console.warn('Stammdaten-Ladefehler:', e.message);
-    // App funktioniert eingeschränkt weiter
+    // Wenn Token abgelaufen: handleExpired() hat bereits Login-Screen gezeigt
+    if (!AUTH.isLoggedIn()) return;
   }
 
   // UI aufbauen

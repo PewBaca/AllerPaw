@@ -24,9 +24,19 @@ const SCOPE = [
 ].join(' ');
 
 // ── Interner State ───────────────────────────────────────────────
-let tokenClient  = null;
-let accessToken  = '';
-let userEmail    = '';
+let tokenClient      = null;
+let accessToken      = '';
+let userEmail        = '';
+let _onLoginCallback = null;
+
+/**
+ * Callback registrieren der nach erfolgreichem Login aufgerufen wird.
+ * Wird von main.js gesetzt um Zirkelimport zu vermeiden.
+ * @param {Function} fn
+ */
+export function setOnLoginCallback(fn) {
+  _onLoginCallback = fn;
+}
 
 // ── localStorage Keys ────────────────────────────────────────────
 const KEY_TOKEN = 'hundapp_token';
@@ -110,9 +120,8 @@ async function handleTokenResponse(resp) {
     console.warn('Auth: Token konnte nicht gespeichert werden:', e);
   }
 
-  // App starten
-  const { onLogin } = await import('./main.js');
-  onLogin();
+  // App starten via registriertem Callback (kein Zirkelimport)
+  if (_onLoginCallback) _onLoginCallback();
 }
 
 /**
@@ -136,14 +145,13 @@ export function signOut() {
 
 /**
  * Aufgerufen wenn ein API-Call HTTP 401 zurückgibt.
- * Löscht Token und zeigt Login-Screen.
+ * Löscht Token, versteckt Loader und zeigt Login-Screen.
  */
 export function handleExpired() {
   accessToken = '';
-  try {
-    localStorage.removeItem(KEY_TOKEN);
-  } catch (e) { /* ignore */ }
+  try { localStorage.removeItem(KEY_TOKEN); } catch (e) { /* ignore */ }
 
+  document.getElementById('app-loader').style.display  = 'none';
   document.getElementById('main-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }

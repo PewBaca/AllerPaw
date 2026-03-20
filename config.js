@@ -16,6 +16,9 @@
  * ╚══════════════════════════════════════════════════════════════╝
  */
 
+import { setStatus }    from './ui.js';
+import { getSheetsList } from './sheets.js';
+
 // ── Default-Konfiguration ────────────────────────────────────────
 // Neue Nutzer ersetzen diese IDs durch ihre eigenen Google Sheets IDs
 const DEFAULTS = {
@@ -84,10 +87,6 @@ export function save() {
  * Zeigt Ergebnis über UI.setStatus an.
  */
 export async function testConnection() {
-  // Dynamischer Import um Zirkelabhängigkeit (config ↔ sheets) zu vermeiden
-  const { getSheetsList } = await import('./sheets.js');
-  const { setStatus }     = await import('./ui.js');
-
   setStatus('status-conn', 'loading', 'Verbindung wird getestet…');
   try {
     const [r1, r2] = await Promise.all([
