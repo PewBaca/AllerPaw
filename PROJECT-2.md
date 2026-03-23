@@ -36,28 +36,84 @@ Enthält alle Stamm- und Konfigurationsdaten.
 | Tabellenblatt | Inhalt |
 |---|---|
 | `Hunde` | Hundeprofile (hund_id, name, rasse, geburtsdatum, …) |
+Zeile 1 ├── Titel
+Zeile 2	├── hund_id	| name | rasse | geburtsdatum	| geschlecht |	kastriert |	aktiv | notizen
+Zeile 3 └── Daten
+| `Hund_Gewicht` | App-weite Konfigurationswerte (Key-Value) |
+Zeile 1 ├── Titel
+Zeile 2	├── hund_id	datum	| gewicht_kg	| notizen
+Zeile 3 └── Daten
 | `Parameter` | App-weite Konfigurationswerte (Key-Value) |
+Zeile 1 ├── Titel
+Zeile 2	├── parameter |	wert	|einheit	| beschreibung
+Zeile 3 └── Daten
 | `Naehrstoffe` | Nährstoffliste mit Beschreibungen, Gruppen, Symptomen |
+Zeile 1 ├── Titel
+Zeile 2	├── naehrstoff_id	|name	|einheit	|gruppe	|beschreibung	|funktion	|mangel_symptome	|quellen	|obergrenze_info
+Zeile 3 └── Daten
 | `Toleranzen` | Pro-Hund-Toleranzbereiche für Nährstoffe (min_pct / max_pct) |
+Zeile 1 ├── Titel
+Zeile 2	├── hund_id	|naehrstoff_id	|naehrstoff_name	|min_pct	|max_pct	|anmerkung
+Zeile 3 └── Daten
 | `Bedarf` | Nährstoffbedarf pro metabolischem Körpergewicht (NRC 2006) |
+Zeile 1 ├── Titel
+Zeile 2	├── naehrstoff_id	|naehrstoff_name	|einheit	|bedarf_pro_mkg	|quelle
+Zeile 3 └── Daten
 | `Zutaten` | Futterzutaten (zutaten_id, name, hersteller, kategorie) |
+Zeile 1 ├── Titel
+Zeile 2	├── naehrstoff_id	|naehrstoff_name	|einheit	|bedarf_pro_mkg	|quelle
+Zeile 3 └── Daten
 | `Zutaten_Naehrstoffe` | Nährstoffe pro 100g je Zutat |
+Zeile 1 ├── Titel
+Zeile 2	├── zutaten_id	|naehrstoff_id	|naehrstoff_name	|wert_pro_100g
+Zeile 3 └── Daten
 | `Rezepte` | Gespeicherte Futterrezepte (rezept_id, hund_id, name) |
+Zeile 1 ├── Titel
+Zeile 2	├── rezept_id	|hund_id	|name	|erstellt	|notizen
+Zeile 3 └── Daten
 | `Rezept_Zutaten` | Zutaten je Rezept mit Gramm und Kochverlust-Flag |
+Zeile 1 ├── Titel
+Zeile 2	├── rezept_id	|zutaten_id	|zutat_name	|gramm	|gekocht
+Zeile 3 └── Daten
 | `Hund_Kalorienbedarf` | Kalorienbedarfsfaktoren je Hund |
+Zeile 1 ├── Titel
+Zeile 2	├── hund_id	| faktor_typ	| wert	| beschreibung
+Zeile 3 └── Daten
 
-### Spreadsheet 2: `Hund_Tagebuch`
+### Spreadsheet 2: `Hund_Allergie_Dokumentation
 Enthält alle Tagebucheinträge. Jeder Hund bekommt eigene Tabellenblätter nach dem Muster `{hund_id}_{Typ}`, z.B. `1_Umwelt`, `1_Symptom`, `2_Futter`.
 
 | Tabellenblatt-Schema | Inhalt |
 |---|---|
-| `{id}_Umwelt` | Wettertagebuch (Temperatur, Luftfeuchtigkeit, Pollen, Raumklima, Bett) |
-| `{id}_Symptom` | Symptomtagebuch (Kategorie, Schweregrad, Körperstelle, Beschreibung) |
+| `Umweltagebuch` (Temperatur, Luftfeuchtigkeit, Pollen, Raumklima, Bett) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Datum	|"Wetter Min Temperatur"	|"Wetter Max Temperatur"	|"Wetter relative Luftfeuchtigkeit"	|"Wetter Regenmenge am Tag"	|Pollen (nur stark bis sehr stark)	|"Raumklima Temperatur"	|"Raumklima rel Luftfeuchtigkeit"	|Bett	|Notizen
+Zeile 3 └── Daten
+| `Symptomtagebuch` (Kategorie, Schweregrad, Körperstelle, Beschreibung) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Datum	|Symptom-Kategorie	|Beschreibung	|"Schweregrad (1–5)"	|Betroffene Körperstelle	|Notizen
+
+Zeile 3 └── Daten
 | `{id}_Futter` | Futtertagebuch (Rezept, Produkt, Ausschlussdiät-Protokoll) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Datum	|Futter / Anderes gefressen	|Produkt	|erste Gabe	|zwei Wochen Fütterung	|Provokation	|Beschreibung	|Notizen 
+Zeile 3 └── Daten
 | `{id}_Ausschluss` | Ausschlussdiät-Zutaten (Verdachtstufe, Status, Reaktion) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Zutat	|Verdacht	|Kategorie	|Status	|Erstmals gegeben	|Reaktion	|Notizen	|Notizen
+Zeile 3 └── Daten
 | `{id}_Allergen` | Bestätigte Allergene (Kategorie, Reaktionsstärke) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Allergen	|Kategorie	|"Reaktionsstärke(1–5)"	|Symptome	|Notizen
+Zeile 3 └── Daten
 | `{id}_Tierarzt` | Tierarztbesuche (Diagnose, Befund, Therapie, Folgebesuch) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Datum	|Tierarzt / Klinik	|Anlass / Diagnose	|Untersuchungen	|Ergebnis / Befund	|Empfehlung / Therapie	|Folgebesuch geplant
+Zeile 3 └── Daten
 | `{id}_Medikamente` | Medikamente & Supplements (Dosierung, Zeitraum) |
+Zeile 1 ├── Titel
+Zeile 2	├── Hunde ID	|Medikament / Supplement	|Typ	|Dosierung	|Häufigkeit	|Gegeben von (Datum)	|Bis (Datum)	|Verordnet von	|Notizen / Wirkung
+Zeile 3 └── Daten
 
 ---
 
@@ -69,18 +125,20 @@ Enthält alle Tagebucheinträge. Jeder Hund bekommt eigene Tabellenblätter nach
 ├── css/
 │   └── styles.css          ← Gesamtes CSS (Design System, Dark Mode, alle Komponenten)
 └── js/
-    ├── main.js             ← App-Einstieg, initialisiert alle Module, APP-Objekt
-    ├── config.js           ← localStorage Konfiguration (IDs, Standort, Pollen-Region)
-    ├── sheets.js           ← Alle Google Sheets API Calls (appendRow, readSheet, writeRange, …)
-    ├── auth.js             ← Google OAuth2 Login/Logout, Token-Verwaltung
-    ├── store.js            ← In-Memory Cache für alle Stammdaten (Hunde, Zutaten, Nährstoffe, …)
-    ├── ui.js               ← UI-Hilfsfunktionen (Panel-Wechsel, Tabs, Modals, Status-Meldungen)
-    ├── form.js             ← Toggle-Button Logik für alle Formulare
-    ├── wetter.js           ← BrightSky / DWD Wetter & Pollen API
-    ├── rechner.js          ← Futterrechner (Rezepte, Nährstoffanalyse, Kalorien, Verhältnisse)
-    ├── tagebuch.js         ← Formular-Submit-Logik für alle 7 Tagebuch-Typen
     ├── ansicht.js          ← Ansicht-Modus: Einträge aus Sheets laden & als Karten rendern
-    └── stammdaten.js       ← CRUD für Hunde, Zutaten, Parameter (Modals, Tabellen)
+	├── auth.js             ← Google OAuth2 Login/Logout, Token-Verwaltung
+	├── cache.js            
+	├── config.js           ← localStorage Konfiguration (IDs, Standort, Pollen-Region)
+	├── form.js             ← Toggle-Button Logik für alle Formulare
+    ├── main.js             ← App-Einstieg, initialisiert alle Module, APP-Objekt
+	├── rechner.js          ← Futterrechner (Rezepte, Nährstoffanalyse, Kalorien, Verhältnisse)
+    ├── sheets.js           ← Alle Google Sheets API Calls (appendRow, readSheet, writeRange, …)
+	├── stammdaten.js       ← CRUD für Hunde, Zutaten, Parameter (Modals, Tabellen)
+	├── statistik.js        
+    ├── store.js            ← In-Memory Cache für alle Stammdaten (Hunde, Zutaten, Nährstoffe, …)
+    ├── tagebuch.js         ← Formular-Submit-Logik für alle 7 Tagebuch-Typen
+    ├── ui.js               ← UI-Hilfsfunktionen (Panel-Wechsel, Tabs, Modals, Status-Meldungen)
+    └── wetter.js           ← BrightSky / DWD Wetter & Pollen API
 ```
 
 ---
