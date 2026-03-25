@@ -94,7 +94,7 @@ export async function loadAll() {
 
   // ── Toleranzen ────────────────────────────────────────────────
   toleranzen = parseRows(rTol,
-    ['hund_id','naehrstoff_id','naehrstoff_name','min_pct','max_pct','anmerkung'], 2)
+    ['hund_id','naehrstoff_id','naehrstoff_name','min_pct','max_pct','anmerkung','recommended_pct'], 2)
     .map(r => ({
       hund_id:         parseInt(r.hund_id)         || 0,
       naehrstoff_id:   parseInt(r.naehrstoff_id)   || 0,
@@ -102,6 +102,7 @@ export async function loadAll() {
       min_pct:         parseFloat(r.min_pct)        || 0,
       max_pct:         parseFloat(r.max_pct)        || 999,
       anmerkung:       r.anmerkung || '',
+      recommended_pct: r.recommended_pct || '',
     }))
     .filter(r => r.hund_id && r.naehrstoff_id);
 
@@ -240,17 +241,23 @@ export function getNutrMap(zutatId, zutatName) {
 /**
  * Toleranzbereich für einen Hund × Nährstoff.
  * Fällt auf globale Standard-Parameter zurück wenn keine individuelle Toleranz hinterlegt.
+ * Gibt zusätzlich recommended_pct zurück wenn vorhanden (Spec 12).
  *
  * @param {number} hundId   - hund_id
  * @param {string} nutrName - Nährstoff-Name
- * @returns {{ min: number, max: number }}
+ * @returns {{ min: number, max: number, recommended: number|null }}
  */
 export function getTolerance(hundId, nutrName) {
   const found = toleranzen.find(t => t.hund_id === hundId && t.naehrstoff_name === nutrName);
-  if (found) return { min: found.min_pct, max: found.max_pct };
+  if (found) return {
+    min:         found.min_pct,
+    max:         found.max_pct,
+    recommended: found.recommended_pct ? parseFloat(found.recommended_pct) : null,
+  };
   return {
-    min: parameter['toleranz_default_min_pct'] || 80,
-    max: parameter['toleranz_default_max_pct'] || 150,
+    min:         parameter['toleranz_default_min_pct'] || 80,
+    max:         parameter['toleranz_default_max_pct'] || 150,
+    recommended: null,
   };
 }
 
