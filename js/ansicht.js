@@ -61,6 +61,8 @@ const DATA_END_COL = {
   tierarzt:    7,   // Spalten A–H  (hund_id…folge)
   medikamente: 8,   // Spalten A–I  (hund_id…notizen)
 };
+
+/**
  * Wird beim Reload geleert. Max. 10 Einträge.
  * Format: { sheetName, rowIndex (1-basiert), originalRow }
  */
