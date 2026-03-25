@@ -58,6 +58,25 @@ function clear(...ids) {
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 
+/**
+ * Erzeugt die 4 Pflicht-Metafelder die jede neue Tagebuchzeile bekommt.
+ * Reihenfolge: entry_id, created_at, deleted, deleted_at
+ *
+ * entry_id: YYYYMMDDHHmmSS_xxxx  (Zeitstempel + 4 Zufallszeichen)
+ *           Eindeutig genug für Soft-Delete / Undo ohne echte UUID-Bibliothek.
+ *
+ * @returns {[string, string, string, string]}
+ */
+function _meta() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts  = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}` +
+              `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const eid = ts + '_' + Math.random().toString(36).slice(2, 6);
+  const iso = now.toISOString().slice(0, 19);
+  return [eid, iso, 'FALSE', ''];
+}
+
 // ════════════════════════════════════════════════════════════════
 //  SUBMIT HANDLER
 // ════════════════════════════════════════════════════════════════
@@ -80,6 +99,7 @@ export async function submitUmwelt() {
       document.getElementById('u-raumfeuchtig').value,
       getBett(),
       document.getElementById('u-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten L–O)
     ], getCfg().tagebuchId);
 
     setStatus('status-u', 'ok', '✓ Gespeichert!');
@@ -108,6 +128,7 @@ export async function submitSymptom() {
       getSchwere(),
       getKoerper(document.getElementById('s-koerper-extra').value),
       document.getElementById('s-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten H–K)
     ], getCfg().tagebuchId);
 
     setStatus('status-s', 'ok', '✓ Gespeichert!');
@@ -133,6 +154,7 @@ export async function submitFutter() {
       getErsteGabe(), getZweiWo(), getProv(),
       document.getElementById('f-beschreibung').value,
       document.getElementById('f-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten J–M)
     ], getCfg().tagebuchId);
 
     setStatus('status-f', 'ok', '✓ Gespeichert!');
@@ -156,6 +178,7 @@ export async function submitAusschluss() {
       fd(document.getElementById('a-datum').value),
       document.getElementById('a-reaktion').value,
       document.getElementById('a-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten I–L)
     ], getCfg().tagebuchId);
 
     setStatus('status-a', 'ok', '✓ Gespeichert!');
@@ -178,6 +201,7 @@ export async function submitAllergen() {
       getAlReakt(),
       document.getElementById('al-symptome').value,
       document.getElementById('al-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten G–J)
     ], getCfg().tagebuchId);
 
     setStatus('status-al', 'ok', '✓ Gespeichert!');
@@ -202,6 +226,7 @@ export async function submitTierarzt() {
       document.getElementById('t-ergebnis').value,
       document.getElementById('t-therapie').value,
       fd(document.getElementById('t-folge').value),
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten I–L)
     ], getCfg().tagebuchId);
 
     setStatus('status-t', 'ok', '✓ Gespeichert!');
@@ -227,6 +252,7 @@ export async function submitMedikament() {
       fd(document.getElementById('m-bis').value),
       document.getElementById('m-verordnet').value,
       document.getElementById('m-notizen').value,
+      ..._meta(),  // entry_id, created_at, deleted, deleted_at  (Spalten J–M)
     ], getCfg().tagebuchId);
 
     setStatus('status-m', 'ok', '✓ Gespeichert!');

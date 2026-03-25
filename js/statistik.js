@@ -97,15 +97,19 @@ export async function refresh(forceRefresh = false) {
   content.innerHTML = '<div class="view-loading"><div class="spinner"></div>Lade Daten…</div>';
 
   try {
-    // Alle 6 Sheets über Cache laden
+    // Pflicht-Sheets + optionale neue Sheets (graceful fallback)
     const [rSym, rUmw, rFut, rAus, rAll, rMed] = await Promise.all([
-      getSheet('Symptomtagebuch',  'tagebuch', forceRefresh),
-      getSheet('Umweltagebuch',    'tagebuch', forceRefresh),
-      getSheet('Futtertagebuch',   'tagebuch', forceRefresh),
-      getSheet('Ausschlussdiät',   'tagebuch', forceRefresh),
+      getSheet('Symptomtagebuch',   'tagebuch', forceRefresh),
+      getSheet('Umweltagebuch',     'tagebuch', forceRefresh),
+      getSheet('Futtertagebuch',    'tagebuch', forceRefresh),
+      getSheet('Ausschlussdiät',    'tagebuch', forceRefresh),
       getSheet('Bekannte Allergene','tagebuch', forceRefresh),
-      getSheet('Medikamente',      'tagebuch', forceRefresh),
+      getSheet('Medikamente',       'tagebuch', forceRefresh),
     ]);
+
+    // Optionale Sheets – liefern leeres Array wenn noch nicht angelegt
+    const rGew = await getSheet('Hund_Gewicht', 'tagebuch', forceRefresh).catch(() => []);
+    const rPol = await getSheet('Pollen_Log',   'tagebuch', forceRefresh).catch(() => []);
 
     // Cache-Status anzeigen
     const age = getAge('Symptomtagebuch');
@@ -127,16 +131,25 @@ export async function refresh(forceRefresh = false) {
     const allAus = parseRows(rAus,  2);
     const allAll = parseRows(rAll,  2);
     const allMed = parseRows(rMed,  2);
+    const allGew = parseRows(rGew,  2);  // entry_id,hund_id,datum,gewicht_kg,notizen,created_at
+    const allPol = parseRows(rPol,  2);  // entry_id,hund_id,datum,pollenart,stufe,source,created_at
 
-    const sym = allSym.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff));
-    const umw = allUmw.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff));
-    const fut = allFut.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff));
-    const aus = allAus.filter(r => matchHund(r,hundId));
-    const all = allAll.filter(r => matchHund(r,hundId));
-    const med = allMed.filter(r => matchHund(r,hundId));
+    // Soft-Delete Filter (leer ≠ 'TRUE' → sichere Rückwärtskompatibilität)
+    const notDeleted = (idx) => (r) => String(r[idx] ?? '').toUpperCase() !== 'TRUE';
 
-    content.innerHTML = buildHTML();
-    await renderCharts({ sym, umw, fut, aus, all, med });
+    const sym = allSym.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff) && notDeleted(9)(r));
+    const umw = allUmw.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff) && notDeleted(13)(r));
+    const fut = allFut.filter(r => matchHund(r,hundId) && inRange(col(r,1), cutoff) && notDeleted(11)(r));
+    const aus = allAus.filter(r => matchHund(r,hundId) && notDeleted(10)(r));
+    const all = allAll.filter(r => matchHund(r,hundId) && notDeleted(8)(r));
+    const med = allMed.filter(r => matchHund(r,hundId) && notDeleted(11)(r));
+
+    // Neue Sheets: hund_id ist Spalte B (Index 1), kein deleted-Feld
+    const gew = allGew.filter(r => col(r,1) === String(hundId) && inRange(col(r,2), cutoff));
+    const pol = allPol.filter(r => col(r,1) === String(hundId) && inRange(col(r,2), cutoff));
+
+    content.innerHTML = buildHTML({ hasGew: gew.length > 0, hasPol: pol.length > 0 });
+    await renderCharts({ sym, umw, fut, aus, all, med, gew, pol });
 
   } catch(e) {
     content.innerHTML = `<div class="status err" style="display:block">Fehler: ${esc(e.message)}</div>`;
@@ -152,11 +165,16 @@ export function forceRefresh() {
 //  HTML GERÜST
 // ════════════════════════════════════════════════════════════════
 
-function buildHTML() {
+function buildHTML({ hasGew = false, hasPol = false } = {}) {
   return `
     <div id="stat-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem"></div>
     ${box('📈 Symptom-Schweregrad Verlauf',  '<canvas id="ch-verlauf"  height="200"></canvas>')}
     ${box('🔍 Häufigste Symptome',           '<canvas id="ch-haeufig" height="220"></canvas>')}
+    ${hasGew ? box('⚖️ Gewichtsverlauf',
+      '<canvas id="ch-gewicht" height="180"></canvas>') : ''}
+    ${hasPol ? box('🌿 Pollen nach Typ (Pollen_Log)',
+      `<p style="font-size:12px;color:var(--sub);margin-bottom:8px">Separate Aufzeichnung je Pollenart</p>
+       <canvas id="ch-pol-typ" height="200"></canvas>`) : ''}
     ${box('⚠️ Bekannte Allergene',           '<div id="st-allergene"></div>')}
     ${box('📋 Ausschlussdiät',
       `<div id="st-aus-badges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
@@ -183,7 +201,7 @@ function box(title, body) {
 //  CHARTS
 // ════════════════════════════════════════════════════════════════
 
-async function renderCharts({ sym, umw, fut, aus, all, med }) {
+async function renderCharts({ sym, umw, fut, aus, all, med, gew = [], pol = [] }) {
   if (!window.Chart) {
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');
   }
@@ -234,6 +252,82 @@ async function renderCharts({ sym, umw, fut, aus, all, med }) {
       }, {...baseOpts(), indexAxis:'y'});
     } else {
       setText('ch-haeufig', 'Keine Symptome im Zeitraum.');
+    }
+  }
+
+  // ── Gewichtsverlauf (Hund_Gewicht) ───────────────────────────
+  if (gew.length) {
+    // Spalten: [0]entry_id [1]hund_id [2]datum [3]gewicht_kg [4]notizen [5]created_at
+    const gwData = gew
+      .map(r => ({ iso: toISO(col(r,2)), kg: parseFloat(col(r,3)) || null }))
+      .filter(r => r.iso && r.kg)
+      .sort((a,b) => a.iso.localeCompare(b.iso));
+
+    if (gwData.length) {
+      const minKg = Math.min(...gwData.map(d => d.kg));
+      const maxKg = Math.max(...gwData.map(d => d.kg));
+      const pad   = Math.max(0.5, (maxKg - minKg) * 0.2);
+      mkChart('ch-gewicht','line',{
+        labels: gwData.map(d => fmtLabel(d.iso)),
+        datasets:[{
+          label:'Gewicht (kg)',
+          data: gwData.map(d => d.kg),
+          borderColor:C.blue, backgroundColor:C.blueL,
+          fill:true, tension:0.3, pointRadius:4, pointHoverRadius:6,
+        }]
+      },{
+        responsive:true,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{font:{size:10},maxTicksLimit:8}},
+          y:{
+            min: Math.max(0, minKg - pad),
+            max: maxKg + pad,
+            ticks:{font:{size:10},callback: v => v.toFixed(1)+' kg'},
+          },
+        }
+      });
+    }
+  }
+
+  // ── Pollen nach Typ (Pollen_Log) ─────────────────────────────
+  if (pol.length) {
+    // Spalten: [0]entry_id [1]hund_id [2]datum [3]pollenart [4]stufe [5]source [6]created_at
+    // Alle vorkommenden Pollenarten ermitteln
+    const pollenArten = [...new Set(pol.map(r => col(r,3)).filter(Boolean))].sort();
+    const colors = [C.amber,C.green,C.orange,C.blue,C.purple,'#10b981','#f97316'];
+
+    // Wochenaggregation: max. Stufe pro Pollenart + Woche
+    const weekData = {};
+    pol.forEach(r => {
+      const d = parseDate(col(r,2)); if (!d) return;
+      const w = weekKey(d);
+      const art = col(r,3); if (!art) return;
+      const stufe = parseInt(col(r,4)) || 0;
+      if (!weekData[w]) weekData[w] = {};
+      weekData[w][art] = Math.max(weekData[w][art] || 0, stufe);
+    });
+    const weeks = Object.keys(weekData).sort();
+
+    if (weeks.length) {
+      mkChart('ch-pol-typ','bar',{
+        labels: weeks.map(w => 'KW'+w.split('-W')[1]+'/'+w.split('-W')[0].slice(2)),
+        datasets: pollenArten.map((art, i) => ({
+          label: art,
+          data:  weeks.map(w => weekData[w][art] || 0),
+          backgroundColor: (colors[i % colors.length]).replace(')', ',.7)').replace('rgb','rgba'),
+          borderColor: colors[i % colors.length],
+          borderWidth: 1,
+        }))
+      },{
+        responsive:true,
+        plugins:{legend:{display:true,labels:{boxWidth:10,font:{size:10}}}},
+        scales:{
+          x:{stacked:false,ticks:{font:{size:10},maxTicksLimit:8}},
+          y:{beginAtZero:true,max:5,ticks:{stepSize:1,font:{size:10},
+             callback: v => ['–','gering','gering–m.','mittel','m.–stark','stark'][v] || v}},
+        }
+      });
     }
   }
 

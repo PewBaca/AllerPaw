@@ -177,7 +177,7 @@ export async function toggleHundAktiv(hundId, name, aktuell) {
 
 export function loadZutaten() {
   const el      = document.getElementById('sd-zutaten-list');
-  const zutaten = getZutaten();
+  const zutaten = getZutaten().filter(z => String(z.deleted ?? '').toUpperCase() !== 'TRUE');
   if (!zutaten.length) {
     el.innerHTML = '<div class="view-empty"><div class="icon">🥩</div>Noch keine Zutaten.</div>';
     return;
@@ -186,7 +186,7 @@ export function loadZutaten() {
     (a, b) => (a.kategorie || '').localeCompare(b.kategorie || '') || a.name.localeCompare(b.name, 'de')
   );
   el.innerHTML = `<table class="crud-table">
-    <thead><tr><th>ID</th><th>Name</th><th>Hersteller</th><th>Kategorie</th></tr></thead>
+    <thead><tr><th>ID</th><th>Name</th><th>Hersteller</th><th>Kategorie</th><th></th></tr></thead>
     <tbody>
     ${sorted.map(z => `
       <tr>
@@ -194,49 +194,194 @@ export function loadZutaten() {
         <td style="font-weight:500">${esc(z.name)}</td>
         <td style="color:var(--sub)">${esc(z.hersteller || '–')}</td>
         <td><span class="badge badge-ok" style="font-size:10px">${esc(z.kategorie || '–')}</span></td>
+        <td style="white-space:nowrap">
+          <button class="edit-btn" style="font-size:11px;padding:4px 8px"
+            onclick="STAMMDATEN.showZutatModal(${z.zutaten_id})">✏️</button>
+          <button class="del-small-btn" style="font-size:11px;padding:4px 8px;margin-left:4px"
+            onclick="STAMMDATEN.deleteZutat(${z.zutaten_id},'${esc(z.name)}')">🗑</button>
+        </td>
       </tr>`).join('')}
     </tbody>
   </table>`;
 }
 
-export function showZutatModal() {
-  const cats = [...new Set(getZutaten().map(z => z.kategorie).filter(Boolean))].sort();
-  openModal('Neue Zutat', `
+export function showZutatModal(zutatId) {
+  const cats    = [...new Set(getZutaten().map(z => z.kategorie).filter(Boolean))].sort();
+  const z       = zutatId ? (getZutaten().find(x => x.zutaten_id === zutatId) || {}) : {};
+  const isEdit  = !!zutatId;
+
+  openModal(isEdit ? `🥩 ${esc(z.name || '')} bearbeiten` : 'Neue Zutat', `
     <div class="field"><label>Name</label>
-      <input type="text" id="zutat-name" placeholder="z.B. Pferd (Muskelfleisch)"></div>
+      <input type="text" id="zutat-name" value="${esc(z.name || '')}" placeholder="z.B. Pferd (Muskelfleisch)"></div>
     <div class="field"><label>Hersteller</label>
-      <input type="text" id="zutat-hersteller" placeholder="z.B. barfers"></div>
+      <input type="text" id="zutat-hersteller" value="${esc(z.hersteller || '')}" placeholder="z.B. barfers"></div>
     <div class="field"><label>Kategorie</label>
       <select id="zutat-kat">
         <option value="">– wählen –</option>
-        ${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+        ${cats.map(c => `<option value="${esc(c)}" ${z.kategorie === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
       </select></div>
-    <p style="font-size:12px;color:var(--sub);margin-bottom:.5rem">
-      Nährstoffe können danach im Futterrechner über „Neue Zutat manuell erfassen" hinzugefügt werden.</p>
-    <button class="btn-primary" onclick="STAMMDATEN.saveZutat()">Speichern</button>
+    <div class="field"><label>Status</label>
+      <select id="zutat-aktiv">
+        <option value="ja"   ${(z.aktiv || 'ja') === 'ja'   ? 'selected' : ''}>✅ Aktiv</option>
+        <option value="nein" ${z.aktiv === 'nein'            ? 'selected' : ''}>🚫 Inaktiv</option>
+      </select></div>
+    ${isEdit ? '' : '<p style="font-size:12px;color:var(--sub);margin-bottom:.5rem">Nährstoffe können danach im Futterrechner über „Neue Zutat manuell erfassen" hinzugefügt werden.</p>'}
+    <button class="btn-primary" onclick="STAMMDATEN.saveZutat(${zutatId || 'null'})">
+      ${isEdit ? '💾 Änderungen speichern' : 'Speichern'}
+    </button>
     <div class="status" id="status-zutat"></div>
   `);
 }
 
-export async function saveZutat() {
+export async function saveZutat(existingId) {
   const name = document.getElementById('zutat-name')?.value.trim();
   if (!name) { setStatus('status-zutat', 'err', 'Bitte Name eingeben.'); return; }
 
   const sid        = getCfg().stammdatenId;
-  const zutaten    = getZutaten();
-  const newId      = Math.max(0, ...zutaten.map(z => z.zutaten_id)) + 1;
   const hersteller = document.getElementById('zutat-hersteller')?.value.trim() || '';
   const kategorie  = document.getElementById('zutat-kat')?.value || 'Sonstiges';
+  const aktiv      = document.getElementById('zutat-aktiv')?.value || 'ja';
 
+  setStatus('status-zutat', 'loading', 'Wird gespeichert…');
   try {
-    await appendRow('Zutaten', [newId, name, hersteller, kategorie, 'ja'], sid);
-    addZutat({ zutaten_id: newId, name, hersteller, kategorie, aktiv: 'ja' });
+    if (existingId) {
+      // Bestehenede Zutat bearbeiten: Zeile im Sheet finden und überschreiben
+      const rows = await readSheet('Zutaten', sid);
+      const idx  = rows.findIndex(r => String(r[0]).trim() === String(existingId));
+      if (idx < 0) throw new Error('Zutat ' + existingId + ' nicht gefunden.');
+      // Spalten A–E überschreiben; Spalten F–H (created_at, deleted, deleted_at) bleiben unberührt
+      await writeRange('Zutaten', `A${idx + 1}:E${idx + 1}`,
+        [[existingId, name, hersteller, kategorie, aktiv]], sid);
+      // Cache aktualisieren
+      const z = getZutaten().find(x => x.zutaten_id === existingId);
+      if (z) Object.assign(z, { name, hersteller, kategorie, aktiv });
+    } else {
+      // Neue Zutat anlegen
+      const zutaten = getZutaten();
+      const newId   = Math.max(0, ...zutaten.map(z => z.zutaten_id)) + 1;
+      const now     = new Date().toISOString().slice(0, 19);
+      await appendRow('Zutaten', [newId, name, hersteller, kategorie, aktiv, now, 'FALSE', ''], sid);
+      addZutat({ zutaten_id: newId, name, hersteller, kategorie, aktiv });
+    }
     setStatus('status-zutat', 'ok', '✓ Gespeichert!');
     // Futterrechner-Dropdown aktualisieren
     const { initIngredientSelect } = await import('./rechner.js');
     initIngredientSelect();
-    setTimeout(() => { closeModal(); loadZutaten(); }, 1_000);
+    setTimeout(() => { closeModal(); loadZutaten(); }, 900);
   } catch (e) { setStatus('status-zutat', 'err', 'Fehler: ' + e.message); }
+}
+
+// ── Undo-Stack für Zutaten-Löschungen ───────────────────────────
+// Format: { zutatId, sheetRow, vorher: { aktiv, deleted, deleted_at } }
+const _zutatUndoStack = [];
+const _MAX_ZUTAT_UNDO = 5;
+
+/**
+ * Zutat per Soft-Delete deaktivieren.
+ * Setzt deleted=TRUE in Spalte G (nach Migration) oder aktiv=nein als Fallback.
+ * Legt Undo-Eintrag ab und zeigt Banner.
+ *
+ * @param {number} zutatId
+ * @param {string} name
+ */
+export async function deleteZutat(zutatId, name) {
+  if (!confirm(`Zutat "${name}" löschen?\n\nKann über den „Rückgängig"-Button wiederhergestellt werden.`)) return;
+
+  const sid = getCfg().stammdatenId;
+  try {
+    const rows = await readSheet('Zutaten', sid);
+    const idx  = rows.findIndex(r => String(r[0]).trim() === String(zutatId));
+    if (idx < 0) { alert('Zutat nicht gefunden.'); return; }
+
+    const sheetRow = idx + 1;
+    const row      = rows[idx];
+    const now      = new Date().toISOString().slice(0, 19);
+
+    // Vorherigen Zustand für Undo merken
+    const vorher = {
+      aktiv:      String(row[4] ?? 'ja'),
+      deleted:    String(row[6] ?? 'FALSE'),
+      deleted_at: String(row[7] ?? ''),
+    };
+
+    if (row.length >= 7) {
+      // Migrierte Tabelle: deleted=TRUE in G, deleted_at in H
+      await writeRange('Zutaten', `G${sheetRow}:H${sheetRow}`, [['TRUE', now]], sid);
+    } else {
+      // Vor Migration: aktiv=nein setzen (Spalte E)
+      await writeRange('Zutaten', `E${sheetRow}`, [['nein']], sid);
+    }
+
+    // Store-Cache aktualisieren
+    const z = getZutaten().find(x => x.zutaten_id === zutatId);
+    if (z) { z.aktiv = 'nein'; z.deleted = 'TRUE'; }
+
+    // Undo-Stack befüllen
+    _zutatUndoStack.unshift({ zutatId, zutatName: name, sheetRow, vorher, migriert: row.length >= 7 });
+    if (_zutatUndoStack.length > _MAX_ZUTAT_UNDO) _zutatUndoStack.pop();
+
+    // Futterrechner-Dropdown aktualisieren
+    const { initIngredientSelect } = await import('./rechner.js');
+    initIngredientSelect();
+
+    loadZutaten();
+    _showZutatUndoBanner(name);
+  } catch (e) { alert('Fehler: ' + e.message); }
+}
+
+/**
+ * Letzte Zutaten-Löschung rückgängig machen.
+ */
+export async function undoDeleteZutat() {
+  const entry = _zutatUndoStack[0];
+  if (!entry) return;
+
+  const sid = getCfg().stammdatenId;
+  try {
+    if (entry.migriert) {
+      await writeRange('Zutaten', `G${entry.sheetRow}:H${entry.sheetRow}`,
+        [[entry.vorher.deleted, entry.vorher.deleted_at]], sid);
+    } else {
+      await writeRange('Zutaten', `E${entry.sheetRow}`, [[entry.vorher.aktiv]], sid);
+    }
+
+    // Store-Cache zurücksetzen
+    const z = getZutaten().find(x => x.zutaten_id === entry.zutatId);
+    if (z) { z.aktiv = entry.vorher.aktiv; z.deleted = entry.vorher.deleted; }
+
+    _zutatUndoStack.shift();
+
+    const { initIngredientSelect } = await import('./rechner.js');
+    initIngredientSelect();
+
+    document.getElementById('zutat-undo-banner')?.remove();
+    loadZutaten();
+  } catch (e) { alert('Fehler beim Wiederherstellen: ' + e.message); }
+}
+
+/** Undo-Banner für Zutaten-Löschung einblenden */
+function _showZutatUndoBanner(name) {
+  document.getElementById('zutat-undo-banner')?.remove();
+  const el = document.createElement('div');
+  el.id = 'zutat-undo-banner';
+  el.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--text);color:var(--bg);
+    padding:10px 16px;border-radius:var(--radius);
+    font-size:13px;font-weight:600;z-index:9999;
+    display:flex;align-items:center;gap:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap;
+  `;
+  el.innerHTML = `
+    <span>„${name}" gelöscht</span>
+    <button onclick="STAMMDATEN.undoDeleteZutat()"
+      style="padding:5px 10px;font-size:12px;border:none;border-radius:4px;
+        background:var(--c2);color:#fff;cursor:pointer;font-family:inherit;font-weight:700">
+      ↺ Rückgängig
+    </button>
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 8000);
 }
 
 // ════════════════════════════════════════════════════════════════
