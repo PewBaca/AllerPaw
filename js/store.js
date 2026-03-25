@@ -22,6 +22,14 @@
 import { readSheet }  from './sheets.js';
 import { get as getCfg } from './config.js';
 
+
+// ── Hilfsfunktion: robuste Zahl-Konvertierung (unterstützt dt. Dezimalkomma) ──
+const _float = v => {
+  const s = String(v ?? '').trim().replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
+
 // ── Cache-Objekte ────────────────────────────────────────────────
 let hunde          = [];  // [{hund_id, name, rasse, geburtsdatum, geschlecht, kastriert, aktiv, notizen}]
 let parameter      = {};  // {key: value}  (Key-Value Map)
@@ -99,8 +107,8 @@ export async function loadAll() {
       hund_id:         parseInt(r.hund_id)         || 0,
       naehrstoff_id:   parseInt(r.naehrstoff_id)   || 0,
       naehrstoff_name: r.naehrstoff_name,
-      min_pct:         parseFloat(r.min_pct)        || 0,
-      max_pct:         parseFloat(r.max_pct)        || 999,
+      min_pct:         _float(r.min_pct),
+      max_pct:         _float(r.max_pct) || 999,
       anmerkung:       r.anmerkung || '',
       recommended_pct: r.recommended_pct || '',
     }))
@@ -115,7 +123,7 @@ export async function loadAll() {
         naehrstoff_id:  parseInt(r.naehrstoff_id) || 0,
         name:           r.naehrstoff_name,
         einheit:        r.einheit,
-        bedarf_pro_mkg: parseFloat(r.bedarf_pro_mkg) || 0,
+        bedarf_pro_mkg: _float(r.bedarf_pro_mkg),
         quelle:         r.quelle,
         gruppe:         nutrInfo?.gruppe || 'Sonstiges',
       };

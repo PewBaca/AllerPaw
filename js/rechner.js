@@ -688,9 +688,15 @@ function renderNutrTable(totals, mkg) {
   const rowsEl = document.getElementById('fr-nutr-rows');
   const bedarf = getBedarf();
   if (!bedarf?.length) {
-    rowsEl.innerHTML = '<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">⚠️ Bedarfsdaten nicht geladen.</div>';
+    rowsEl.innerHTML = `<div style="padding:14px;text-align:center;color:var(--sub);font-size:13px">
+      ⚠️ Bedarfsdaten nicht geladen.<br>
+      <span style="font-size:11px">Prüfe ob das Sheet „Bedarf" in deinem Stammdaten-Spreadsheet vorhanden und befüllt ist.</span>
+    </div>`;
     return;
   }
+
+  // Sicherheitsprüfung: mkg muss eine positive Zahl sein
+  const safeMkg = (mkg > 0 && isFinite(mkg)) ? mkg : Math.pow(27, 0.75);
 
   const groups = {};
   bedarf.forEach(b => { (groups[b.gruppe || 'Sonstiges'] = groups[b.gruppe || 'Sonstiges'] || []).push(b); });
@@ -700,17 +706,18 @@ function renderNutrTable(totals, mkg) {
     html += `<div class="fr-nutr-group">${esc(gruppe)}</div>`;
     items.forEach(b => {
       const ist          = totals[b.name] || 0;
-      const tagesBedarf  = b.bedarf_pro_mkg * mkg;
+      const tagesBedarf  = b.bedarf_pro_mkg * safeMkg;
+      const safeTagesB   = (isFinite(tagesBedarf) && tagesBedarf >= 0) ? tagesBedarf : 0;
       const tol          = getTolerance(currentHundId, b.name);
 
       let pct = 0, barColor = 'var(--bar-zero)', pctStr = '?', cls = 'zero';
-      if (tagesBedarf > 0) {
-        pct    = ist / tagesBedarf * 100;
+      if (safeTagesB > 0) {
+        pct    = ist / safeTagesB * 100;
         pctStr = pct.toFixed(0) + '%';
         if (pct >= tol.min && pct <= tol.max) { cls = 'ok';   barColor = 'var(--bar-ok)'; }
         else if (pct < tol.min)               { cls = 'low';  barColor = 'var(--bar-low)'; }
         else                                  { cls = 'over'; barColor = 'var(--bar-high)'; }
-      } else if (tagesBedarf === 0) {
+      } else {
         cls = 'ok'; pctStr = 'n/a';
       }
 
@@ -723,14 +730,14 @@ function renderNutrTable(totals, mkg) {
       };
 
       const istStr    = fmt(ist) + ' ' + b.einheit;
-      const bedarfStr = tagesBedarf > 0 ? fmt(tagesBedarf) + ' ' + b.einheit : '–';
-      const barW      = tagesBedarf > 0 ? Math.min(pct / tol.max * 100, 100) : 0;
-      const diffStr   = tagesBedarf > 0 ? (ist > tagesBedarf ? '+' : '') + fmt(ist - tagesBedarf) + ' ' + b.einheit : '';
+      const bedarfStr = safeTagesB > 0 ? fmt(safeTagesB) + ' ' + b.einheit : '–';
+      const barW      = safeTagesB > 0 ? Math.min(pct / tol.max * 100, 100) : 0;
+      const diffStr   = safeTagesB > 0 ? (ist > safeTagesB ? '+' : '') + fmt(ist - safeTagesB) + ' ' + b.einheit : '';
       const recStr    = tol.recommended ? ` · Empf: ${tol.recommended}%` : '';
       const tooltip   = `${pctStr} (${diffStr}) · Toleranz: ${tol.min}–${tol.max}%${recStr}`;
 
       // Recommended-Marker: vertikale Linie auf dem Balken wenn definiert
-      const recMarker = tol.recommended && tagesBedarf > 0
+      const recMarker = tol.recommended && safeTagesB > 0
         ? `<div style="position:absolute;left:${Math.min(tol.recommended / tol.max * 100, 100)}%;
              top:0;height:100%;width:2px;background:var(--c2);opacity:.7;pointer-events:none"></div>`
         : '';

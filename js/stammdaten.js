@@ -26,9 +26,10 @@ export function loadCurrentTab() { loadTab(currentTab); }
 
 export function loadTab(tab) {
   currentTab = tab;
-  if (tab === 'hunde')     loadHunde();
-  if (tab === 'zutaten')   loadZutaten();
-  if (tab === 'parameter') loadParameter();
+  if (tab === 'hunde')      loadHunde();
+  if (tab === 'zutaten')    loadZutaten();
+  if (tab === 'parameter')  loadParameter();
+  if (tab === 'toleranzen') loadToleranzTab();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -62,6 +63,8 @@ export function loadHunde() {
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           <button class="edit-btn" onclick="STAMMDATEN.showHundModal(${h.hund_id})">✏️ Bearbeiten</button>
+          <button class="edit-btn" style="background:var(--c4);border-color:var(--c2)"
+            onclick="STAMMDATEN.showGewichtModal(${h.hund_id},'${esc(h.name)}')">⚖️ Gewicht</button>
           <button class="del-small-btn"
             onclick="STAMMDATEN.toggleHundAktiv(${h.hund_id},'${esc(h.name)}','${h.aktiv || 'ja'}')">
             ${h.aktiv === 'nein' ? '✅ Aktivieren' : '🚫 Deaktivieren'}
@@ -432,4 +435,232 @@ export async function saveParameter(count) {
     }
     setStatus('status-param', 'ok', '✓ Gespeichert! Seite neu laden um Änderungen zu übernehmen.');
   } catch (e) { setStatus('status-param', 'err', 'Fehler: ' + e.message); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  GEWICHT EINTRAGEN
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Gewichtsverlauf-Modal für einen Hund öffnen.
+ * Zeigt letzte Einträge aus Hund_Gewicht + Formular für neuen Eintrag.
+ */
+export async function showGewichtModal(hundId, hundName) {
+  openModal(`⚖️ Gewicht – ${esc(hundName)}`, `
+    <div class="field"><label>Datum</label>
+      <div class="date-row">
+        <input type="date" id="gew-datum">
+        <button class="btn-small" onclick="UI.setToday('gew-datum')">Heute</button>
+      </div></div>
+    <div class="field"><label>Gewicht (kg)</label>
+      <input type="number" id="gew-kg" placeholder="z.B. 27.3" step="0.1" min="0" max="200"
+        style="font-size:18px;font-weight:700;text-align:center"></div>
+    <div class="field"><label>Notizen</label>
+      <input type="text" id="gew-notizen" placeholder="z.B. nach Tierarztbesuch"></div>
+    <button class="btn-primary" onclick="STAMMDATEN.saveGewicht(${hundId})">⚖️ Gewicht speichern</button>
+    <div class="status" id="status-gew"></div>
+    <div id="gew-history" style="margin-top:1rem">
+      <div style="font-size:11px;color:var(--sub);text-transform:uppercase;margin-bottom:8px">Verlauf</div>
+      <div class="view-loading"><div class="spinner"></div></div>
+    </div>
+  `);
+
+  // Heute als Standard
+  import('./ui.js').then(({ setToday }) => setToday('gew-datum'));
+
+  // Verlauf laden
+  _loadGewichtHistory(hundId);
+}
+
+async function _loadGewichtHistory(hundId) {
+  const el = document.getElementById('gew-history');
+  if (!el) return;
+  try {
+    const rows = await readSheet('Hund_Gewicht', getCfg().tagebuchId);
+    const data = rows.slice(2)
+      .filter(r => r?.some(v => String(v).trim()))
+      .filter(r => String(r[1]).trim() === String(hundId))
+      .map(r => ({
+        datum:   String(r[2] ?? '').trim(),
+        kg:      parseFloat(String(r[3]).replace(',', '.')) || 0,
+        notizen: String(r[4] ?? '').trim(),
+      }))
+      .filter(r => r.kg > 0)
+      .sort((a, b) => {
+        const toTs = s => { if(!s) return 0; const [d,m,y]=s.split('.'); return new Date(`${y}-${m}-${d}`).getTime(); };
+        return toTs(b.datum) - toTs(a.datum);
+      })
+      .slice(0, 15);
+
+    const histEl = document.getElementById('gew-history');
+    if (!histEl) return;
+    const header = histEl.querySelector('div');
+
+    if (!data.length) {
+      histEl.innerHTML = '';
+      if (header) histEl.appendChild(header);
+      histEl.innerHTML += '<p style="color:var(--sub);font-size:13px">Noch keine Einträge.</p>';
+      return;
+    }
+
+    let html = '<div style="font-size:11px;color:var(--sub);text-transform:uppercase;margin-bottom:8px">Verlauf</div>';
+    html += '<table style="width:100%;font-size:13px;border-collapse:collapse">';
+    data.forEach(r => {
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 4px">${esc(r.datum)}</td>
+        <td style="padding:7px 4px;font-weight:700;text-align:right">${r.kg.toFixed(1)} kg</td>
+        <td style="padding:7px 4px;color:var(--sub);font-size:11px">${esc(r.notizen)}</td>
+      </tr>`;
+    });
+    html += '</table>';
+    histEl.innerHTML = html;
+  } catch (e) {
+    const histEl = document.getElementById('gew-history');
+    if (histEl) histEl.innerHTML = `<p style="color:var(--sub);font-size:12px">Sheet „Hund_Gewicht" noch nicht angelegt.<br>Einstellungen → „Neue Sheets anlegen".</p>`;
+  }
+}
+
+export async function saveGewicht(hundId) {
+  const datum  = document.getElementById('gew-datum')?.value;
+  const kgRaw  = document.getElementById('gew-kg')?.value;
+  const kg     = parseFloat(String(kgRaw).replace(',', '.'));
+
+  if (!datum) { setStatus('status-gew', 'err', 'Bitte Datum auswählen.'); return; }
+  if (!kg || kg <= 0) { setStatus('status-gew', 'err', 'Bitte gültiges Gewicht eingeben.'); return; }
+
+  const [y, m, d] = datum.split('-');
+  const datumFmt  = `${d}.${m}.${y}`;
+  const now       = new Date().toISOString().slice(0, 19);
+  const notizen   = document.getElementById('gew-notizen')?.value.trim() || '';
+
+  setStatus('status-gew', 'loading', 'Wird gespeichert…');
+  try {
+    await appendRow('Hund_Gewicht', [
+      '', hundId, datumFmt, kg, notizen, now,
+    ], getCfg().tagebuchId);
+
+    setStatus('status-gew', 'ok', `✓ ${kg.toFixed(1)} kg am ${datumFmt} gespeichert!`);
+    document.getElementById('gew-kg').value = '';
+    document.getElementById('gew-notizen').value = '';
+    _loadGewichtHistory(hundId);
+  } catch (e) { setStatus('status-gew', 'err', 'Fehler: ' + e.message); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOLERANZEN TAB
+// ════════════════════════════════════════════════════════════════
+
+export async function loadToleranzTab() {
+  const el = document.getElementById('sd-toleranzen-list');
+  if (!el) return;
+  el.innerHTML = '<div class="view-loading"><div class="spinner"></div></div>';
+
+  try {
+    const { getBedarf, getHunde, getTolerance } = await import('./store.js');
+    const bedarf = getBedarf();
+    const hunde  = getHunde().filter(h => h.aktiv !== 'nein');
+
+    if (!bedarf.length) {
+      el.innerHTML = '<div class="view-empty"><div class="icon">📊</div>Bedarfsdaten nicht geladen.<br><small>Prüfe das „Bedarf" Sheet.</small></div>';
+      return;
+    }
+
+    // Hund-Selector
+    let html = `
+      <div style="margin-bottom:1rem">
+        <label style="font-size:12px;color:var(--sub);display:block;margin-bottom:4px">Hund</label>
+        <select id="tol-hund-sel" onchange="STAMMDATEN.loadToleranzTab()"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border);
+            border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit">
+          ${hunde.map(h => `<option value="${h.hund_id}">${esc(h.name)}</option>`).join('')}
+        </select>
+      </div>`;
+
+    const hundId = parseInt(document.getElementById('tol-hund-sel')?.value) || hunde[0]?.hund_id || 1;
+
+    html += `<div style="font-size:12px;color:var(--sub);margin-bottom:10px;padding:8px 10px;
+      background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      Werte in % des Tagesbedarfs. Standard: min=80%, max=150%, empf=100%
+    </div>`;
+
+    html += `<table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:8px 4px;color:var(--sub)">Nährstoff</th>
+        <th style="text-align:center;padding:8px 4px;color:var(--sub);width:70px">Min %</th>
+        <th style="text-align:center;padding:8px 4px;color:var(--sub);width:70px">Max %</th>
+        <th style="text-align:center;padding:8px 4px;color:var(--sub);width:70px">Empf %</th>
+      </tr></thead><tbody>`;
+
+    const inputStyle = `style="width:100%;padding:5px 4px;border:1px solid var(--border);
+      border-radius:4px;background:var(--bg);color:var(--text);font-family:inherit;
+      font-size:12px;text-align:center"`;
+
+    bedarf.forEach((b, i) => {
+      const tol = getTolerance(hundId, b.name);
+      const minVal  = tol.min  || 80;
+      const maxVal  = tol.max  || 150;
+      const recVal  = tol.recommended || '';
+      const shade   = i % 2 === 0 ? 'background:var(--bg2)' : '';
+      html += `<tr style="border-bottom:1px solid var(--border);${shade}">
+        <td style="padding:7px 4px;font-weight:500">${esc(b.name)}</td>
+        <td style="padding:4px 2px"><input type="number" id="tol-min-${i}" value="${minVal}" min="0" max="200" ${inputStyle}></td>
+        <td style="padding:4px 2px"><input type="number" id="tol-max-${i}" value="${maxVal}" min="0" max="999" ${inputStyle}></td>
+        <td style="padding:4px 2px"><input type="number" id="tol-rec-${i}" value="${recVal}" min="0" max="500" placeholder="–" ${inputStyle}></td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>
+      <button class="btn-primary" style="margin-top:1rem;width:100%"
+        onclick="STAMMDATEN.saveToleranz(${hundId},${bedarf.length})">
+        💾 Toleranzen speichern
+      </button>
+      <div class="status" id="status-tol"></div>`;
+
+    el.innerHTML = html;
+
+    // Hund-Selektor auf gespeicherten Wert setzen
+    const sel = document.getElementById('tol-hund-sel');
+    if (sel) sel.value = hundId;
+
+  } catch (e) {
+    el.innerHTML = `<div class="status err" style="display:block">Fehler: ${esc(e.message)}</div>`;
+  }
+}
+
+export async function saveToleranz(hundId, count) {
+  setStatus('status-tol', 'loading', 'Wird gespeichert…');
+  try {
+    const { getBedarf, getToleranz } = await import('./store.js');
+    const bedarf     = getBedarf();
+    const toleranzen = getToleranz();
+    const sid        = getCfg().stammdatenId;
+
+    // Bestehende Zeilen laden um Update vs. Append zu entscheiden
+    const rows = await readSheet('Toleranzen', sid);
+
+    for (let i = 0; i < count; i++) {
+      const b   = bedarf[i]; if (!b) continue;
+      const min = parseInt(document.getElementById(`tol-min-${i}`)?.value) || 80;
+      const max = parseInt(document.getElementById(`tol-max-${i}`)?.value) || 150;
+      const rec = document.getElementById(`tol-rec-${i}`)?.value.trim() || '';
+
+      // Vorhandene Zeile für hund_id + naehrstoff_name suchen
+      const idx = rows.findIndex(r =>
+        String(r[0]).trim() === String(hundId) &&
+        String(r[2]).trim() === b.name
+      );
+
+      if (idx >= 0) {
+        // Update: min, max, recommended (Spalten D, E, G)
+        await writeRange('Toleranzen', `D${idx+1}:G${idx+1}`,
+          [[min, max, '', rec]], sid);
+      } else {
+        // Neuen Eintrag anlegen
+        await appendRow('Toleranzen',
+          [hundId, b.naehrstoff_id, b.name, min, max, '', rec], sid);
+      }
+    }
+
+    setStatus('status-tol', 'ok', '✓ Toleranzen gespeichert! App neu laden um Änderungen zu übernehmen.');
+  } catch (e) { setStatus('status-tol', 'err', 'Fehler: ' + e.message); }
 }

@@ -90,7 +90,7 @@ export function switchViewTab(tab) {
  * @param {'hunde'|'zutaten'|'parameter'} tab
  */
 export function switchStammdatenTab(tab) {
-  ['hunde', 'zutaten', 'parameter'].forEach(t => {
+  ['hunde', 'zutaten', 'toleranzen', 'parameter'].forEach(t => {
     const el = document.getElementById('sd-' + t);
     if (el) {
       el.classList.toggle('active', t === tab);
@@ -98,7 +98,7 @@ export function switchStammdatenTab(tab) {
     }
   });
   const btns = document.querySelectorAll('#panel-stammdaten .tab');
-  ['hunde', 'zutaten', 'parameter'].forEach((t, i) => btns[i]?.classList.toggle('active', t === tab));
+  ['hunde', 'zutaten', 'toleranzen', 'parameter'].forEach((t, i) => btns[i]?.classList.toggle('active', t === tab));
   import('./stammdaten.js').then(m => m.loadTab(tab));
 }
 

@@ -139,6 +139,10 @@ export function applyAll() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
     if (!key) return;
+    // Nur ersetzen wenn eine echte Übersetzung im Store vorhanden ist.
+    // Kein Eintrag → bestehenden DOM-Text behalten (kein Fallback auf key-name).
+    const entry = _store[key];
+    if (!entry) return;
     const translated = t(key);
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
       el.placeholder = translated;
