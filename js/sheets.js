@@ -25,6 +25,15 @@ import { getToken, handleExpired } from './auth.js';
 // ── Sheets API Base URL ──────────────────────────────────────────
 const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
+// ── Fetch mit Timeout (15 Sekunden) ─────────────────────────────
+const TIMEOUT_MS = 15_000;
+function fetchWithTimeout(url, opts = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  return fetch(url, { ...opts, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
 /**
  * Gemeinsame Fehlerbehandlung für alle API-Calls.
  * Bei 401 → Session abgelaufen.
@@ -69,7 +78,7 @@ export async function readSheet(sheet, spreadsheetId) {
   const url   = `${BASE}/${spreadsheetId}/values/${range}` +
                 `?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
 
-  const res  = await fetch(url, { headers: authHeaders() });
+  const res  = await fetchWithTimeout(url, { headers: authHeaders() });
   const data = await handleResponse(res);
   return data.values || [];
 }
@@ -91,7 +100,7 @@ export async function appendRow(sheet, values, spreadsheetId) {
   const url   = `${BASE}/${spreadsheetId}/values/${range}:append` +
                 `?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method:  'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body:    JSON.stringify({ values: [values] }),
@@ -113,7 +122,7 @@ export async function writeRange(sheet, range, values, spreadsheetId) {
   const r   = encodeURIComponent(`${sheet}!${range}`);
   const url = `${BASE}/${spreadsheetId}/values/${r}?valueInputOption=USER_ENTERED`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method:  'PUT',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body:    JSON.stringify({ values }),
@@ -134,7 +143,7 @@ export async function writeRange(sheet, range, values, spreadsheetId) {
  */
 export async function createSheet(sheetName, spreadsheetId) {
   const url = `${BASE}/${spreadsheetId}:batchUpdate`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method:  'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body:    JSON.stringify({
@@ -142,6 +151,44 @@ export async function createSheet(sheetName, spreadsheetId) {
     }),
   });
   return handleResponse(res);
+}
+
+/**
+ * Neues Tabellenblatt erstellen und sofort Anzeige- + API-Header setzen.
+ * Idempotent: existiert das Sheet bereits, wird es übersprungen.
+ *
+ * @param {string}   sheetName      - Name des neuen Blatts
+ * @param {string[]} displayHeaders - Zeile 1 (deutsch / Anzeige-Header)
+ * @param {string[]} apiHeaders     - Zeile 2 (englisch, snake_case)
+ * @param {string}   spreadsheetId
+ * @returns {Promise<boolean>}  true = neu erstellt, false = bereits vorhanden
+ */
+export async function createSheetWithHeaders(sheetName, displayHeaders, apiHeaders, spreadsheetId) {
+  const existing = await getSheetsList(spreadsheetId);
+  if (existing.includes(sheetName)) {
+    console.info(`sheets.js: "${sheetName}" bereits vorhanden, übersprungen.`);
+    return false;
+  }
+  await createSheet(sheetName, spreadsheetId);
+  // Kurze Pause – API braucht einen Moment bevor Write möglich ist
+  await new Promise(r => setTimeout(r, 600));
+  await writeRange(sheetName, 'A1', [displayHeaders, apiHeaders], spreadsheetId);
+  console.info(`sheets.js: "${sheetName}" erstellt mit ${displayHeaders.length} Spalten.`);
+  return true;
+}
+
+/**
+ * Sheet sicherstellen (erstellen falls nicht vorhanden).
+ * @param {string} sheetName
+ * @param {string} spreadsheetId
+ * @returns {Promise<boolean>}  true = neu erstellt, false = bereits vorhanden
+ */
+export async function ensureSheet(sheetName, spreadsheetId) {
+  const existing = await getSheetsList(spreadsheetId);
+  if (existing.includes(sheetName)) return false;
+  await createSheet(sheetName, spreadsheetId);
+  await new Promise(r => setTimeout(r, 600));
+  return true;
 }
 
 /**
@@ -154,7 +201,7 @@ export async function createSheet(sheetName, spreadsheetId) {
  */
 export async function deleteSheet(sheetId, spreadsheetId) {
   const url = `${BASE}/${spreadsheetId}:batchUpdate`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method:  'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body:    JSON.stringify({
@@ -173,7 +220,7 @@ export async function deleteSheet(sheetId, spreadsheetId) {
  */
 export async function getSheetsList(spreadsheetId) {
   const url  = `${BASE}/${spreadsheetId}?fields=sheets.properties`;
-  const res  = await fetch(url, { headers: authHeaders() });
+  const res  = await fetchWithTimeout(url, { headers: authHeaders() });
   const data = await handleResponse(res);
   return (data.sheets || []).map(s => s.properties.title);
 }
@@ -187,7 +234,7 @@ export async function getSheetsList(spreadsheetId) {
  */
 export async function getSheetsWithIds(spreadsheetId) {
   const url  = `${BASE}/${spreadsheetId}?fields=sheets.properties`;
-  const res  = await fetch(url, { headers: authHeaders() });
+  const res  = await fetchWithTimeout(url, { headers: authHeaders() });
   const data = await handleResponse(res);
   return (data.sheets || []).map(s => ({
     title:   s.properties.title,
