@@ -595,5 +595,7 @@ Kontext: Hund Manager – Web-App auf GitHub Pages, Google Sheets als Datenbank,
 Vanilla ES Modules, kein Framework. Vollständige Projektbeschreibung: [PROJECT.md]
 
 Ich teile jetzt [modul.js]. Bitte [Aufgabe beschreiben].
-Andere Module: [z.B. sheets.js, store.js, cache.js]
+Andere Module: [z.B. sheets.js, store.js, cache.js] Aktualisiere die Project.md
+als zukünftige Referenz 
+bei Umstrukturierung der hinterlegten spreadsheets informiere mich.
 ```
