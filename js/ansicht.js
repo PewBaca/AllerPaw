@@ -211,29 +211,24 @@ function renderFutter(r, which) {
 }
 
 function renderAusschluss(rows) {
-  const cats = {};
-  rows.forEach(r => { const k=g(r,3)||'Sonstiges'; (cats[k]=cats[k]||[]).push(r); });
-  let html = '<div class="divider"><span>Übersicht</span></div>';
-  Object.keys(cats).sort().forEach(kat => {
-    html += `<div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--sub);text-transform:uppercase;margin-bottom:5px">${esc(kat)}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-    cats[kat].forEach(r => {
-      const s=g(r,4); const cls=s.includes('vertr')?'badge-ok':s.includes('Reaktion')||s.toLowerCase().includes('gesperrt')?'badge-bad':'badge-warn';
-      html += `<span class="badge ${cls}">${esc(g(r,1))}</span>`;
-    });
-    html += '</div></div>';
-  });
-  html += `<div class="divider"><span>Alle Einträge (${rows.length})</span></div>`;
+  const VERDACHT_LABEL = { '0':'✅ Sicher', '1':'🟡 Leichter Verdacht', '2':'🟠 Mittlere Reaktion', '3':'🔴 Starke Reaktion' };
+  const VERDACHT_CLS   = { '0':'badge-ok', '1':'badge-warn', '2':'badge-warn', '3':'badge-bad' };
+
+  let html = `<div class="divider"><span>Alle Einträge (${rows.length})</span></div>`;
   rows.forEach(r => {
-    const eid = g(r, 8);  // entry_id Spalte I
-    const s=g(r,4); const cls=s.includes('vertr')?'badge-ok':s.includes('Reaktion')||s.toLowerCase().includes('gesperrt')?'badge-bad':'badge-warn';
+    const eid   = g(r, 8);  // entry_id Spalte I
+    const s     = g(r, 4);
+    const sCls  = s.includes('vertr') ? 'badge-ok' : s.includes('Reaktion') || s.toLowerCase().includes('gesperrt') ? 'badge-bad' : 'badge-warn';
+    const verd  = String(g(r, 2));
+    const vLabel= VERDACHT_LABEL[verd] || (verd ? `Stufe ${esc(verd)}` : '');
+    const vCls  = VERDACHT_CLS[verd]  || 'badge-warn';
     html += `<div class="entry-card">
       ${editBtn('ausschluss', eid)}${deleteBtn('ausschluss', eid)}
       <div class="ec-date">${esc(g(r,1))}${g(r,5)?' – seit '+esc(g(r,5)):''}</div>
-      ${s?`<div class="ec-row"><span class="ec-key">Status</span><span class="ec-val badge ${cls}">${esc(s)}</span></div>`:''}
-      ${g(r,2)?`<div class="ec-row"><span class="ec-key">Verdacht</span><span class="ec-val badge badge-warn">⚠️ Stufe ${esc(g(r,2))}</span></div>`:''}
-      ${g(r,6)?row('Reaktion',esc(g(r,6))):''}
+      ${g(r,3)?`<div class="ec-row"><span class="ec-key">Kategorie</span><span class="ec-val">${esc(g(r,3))}</span></div>`:''}
+      ${s?`<div class="ec-row"><span class="ec-key">Status</span><span class="ec-val badge ${sCls}">${esc(s)}</span></div>`:''}
+      ${vLabel?`<div class="ec-row"><span class="ec-key">Verdacht</span><span class="ec-val badge ${vCls}">${vLabel}</span></div>`:''}
+      ${g(r,6)?row('Reaktion', esc(g(r,6))):''}
     </div>`;
   });
   return html;
@@ -529,8 +524,18 @@ function _buildEditForm(which, r, rowIndex, entryId) {
            + field('Notizen', 'notizen', g(r,8), 'text', 3);
 
   } else if (which === 'ausschluss') {
+    const verdachtOpts = [
+      ['','– wählen –'],['0','0 – Keine Symptome / Sicher'],
+      ['1','1 – Leichter Verdacht / Geringe Symptome'],
+      ['2','2 – Mittlere Reaktion'],['3','3 – Starke Reaktion'],
+    ].map(([v,l]) => `<option value="${v}" ${g(r,2)==v?'selected':''}>${l}</option>`).join('');
     fields = field('Zutat', 'zutat', g(r,1))
            + field('Kategorie', 'kategorie', g(r,3))
+           + `<div class="ef-field"><label>Verdacht / Reaktion</label>
+               <select id="ef-verdacht" style="width:100%;padding:8px;border:1px solid var(--border);
+                 border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit">
+                 ${verdachtOpts}
+               </select></div>`
            + field('Status', 'status', g(r,4))
            + field('Datum', 'datum', g(r,5), 'date')
            + field('Reaktion', 'reaktion', g(r,6), 'text', 3)
@@ -623,7 +628,8 @@ export async function saveEdit(which, entryId) {
     const rows = await getSheet(sheetName, 'tagebuch', false);
     const row  = rows.find((r,i) => i >= 2 && String(r[eidIdx]??'').trim() === entryId);
     if (!row) { setStatus('status-edit','err','Zeile nicht gefunden.'); return; }
-    newValues = [ g(row,0), v('zutat'), g(row,2), v('kategorie'), v('status'), fd('datum'), v('reaktion'), v('notizen') ];
+    const verdacht = document.getElementById('ef-verdacht')?.value ?? g(row,2);
+    newValues = [ g(row,0), v('zutat'), verdacht, v('kategorie'), v('status'), fd('datum'), v('reaktion'), v('notizen') ];
   } else if (which === 'allergen') {
     const rows = await getSheet(sheetName, 'tagebuch', false);
     const row  = rows.find((r,i) => i >= 2 && String(r[eidIdx]??'').trim() === entryId);
