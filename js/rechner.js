@@ -75,10 +75,13 @@ export function updateWeight2() {
 }
 
 function _setMkg(mkg) {
+  const kg      = parseFloat(document.getElementById('fr-dog-weight')?.value) || 27;
+  const exp     = getParameter()['metabolisches_kg_exponent'] || 0.75;
   const display = (mkg > 0 && isFinite(mkg)) ? mkg.toFixed(2) : '–';
+  const formula = (mkg > 0 && isFinite(mkg)) ? `${kg}<sup>0,75</sup> = ${display}` : '–';
   ['fr-mkg','fr-mkg2'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = display;
+    if (el) el.innerHTML = formula;
   });
 }
 
