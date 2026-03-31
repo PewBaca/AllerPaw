@@ -1,4 +1,4 @@
-# Hund Manager – FAQ (v2.4)
+# Hund Manager – FAQ (v1.0.0)
 
 > Letzte Aktualisierung: 2026-03
 
@@ -82,6 +82,12 @@ A: Das ist der `recommended_pct`-Wert aus den Toleranzen – die persönliche Em
 
 **Q: Wie stelle ich individuelle Toleranzen ein?**
 A: Stammdaten → Tab „Toleranzen" → Hund auswählen → Min%, Max%, Empf% je Nährstoff. Standard: Min=80%, Max=150%.
+
+**Q: Warum wird das Omega 6:3-Verhältnis als „–" angezeigt, obwohl EPA/DHA eingetragen sind?**
+A: Die App sucht exakt nach dem Nährstoff `EPA + DHA` (kombiniert). Wenn EPA und DHA im Sheet als separate Einträge (`EPA` und `DHA`) gespeichert sind, werden sie in der Verhältnisberechnung nicht erkannt. Bitte sicherstellen, dass der kombinierte Eintrag im Sheet `Bedarf` und in `Zutaten_Naehrstoffe` exakt `EPA + DHA` heißt.
+
+**Q: Was gilt als „Kochverlust" – werden alle Nährstoffe reduziert?**
+A: Nein. Der Kochverlust gilt **ausschließlich für B-Vitamine** (B1, B2, B3, B5, B6, B9, B12). Protein, Fett und alle anderen Nährstoffe werden nicht reduziert – die Kcal-Berechnung basiert daher auf den vollen Makro-Werten.
 
 ---
 

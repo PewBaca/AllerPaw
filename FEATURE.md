@@ -1,4 +1,4 @@
-# Hund Manager – Feature-Übersicht (v2.4)
+# Hund Manager – Feature-Übersicht (v1.0.0)
 
 > Letzte Aktualisierung: 2026-03
 

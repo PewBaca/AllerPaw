@@ -1,8 +1,8 @@
-# Hund Manager – Softwarevalidierung (v2.5)
+# Hund Manager – Softwarevalidierung (v1.0.0)
 
 > **Zweck:** Manuelle und automatisierte Testszenarien zur Verifikation aller implementierten Features.
-> Letzte Aktualisierung: 2026-03-29
-> Version: v2.5
+> Letzte Aktualisierung: 2026-03-31
+> Version: v1.0.0
 
 ---
 
@@ -70,6 +70,18 @@
 ### T-RECHN-03 – Omega 6:3-Verhältnis
 **Erwartetes Ergebnis:** Anzeige im Format `X.X : 1` mit Ziel `max. 6 : 1`
 
+### T-RECHN-06 – EPA+DHA-Namenskonvention (**NEU v1.0.0**)
+**Hintergrund:** Die App summiert Omega-3 als `α-Linolensäure` + `EPA + DHA` (kombinierter Eintrag). Separate Einträge `EPA` und `DHA` werden **nicht** erkannt.
+
+**Schritte:**
+1. Sheet `Bedarf` öffnen → prüfen ob Nährstoff exakt `EPA + DHA` heißt (nicht `EPA` + `DHA` getrennt)
+2. Sheet `Zutaten_Naehrstoffe` für eine Zutat mit EPA/DHA-Gehalt prüfen → gleiche Schreibweise sicherstellen
+3. Rechner → Rezept mit einer EPA/DHA-haltigen Zutat (z.B. Algenöl, Lachsöl) öffnen
+
+**Erwartetes Ergebnis:**
+- Omega 6:3-Verhältnis wird als `X.X : 1` angezeigt (nicht als `–`)
+- Wenn `–` angezeigt wird: Nährstoffname im Sheet auf exakt `EPA + DHA` korrigieren
+
 ### T-RECHN-04 – Skalierungsfaktor
 **Schritte:**
 1. Rezept öffnen
@@ -88,7 +100,7 @@
 
 ## Modul 3: Tagebuch – Futter (tagebuch.js)
 
-### T-TAG-FUTTER-01 – Kcal-Konsistenz Rechner ↔ Tagebuch (**BUGFIX v2.5**)
+### T-TAG-FUTTER-01 – Kcal-Konsistenz Rechner ↔ Tagebuch (**BUGFIX v1.0.0**)
 **Schritte:**
 1. Rezept im Rechner berechnen → Kcal notieren (Referenzwert)
 2. Gleiches Rezept im Tagebuch → Futter-Eintrag anlegen mit identischem Gewicht
@@ -111,7 +123,7 @@
 - Gesamt-Gramm korrekt
 - Tagebuch-Text enthält „Futter 1: …" und „Futter 2: …"
 
-### T-TAG-FUTTER-03 – Portionen-Auswahl (**NEU v2.5**)
+### T-TAG-FUTTER-03 – Portionen-Auswahl (**NEU v1.0.0**)
 **Schritte:**
 1. Tagebuch → Futter → Rezept auswählen (z.B. 469g Basis-Rezept)
 2. Portionen-Eingabe auf 0.5 setzen
@@ -140,7 +152,7 @@
 
 ## Modul 4: Ausschlussdiät (tagebuch.js / ansicht.js)
 
-### T-AUSSCHL-01 – Verdacht-Skala 0–3 (**NEU v2.5**)
+### T-AUSSCHL-01 – Verdacht-Skala 0–3 (**NEU v1.0.0**)
 **Schritte:**
 1. Tagebuch → Ausschlussdiät
 2. Zutat eingeben (z.B. „Rind")
@@ -151,7 +163,7 @@
 - Auswahl wird korrekt gespeichert (Spalte B = verdacht im Sheet)
 - Zweimal klicken hebt Auswahl auf
 
-### T-AUSSCHL-02 – Kein Übersichts-Block in Ansicht (**ENTFERNT v2.5**)
+### T-AUSSCHL-02 – Kein Übersichts-Block in Ansicht (**ENTFERNT v1.0.0**)
 **Schritte:**
 1. Tagebuch → Ansicht → 📋 Ausschl. → Aktualisieren
 
@@ -159,7 +171,7 @@
 - Kein Badge-Übersichts-Block oberhalb der Einträge
 - Direkt: „Alle Einträge (N)"-Divider, dann Entry-Cards
 
-### T-AUSSCHL-03 – Edit-Modal mit Verdacht-Dropdown (**NEU v2.5**)
+### T-AUSSCHL-03 – Edit-Modal mit Verdacht-Dropdown (**NEU v1.0.0**)
 **Schritte:**
 1. Ausschluss-Eintrag in Ansicht öffnen
 2. ✏️ Edit-Button tippen
@@ -277,7 +289,7 @@
 
 ---
 
-## Regressionstests nach v2.5
+## Regressionstests nach v1.0.0
 
 Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden:
 
@@ -288,6 +300,8 @@ Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden
 5. T-AUSSCHL-03 (Edit-Modal)
 6. T-UNDO-01 (Undo)
 7. T-AUTH-02 (Token-Ablauf)
+8. T-RECHN-02 (Ca:P-Verhältnis)
+9. T-RECHN-06 (EPA+DHA-Namenskonvention – Sheet-Prüfung)
 
 ---
 

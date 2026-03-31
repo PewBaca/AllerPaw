@@ -1,7 +1,7 @@
-# Hund Manager – Projektbeschreibung (v1.0)
+# Hund Manager – Projektbeschreibung (v1.0.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-03-29 · Status: v1.0 – Kcal-Bugfix, Portionen im Tagebuch, Ausschlussdiät 0–3, VALIDATION.md
+> Letzte Aktualisierung: 2026-03-31 · Status: v1.0.0 – Kcal-Bugfix, Portionen im Tagebuch, Ausschlussdiät 0–3, VALIDATION.md
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -37,11 +37,14 @@
 ```
 /
 ├── index.html              ← HTML-Gerüst + <script type="module" src="main.js">
-├── styles.css              ← Design System (CSS Custom Properties, Dark Mode, Mobile-first)
 ├── PROJECT.md              ← Dieses Dokument – Architektur, Konventionen, Implementierungsstand
 ├── FEATURE.md              ← Vollständige Feature-Übersicht (für Nutzer + als Kontext)
 ├── FAQ.md                  ← Häufige Fragen & Antworten (für Nutzer + als Kontext)
-├── styles.css              ← Design System (CSS Custom Properties, Dark Mode, Mobile-first)
+├── VALIDATION.md           ← Manuelle Testszenarien & Regressionstests
+├── README.md               ← Kurzbeschreibung für GitHub
+├── css/
+│   └── styles.css          ← Design System (CSS Custom Properties, Dark Mode, Mobile-first)
+├── js/
 ├── main.js                 ← App-Einstieg, globale window-Exports, APP-Objekt, i18n-Init
 ├── config.js               ← localStorage-Konfiguration + setupAllSheets()
 ├── sheets.js               ← Alle Google Sheets API Calls + createSheetWithHeaders()
@@ -331,7 +334,7 @@ category_haut    | en | skin
 |---|----------|--------|-----|----------------------------------------|
 | A | hund_id  | int    | ✓   |                                        |
 | B | zutat    | string | ✓   |                                        |
-| C | verdacht | int    | ✓   | Verdachtstufe 1–3                      |
+| C | verdacht | int    | ✓   | Verdachtstufe 0–3 (0=sicher, 1=leicht, 2=mittel, 3=stark) |
 | D | kategorie| string | ✓   |                                        |
 | E | status   | string | ✓   | verträglich / Reaktion / Gesperrt / Test|
 | F | datum    | date   | ✓   |                                        |
@@ -533,11 +536,11 @@ Einstellungen-Panel: Google-Config + Sprache (i18n) + Sheet-Setup + Verbindungst
 
 - **Metabolisches Körpergewicht (mKG):** `Gewicht^0.75`
 - **Bedarf:** `bedarf_pro_mkg × mKG`
-- **Ist-Wert:** `Σ (gramm × (gekocht ? 0.75 : 1) × wert_pro_100g / 100)`
-- **Kochverlustkorrekturfaktor:** 0.75 (pauschal)
+- **Ist-Wert (Nährstoffe):** `Σ (gramm × wert_pro_100g / 100)` – Kochverlust wird selektiv angewendet (siehe unten)
+- **Kochverlustkorrekturfaktor:** 0.75 (pauschal) – gilt **ausschließlich für B-Vitamine** (B1, B2, B3, B5, B6, B9, B12), konfigurierbar via Parameter `kochverlust_b_vitamine` (Standard: 0.30 Verlust → Faktor 0.70). Protein, Fett und alle anderen Nährstoffe werden **nicht** durch den Kochverlust reduziert. Die Kcal-Berechnung basiert daher auf den vollen Makro-Werten.
 - **Kalorienbedarf (RER):** `70 × mKG × RER_faktor`
 - **Ca:P-Verhältnis:** Ziel 1,2–1,5 : 1
-- **Omega 6:3-Verhältnis:** Ziel max. 6 : 1
+- **Omega 6:3-Verhältnis:** Ziel max. 6 : 1 – Omega-3 = ALA + `EPA + DHA` (kombinierter Nährstoffeintrag). **Wichtig:** Der Nährstoff muss im Sheet `Bedarf` und `Zutaten_Naehrstoffe` exakt als `EPA + DHA` benannt sein; separate Einträge `EPA` und `DHA` werden in der Verhältnisberechnung **nicht** berücksichtigt.
 - **Toleranzbalken-Farben:** ok (grün 80–150%), low (gelb <80%), high (orange >150%), zero (rot 0%)
 - **recommended_pct:** optionaler Empfehlungswert je Toleranz-Eintrag → zeigt grüne Markierungslinie im Balken
 - **Kcal-Bedarf manuell:** `kcal_manuell`-Eintrag in `Hund_Kalorienbedarf` überschreibt RER-Berechnung komplett → einstellbar im Hunde-Edit-Modal (Stammdaten)
@@ -545,17 +548,17 @@ Einstellungen-Panel: Google-Config + Sprache (i18n) + Sheet-Setup + Verbindungst
 
 ---
 
-## Implementierungsstand v0.5 (aktuell)
+## Implementierungsstand v1.0.0 (aktuell)
 
 Versionierung X.Y.Z
-X wird nur durch en Nutzer frei gegeben
-Y neue features
+X wird nur durch den Nutzer freigegeben
+Y neue Features
 Z Bugfixes
 
 
 ### ✅ Code – vollständig implementiert
 
-**v0.7 Basis:**
+**v0.7.0 Basis:**
 - `_meta()` in alle 7 tagebuch.js Submit-Handler (entry_id, created_at, deleted, deleted_at)
 - Soft-Delete-Filter in ansicht.js, statistik.js
 - Edit-Modal für alle 7 Tagebuch-Typen (ansicht.js `editEntry` / `saveEdit`)
@@ -572,23 +575,24 @@ Z Bugfixes
 - i18n-Modul mit 35 Standard-Übersetzungen + Sheet-Integration (i18n.js)
 - Sprachschalter in Einstellungen + data-i18n Attribute (index.html)
 
-**v0.8:**
+**v0.8.0:**
 - Kcal-Bedarf pro Hund manuell eintragbar (Stammdaten → Hund bearbeiten)
 - Multi-Futter Tagebuch: mehrere Rezepte mit g-Angaben, automatische Kcal-Berechnung und Komponentenaufschlüsselung
 - Statistik konfigurierbarer Chart mit Temperaturband, Schweregrad-Balken, individuelle Pollen-Typen (Toggle)
 - NaN-Schutz in `calcMkg()` und `renderNutrTable()` (rechner.js)
 - German-Decimal-Fix: `_float()` in store.js für alle Nährstoff- und Toleranzwerte
 
-**v0.9:**
+**v0.9.0:**
 - **Nährwerte im Zutat-Modal** (stammdaten.js): Alle 39 NRC-Nährstoffe direkt beim Anlegen/Bearbeiten einer Zutat einpflegbar. Eingaben werden in `Zutaten_Naehrstoffe` geschrieben (Update oder Append). Bestehende Werte werden beim Öffnen aus Store geladen. Abschnitt ist ein-/ausklappbar.
 - **Erweiterbare Pollen** (wetter.js): Custom-Pollen per `localStorage` (`hundapp_custom_pollen`). `showPollenManager()` für Anlegen/Löschen. Eigene Pollen erscheinen im Pollen-Selector mit manueller Stufenwahl und werden in Pollen_Log geschrieben → sichtbar in Tagebuch und Statistik.
 - **Statistik bereinigt** (statistik.js): Ausschlussdiät-Sektion entfernt, PARAM_DEF-Label: „Schweregrad (0–5)" → „Schweregrad Symptome (0–5)".
 
-**v1.0:**
+**v1.0.0:**
 - **Pollen-Popup** (statistik.js): Statt Inline-Toggle-Buttons öffnet ein „🌿 Pollen (X/Y)"-Button einen Bottom-Sheet-Popup-Dialog. Zeigt alle Pollen-Typen aus Pollen_Log UND Custom-Pollen aus localStorage. Badge „Daten" vs. „Manuell". Alle/Keine + Übernehmen-Button.
 - **Schweregrad Symptome als rotes Flächenband** (statistik.js): `chartType:'area'` mit `fill:'origin'` – gefüllte rote Fläche von 0 bis zum Tageswert. Deutliche visuelle Hervorhebung von Symptomtagen.
 - **Ausschlussdiät in Statistik zurück** (statistik.js): Wird als Liste angezeigt (wie Medikamente), mit Status-Badges (verträglich/Reaktion/Gesperrt/Test). Box erscheint nur wenn Daten für den Hund vorhanden sind.
 - **FEATURE.md + FAQ.md** erstellt: Vollständige Feature-Dokumentation und FAQ als eigenständige Dateien im Repo.
+- **Dokumentations-Fixes:** `verdacht`-Skala korrigiert (0–3), styles.css-Duplikat entfernt, Kochverlust präzisiert (nur B-Vitamine), EPA+DHA-Namenskonvention dokumentiert, VALIDATION.md um T-RECHN-06 erweitert.
 
 ### 📋 Sheets – noch manuell anzupassen
 Siehe SHEET_ANPASSUNGEN.txt für vollständige Anleitung.
@@ -618,7 +622,7 @@ Bestehende Daten: deleted-Spalte mit FALSE füllen.
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
 ```
-Kontext: Hund Manager v2.4 – Web-App auf GitHub Pages, Google Sheets als Datenbank,
+Kontext: Hund Manager v1.0.0 – Web-App auf GitHub Pages, Google Sheets als Datenbank,
 Vanilla ES Modules, kein Framework. Vollständige Projektbeschreibung: [PROJECT.md]
 
 Ich teile jetzt [modul.js]. Bitte [Aufgabe beschreiben].
