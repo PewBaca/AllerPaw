@@ -594,30 +594,6 @@ Z Bugfixes
 - **FEATURE.md + FAQ.md** erstellt: Vollständige Feature-Dokumentation und FAQ als eigenständige Dateien im Repo.
 - **Dokumentations-Fixes:** `verdacht`-Skala korrigiert (0–3), styles.css-Duplikat entfernt, Kochverlust präzisiert (nur B-Vitamine), EPA+DHA-Namenskonvention dokumentiert, VALIDATION.md um T-RECHN-06 erweitert.
 
-### 📋 Sheets – noch manuell anzupassen
-Siehe SHEET_ANPASSUNGEN.txt für vollständige Anleitung.
-
-**Tagebuch-Spreadsheet (7 bestehende Sheets):**
-Jedes Sheet braucht 4 neue Spalten am Ende: entry_id, created_at, deleted, deleted_at.
-Bestehende Daten: deleted-Spalte mit FALSE füllen.
-
-**Stammdaten-Spreadsheet:**
-- Hunde: Spalten I–K (created_at, deleted, deleted_at)
-- Zutaten: Spalten F–H (created_at, deleted, deleted_at)
-- Rezepte: Spalten F–G (deleted, deleted_at)
-- Toleranzen: Spalte G (recommended_pct)
-- Naehrstoffe: Spalten J–N (nrc_min_per_mkg, aafco_min_pct_dm, fediaf_min, upper_safe_limit, quelle_ref)
-
-**Neue Sheets (automatisch via „Neue Sheets anlegen"-Button in Einstellungen):**
-- Stammdaten: Rezept_Komponenten, Translations
-- Tagebuch: Hund_Gewicht, Pollen_Log
-
-### 🔜 Optional / Langfristig
-- Pro-Hund-Sheets im Tagebuch (`{hund_id}_Umwelt` etc.)
-- Export-Funktion (CSV / PDF)
-- Vollständige data-i18n-Abdeckung im HTML
-
----
 
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
