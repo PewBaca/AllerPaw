@@ -1,7 +1,7 @@
-# Hund Manager – Projektbeschreibung (v2.5)
+# Hund Manager – Projektbeschreibung (v1.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-03-29 · Status: v2.5 – Kcal-Bugfix, Portionen im Tagebuch, Ausschlussdiät 0–3, VALIDATION.md
+> Letzte Aktualisierung: 2026-03-29 · Status: v1.0 – Kcal-Bugfix, Portionen im Tagebuch, Ausschlussdiät 0–3, VALIDATION.md
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -545,13 +545,17 @@ Einstellungen-Panel: Google-Config + Sprache (i18n) + Sheet-Setup + Verbindungst
 
 ---
 
-## Implementierungsstand v2.3 (aktuell)
+## Implementierungsstand v0.5 (aktuell)
 
-Alle Features bis v2.3 sind vollständig implementiert.
+Versionierung X.Y.Z
+X wird nur durch en Nutzer frei gegeben
+Y neue features
+Z Bugfixes
+
 
 ### ✅ Code – vollständig implementiert
 
-**v2.0 Basis:**
+**v0.7 Basis:**
 - `_meta()` in alle 7 tagebuch.js Submit-Handler (entry_id, created_at, deleted, deleted_at)
 - Soft-Delete-Filter in ansicht.js, statistik.js
 - Edit-Modal für alle 7 Tagebuch-Typen (ansicht.js `editEntry` / `saveEdit`)
@@ -568,19 +572,19 @@ Alle Features bis v2.3 sind vollständig implementiert.
 - i18n-Modul mit 35 Standard-Übersetzungen + Sheet-Integration (i18n.js)
 - Sprachschalter in Einstellungen + data-i18n Attribute (index.html)
 
-**v2.2:**
+**v0.8:**
 - Kcal-Bedarf pro Hund manuell eintragbar (Stammdaten → Hund bearbeiten)
 - Multi-Futter Tagebuch: mehrere Rezepte mit g-Angaben, automatische Kcal-Berechnung und Komponentenaufschlüsselung
 - Statistik konfigurierbarer Chart mit Temperaturband, Schweregrad-Balken, individuelle Pollen-Typen (Toggle)
 - NaN-Schutz in `calcMkg()` und `renderNutrTable()` (rechner.js)
 - German-Decimal-Fix: `_float()` in store.js für alle Nährstoff- und Toleranzwerte
 
-**v2.3:**
+**v0.9:**
 - **Nährwerte im Zutat-Modal** (stammdaten.js): Alle 39 NRC-Nährstoffe direkt beim Anlegen/Bearbeiten einer Zutat einpflegbar. Eingaben werden in `Zutaten_Naehrstoffe` geschrieben (Update oder Append). Bestehende Werte werden beim Öffnen aus Store geladen. Abschnitt ist ein-/ausklappbar.
 - **Erweiterbare Pollen** (wetter.js): Custom-Pollen per `localStorage` (`hundapp_custom_pollen`). `showPollenManager()` für Anlegen/Löschen. Eigene Pollen erscheinen im Pollen-Selector mit manueller Stufenwahl und werden in Pollen_Log geschrieben → sichtbar in Tagebuch und Statistik.
 - **Statistik bereinigt** (statistik.js): Ausschlussdiät-Sektion entfernt, PARAM_DEF-Label: „Schweregrad (0–5)" → „Schweregrad Symptome (0–5)".
 
-**v2.4:**
+**v1.0:**
 - **Pollen-Popup** (statistik.js): Statt Inline-Toggle-Buttons öffnet ein „🌿 Pollen (X/Y)"-Button einen Bottom-Sheet-Popup-Dialog. Zeigt alle Pollen-Typen aus Pollen_Log UND Custom-Pollen aus localStorage. Badge „Daten" vs. „Manuell". Alle/Keine + Übernehmen-Button.
 - **Schweregrad Symptome als rotes Flächenband** (statistik.js): `chartType:'area'` mit `fill:'origin'` – gefüllte rote Fläche von 0 bis zum Tageswert. Deutliche visuelle Hervorhebung von Symptomtagen.
 - **Ausschlussdiät in Statistik zurück** (statistik.js): Wird als Liste angezeigt (wie Medikamente), mit Status-Badges (verträglich/Reaktion/Gesperrt/Test). Box erscheint nur wenn Daten für den Hund vorhanden sind.
@@ -632,7 +636,8 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 ### ✅ Pflicht nach jeder Änderung
 
 1. **PROJECT.md aktualisieren:**
-   - Versionsnummer erhöhen (v2.x → v2.x+1)
+   - Versionsnummer erhöhen 
+   - Project.md immer aktualisieren
    - Datum auf aktuelles Datum setzen
    - Modul-Beschreibung in der Dateistruktur anpassen
    - UI-Struktur aktualisieren falls sich Panels/Tabs ändern
@@ -641,8 +646,10 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 
 2. **FEATURE.md aktualisieren:**
    - Neue Features in der passenden Kategorie ergänzen
+   - Feature.md aktualiseren
    - Geänderte Features anpassen (z.B. Label-Änderungen, Verhalten)
-   - Entfernte Features aus der Liste streichen
+   - Frage nach bevor Entfernte Features aus der Liste streichen
+   - Versuche immer features zu erhalten wenn diese nicht explizit gestrichen wurden
 
 3. **FAQ.md aktualisieren:**
    - Neue FAQs für neue Features hinzufügen
@@ -661,6 +668,11 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
    **Removed:** [feature] – [reason]
    **Sheet changes required:** [yes/no + details]
    ```
+
+ 6. **Validatoin.md aktualisieren:**
+  **Alte Validierungen nicht löschen
+  **prüfen ob neue Validierungen und Evaluierungen erforderlich sind
+
 
 ### Wichtige Hinweise für neue Prompts
 
