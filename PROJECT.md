@@ -291,19 +291,19 @@ category_haut    | en | skin
 
 #### `Symptomtagebuch`
 
-| # | Spalte        | Typ   | Alt | Beschreibung                            |
-|---|---------------|-------|-----|-----------------------------------------|
-| A | hund_id       | int   | ✓   |                                         |
-| B | datum         | date  | ✓   |                                         |
-| C | kategorie     | string| ✓   | Kommasepariert: "Haut, Pfoten"          |
-| D | beschreibung  | string| ✓   |                                         |
-| E | schweregrad   | int   | ✓   | 0–5 (0 = keine Symptome)               |
-| F | koerperstelle | string| ✓   | Kommasepariert                          |
-| G | notizen       | string| ✓   |                                         |
-| H | entry_id      | string| NEU | UUID                                    |
-| I | created_at    | datetime|NEU|                                         |
-| J | deleted       | boolean|NEU|                                         |
-| K | deleted_at    | datetime|NEU|                                         |
+| # | Spalte        | Typ   | Beschreibung                            |
+|---|---------------|-------|-----------------------------------------|
+| A | hund_id       | int   |                                         |
+| B | datum         | date  |                                         |
+| C | kategorie     | string| Kommasepariert: "Haut, Pfoten"          |
+| D | beschreibung  | string|                                         |
+| E | schweregrad   | int   | 0–5 (0 = keine Symptome)               |
+| F | koerperstelle | string| Kommasepariert                          |
+| G | notizen       | string|                                         |
+| H | entry_id      | string| UUID                                    |
+| I | created_at    | datetime|                                         |
+| J | deleted       | boolean|                                         |
+| K | deleted_at    | datetime|                                         |
 
 > **Schweregrad-Skala:** 0 = keine Symptome, 1 = sehr leicht, 2 = leicht, 3 = mittel, 4 = stark, 5 = sehr stark
 
@@ -344,18 +344,18 @@ category_haut    | en | skin
 
 #### `Bekannte Allergene`
 
-| # | Spalte   | Typ    | Alt | Beschreibung                           |
-|---|----------|--------|-----|----------------------------------------|
-| A | hund_id  | int    | ✓   |                                        |
-| B | allergen | string | ✓   |                                        |
-| C | kategorie| string | ✓   |                                        |
-| D | reaktion | int    | ✓   | Reaktionsstärke 1–5                    |
-| E | symptome | string | ✓   |                                        |
-| F | notizen  | string | ✓   |                                        |
-| G | entry_id | string | NEU |                                        |
-| H | created_at|datetime|NEU|                                        |
-| I | deleted  | boolean|NEU |                                        |
-| J | deleted_at|datetime|NEU|                                        |
+| # | Spalte   | Typ    | Beschreibung                           |
+|---|----------|--------|----------------------------------------|
+| A | hund_id  | int    |                                        |
+| B | allergen | string |                                        |
+| C | kategorie| string |                                        |
+| D | reaktion | int    | Reaktionsstärke 1–5                    |
+| E | symptome | string |                                        |
+| F | notizen  | string |                                        |
+| G | entry_id | string |                                        |
+| H | created_at|datetime|                                        |
+| I | deleted  | boolean|                                        |
+| J | deleted_at|datetime|                                        |
 
 #### `Tierarztbesuche`
 
@@ -376,21 +376,21 @@ category_haut    | en | skin
 
 #### `Medikamente`
 
-| # | Spalte      | Typ    | Alt | Beschreibung                           |
-|---|-------------|--------|-----|----------------------------------------|
-| A | hund_id     | int    | ✓   |                                        |
-| B | name        | string | ✓   | Medikamentenname                       |
-| C | typ         | string | ✓   | Antibiotikum / Antihistaminikum / etc. |
-| D | dosierung   | string | ✓   | z.B. "5mg/kg"                          |
-| E | haeufigkeit | string | ✓   | z.B. "2x täglich"                      |
-| F | von         | date   | ✓   | DD.MM.YYYY                             |
-| G | bis         | date   | ✓   | DD.MM.YYYY                             |
-| H | verordnet   | string | ✓   | Tierarzt / Selbst                      |
-| I | notizen     | string | ✓   |                                        |
-| J | entry_id    | string | NEU |                                        |
-| K | created_at  | datetime|NEU|                                        |
-| L | deleted     | boolean|NEU|                                        |
-| M | deleted_at  | datetime|NEU|                                        |
+| # | Spalte      | Typ    | Beschreibung                           |
+|---|-------------|--------|----------------------------------------|
+| A | hund_id     | int     |                                        |
+| B | name        | string | Medikamentenname                       |
+| C | typ         | string | Antibiotikum / Antihistaminikum / etc. |
+| D | dosierung   | string | z.B. "5mg/kg"                          |
+| E | haeufigkeit | string | z.B. "2x täglich"                      |
+| F | von         | date   | DD.MM.YYYY                             |
+| G | bis         | date   | DD.MM.YYYY                             |
+| H | verordnet   | string | Tierarzt / Selbst                      |
+| I | notizen     | string |                                        |
+| J | entry_id    | string  |                                        |
+| K | created_at  | datetime|                                        |
+| L | deleted     | boolean|                                        |
+| M | deleted_at  | datetime                                        |
 
 #### `Hund_Gewicht` *(NEU – für Statistik-Gewichtsverlauf)*
 
