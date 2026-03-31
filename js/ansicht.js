@@ -244,7 +244,7 @@ const AUSSCHLUSS_VERDACHT_LABEL = {
   '0': '✅ Sicher',
   '1': '🟡 Leichter Verdacht',
   '2': '🟠 Mittlerer Verdacht',
-  '3': '🔴 Starke Reaktion',
+  '3': '🔴 Starker Verdacht',
 };
 const AUSSCHLUSS_VERDACHT_CLS = { '0':'badge-ok', '1':'badge-warn', '2':'badge-warn', '3':'badge-bad' };
 
@@ -263,7 +263,7 @@ function renderAusschluss(rows) {
     { val: '0', label: '✅ Sicher' },
     { val: '1', label: '🟡 Leichter Verdacht' },
     { val: '2', label: '🟠 Mittlerer Verdacht' },
-    { val: '3', label: '🔴 Starke Reaktion' },
+    { val: '3', label: '🔴 Starker Verdacht' },
   ];
 
   const filtered = _ausschlussFilter === ''
@@ -589,7 +589,7 @@ function _buildEditForm(which, r, rowIndex, entryId) {
     const verdachtOpts = [
       ['','– wählen –'],['0','0 – Keine Symptome / Sicher'],
       ['1','1 – Leichter Verdacht / Geringe Symptome'],
-      ['2','2 – Mittlerer Verdacht'],['3','3 – Starke Reaktion'],
+      ['2','2 – Mittlerer Verdacht'],['3','3 – Starker Verdacht'],
     ].map(([v,l]) => `<option value="${v}" ${g(r,2)==v?'selected':''}>${l}</option>`).join('');
 
     const katOpts = ['','Fleisch','Fisch','Gemüse','Obst','Getreide','Milchprodukt','Öl / Fett','Supplement','Sonstiges']

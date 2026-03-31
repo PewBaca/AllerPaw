@@ -242,7 +242,27 @@ export async function loadAll() {
 
   const dwdData = dwdRes.status === 'fulfilled' ? dwdRes.value : [];
   const omData  = omRes.status  === 'fulfilled' ? omRes.value  : [];
-  renderPollenSelector(dwdData, omData);
+
+  // Bereits eingetragene Pollen aus Pollen_Log laden (letzte 90 Tage)
+  let prevPollen = new Set();
+  try {
+    const { getSheet } = await import('./cache.js');
+    const rows = await getSheet('Pollen_Log', 'tagebuch', false);
+    const cutoff = new Date(Date.now() - 90 * 86_400_000);
+    (rows || []).slice(2).forEach(r => {
+      const name = (r[3] ?? '').toString().trim();
+      const dateStr = (r[2] ?? '').toString().trim();
+      if (!name) return;
+      // Datum parsen
+      let d = null;
+      if (dateStr.includes('.')) { const [dd,mm,yy] = dateStr.split('.'); d = new Date(yy, mm-1, dd); }
+      else if (dateStr.includes('-')) { d = new Date(dateStr); }
+      if (!d || isNaN(d.getTime()) || d < cutoff) return;
+      prevPollen.add(name);
+    });
+  } catch(e) { /* Pollen_Log nicht vorhanden – kein Problem */ }
+
+  renderPollenSelector(dwdData, omData, prevPollen);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -339,7 +359,7 @@ function levelColor(num) {
   return 'var(--sub)';
 }
 
-function renderPollenSelector(dwdData, omData) {
+function renderPollenSelector(dwdData, omData, prevPollen = new Set()) {
   // Alte UI entfernen
   document.getElementById('pollen-selector')?.remove();
 
@@ -409,7 +429,7 @@ function renderPollenSelector(dwdData, omData) {
             border-radius:4px;background:var(--bg);color:var(--text);font-family:inherit">
           <option value="-1">– nicht erfassen</option>
           <option value="1">1 – gering</option>
-          <option value="2">2 – gering–mittel</option>
+          <option value="2" ${prevPollen.has(name)?'selected':''}>2 – gering–mittel</option>
           <option value="3">3 – mittel</option>
           <option value="4">4 – mittel–stark</option>
           <option value="5">5 – stark</option>
@@ -455,8 +475,8 @@ function renderPollenSelector(dwdData, omData) {
       const active = btn.dataset.selected === '1';
       active ? deactivateBtn(btn) : activateBtn(btn);
     });
-    // Vorauswahl: alles mit Stärke ≥ mittel
-    if (parseInt(btn.dataset.levelnum) >= 2) activateBtn(btn);
+    // Vorauswahl: bereits zuvor eingetragene Pollen ODER Stärke ≥ mittel
+    if (prevPollen.has(name) || parseInt(btn.dataset.levelnum) >= 2) activateBtn(btn);
   });
 
   document.getElementById('pollen-all').addEventListener('click', () => {
