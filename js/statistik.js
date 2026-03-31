@@ -29,6 +29,8 @@ const C = {
 let _chart      = null;
 let _selected   = new Set(['temp_band','symptome']);
 let _cachedData = null;
+// Bekannte Allergene (Pollenarten) aus dem Sheet – für Pollen-Vorauswahl
+let _knownAllergenPollen = new Set();
 
 const POLLEN_COLORS = [C.green,C.amber,C.teal,C.sky,C.orange,C.purple,'#10b981','#6366f1'];
 let _pollenTypes    = [];
@@ -65,6 +67,11 @@ const PARAM_DEFS = [
     key:'feuchte_in', label:'Feuchte innen (%)', emoji:'🏠',
     color:C.teal, colorL:C.tealL, yAxis:'y', dashed:true,
     extract:({umw})=>_byDate(umw,1,r=>parseFloat(g(r,8))),
+  },
+  {
+    key:'regen', label:'Niederschlag (mm)', emoji:'🌧',
+    color:'#3b82f6', colorL:'rgba(59,130,246,.18)', yAxis:'y', chartType:'bar_param',
+    extract:({umw})=>_byDate(umw,1,r=>parseFloat(g(r,5)),((a,b)=>a+b)),
   },
   {
     key:'symptome', label:'Schweregrad Symptome (0–5)', emoji:'🔍',
@@ -141,7 +148,22 @@ export async function refresh(forceRefresh=false) {
     const discoveredPollen=[...new Set(pol.map(r=>g(r,3)).filter(Boolean))].sort();
     _pollenTypes=discoveredPollen;
     const allPollenTypes=_getAllPollenTypes();
-    allPollenTypes.forEach(t=>{ if(!_selPollenTypes.has(t)) _selPollenTypes.add(t); });
+
+    // Bekannte Allergene (Futterallergene ausschließen): Pollen-Namen normiert
+    _knownAllergenPollen = new Set(
+      all.filter(r => {
+        const kat = g(r,2).toLowerCase();
+        return kat.includes('umwelt') || kat.includes('pollen') || kat === '';
+      }).map(r => g(r,1))
+    );
+
+    // Pollen-Vorauswahl: nur Pollenarten die in bekannten Allergenen stehen,
+    // alles andere standardmäßig deaktiviert. Nur beim ersten Laden setzen.
+    if(_selPollenTypes.size === 0) {
+      allPollenTypes.forEach(t => {
+        if(_knownAllergenPollen.has(t)) _selPollenTypes.add(t);
+      });
+    }
     _buildParamButtons();
 
     const schweList=sym.map(r=>parseInt(g(r,4))||0).filter(v=>v>0);
@@ -373,6 +395,13 @@ async function _buildChart(data) {
         borderWidth:2,pointRadius:3,pointHoverRadius:5,
         pointBackgroundColor:p.color,
         tension:0.1,fill:'origin',
+        yAxisID:p.yAxis,spanGaps:false,
+      });
+    } else if(p.chartType==='bar_param'){
+      const map=p.extract(data);
+      datasets.push({
+        label:`${p.emoji} ${p.label}`,data:null,_map:map,type:'bar',
+        backgroundColor:p.colorL,borderColor:p.color,borderWidth:1,
         yAxisID:p.yAxis,spanGaps:false,
       });
     } else {
