@@ -28,6 +28,7 @@ const DEFAULTS = {
   lat:          52.4,   // Berlin
   lon:          13.4,   // Berlin
   pollenRegion: 50,     // Berlin DWD Region
+  usdaApiKey:   '',     // USDA FoodData Central API-Key (kostenlos: https://fdc.nal.usda.gov/api-key-signup)
 };
 
 // ── Interner State ───────────────────────────────────────────────
@@ -41,6 +42,7 @@ const FIELD_MAP = {
   'cfg-lat':           'lat',
   'cfg-lon':           'lon',
   'cfg-pollen-region': 'pollenRegion',
+  'cfg-usda-key':      'usdaApiKey',
 };
 
 /**
@@ -73,6 +75,7 @@ export function save() {
   cfg.lat          = parseFloat(document.getElementById('cfg-lat')?.value)       || 52.4;
   cfg.lon          = parseFloat(document.getElementById('cfg-lon')?.value)       || 13.4;
   cfg.pollenRegion = parseInt(document.getElementById('cfg-pollen-region')?.value) || 50;
+  cfg.usdaApiKey   = document.getElementById('cfg-usda-key')?.value.trim()       ?? '';
 
   try {
     localStorage.setItem('hundapp_config', JSON.stringify(cfg));

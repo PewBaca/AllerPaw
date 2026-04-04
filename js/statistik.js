@@ -1,14 +1,14 @@
 /**
- * MODULE: statistik.js  (v4 – Pollen-Popup, Symptome als rotes Band, Ausschlussdiät zurück)
+ * MODULE: statistik.js  (v5 – Allergene+Ausschlussdiät aus Statistik entfernt, Pollen-Vorauswahl alle)
  *
  * Konfigurierbarer Mixed-Chart.
  * Y-Links  (y):  Temperatur °C, Luftfeuchtigkeit %, Gewicht kg
  * Y-Rechts (y2): Schweregrad 0–5 (rotes Flächenband), Pollen-Stufe 0–5
  *
- * Neu in v4:
- * - Schweregrad Symptome: gefülltes rotes Band (fill:'origin') statt Balken
- * - Pollen-Typen: Popup-Dialog statt Inline-Buttons; inkl. Custom-Pollen aus localStorage
- * - Ausschlussdiät: wieder als Liste in der Statistik (wie Medikamente), nur wenn Daten vorhanden
+ * Neu in v5:
+ * - Bekannte Allergene: Sektion entfernt (führende Stelle: Tagebuch → Allergen-Tab)
+ * - Ausschlussdiät: Sektion entfernt (führende Stelle: Tagebuch → Ausschluss-Tab)
+ * - Pollen-Vorauswahl: alle verfügbaren Pollenarten standardmäßig aktiv
  */
 
 import { getSheet, invalidateAll, getAge } from './cache.js';
@@ -29,9 +29,6 @@ const C = {
 let _chart      = null;
 let _selected   = new Set(['temp_band','symptome']);
 let _cachedData = null;
-// Bekannte Allergene (Pollenarten) aus dem Sheet – für Pollen-Vorauswahl
-let _knownAllergenPollen = new Set();
-
 const POLLEN_COLORS = [C.green,C.amber,C.teal,C.sky,C.orange,C.purple,'#10b981','#6366f1'];
 let _pollenTypes    = [];
 let _selPollenTypes = new Set();
@@ -107,13 +104,11 @@ export async function refresh(forceRefresh=false) {
   if(!content) return;
   content.innerHTML='<div class="view-loading"><div class="spinner"></div>Lade Daten…</div>';
   try {
-    const [rSym,rUmw,rFut,rAll,rMed,rAus] = await Promise.all([
+    const [rSym,rUmw,rFut,rMed] = await Promise.all([
       getSheet('Symptomtagebuch',   'tagebuch',forceRefresh),
       getSheet('Umweltagebuch',     'tagebuch',forceRefresh),
       getSheet('Futtertagebuch',    'tagebuch',forceRefresh),
-      getSheet('Bekannte Allergene','tagebuch',forceRefresh),
       getSheet('Medikamente',       'tagebuch',forceRefresh),
-      getSheet('Ausschlussdiät',    'tagebuch',forceRefresh).catch(()=>[]),
     ]);
     const rGew=await getSheet('Hund_Gewicht','tagebuch',forceRefresh).catch(()=>[]);
     const rPol=await getSheet('Pollen_Log',  'tagebuch',forceRefresh).catch(()=>[]);
@@ -130,39 +125,26 @@ export async function refresh(forceRefresh=false) {
 
     const _pr=(raw,skip)=>_parseRows(raw,skip);
     const allSym=_pr(rSym,2); const allUmw=_pr(rUmw,2);
-    const allFut=_pr(rFut,2); const allAll=_pr(rAll,2);
-    const allMed=_pr(rMed,2); const allAus=_pr(rAus,2);
+    const allFut=_pr(rFut,2);
+    const allMed=_pr(rMed,2);
     const allGew=_pr(rGew,2); const allPol=_pr(rPol,2);
 
     const sym=allSym.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(9)(r));
     const umw=allUmw.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(13)(r));
     const fut=allFut.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(11)(r));
-    const all=allAll.filter(r=>_matchH(r,hundId)&&notDel(8)(r));
     const med=allMed.filter(r=>_matchH(r,hundId)&&notDel(11)(r));
-    const aus=allAus.filter(r=>_matchH(r,hundId)&&notDel(10)(r));
     const gew=allGew.filter(r=>g(r,1)===String(hundId)&&_inRange(g(r,2),cutoff));
     const pol=allPol.filter(r=>g(r,1)===String(hundId)&&_inRange(g(r,2),cutoff));
 
-    _cachedData={sym,umw,fut,all,med,aus,gew,pol};
+    _cachedData={sym,umw,fut,med,gew,pol};
 
     const discoveredPollen=[...new Set(pol.map(r=>g(r,3)).filter(Boolean))].sort();
     _pollenTypes=discoveredPollen;
     const allPollenTypes=_getAllPollenTypes();
 
-    // Bekannte Allergene (Futterallergene ausschließen): Pollen-Namen normiert
-    _knownAllergenPollen = new Set(
-      all.filter(r => {
-        const kat = g(r,2).toLowerCase();
-        return kat.includes('umwelt') || kat.includes('pollen') || kat === '';
-      }).map(r => g(r,1))
-    );
-
-    // Pollen-Vorauswahl: nur Pollenarten die in bekannten Allergenen stehen,
-    // alles andere standardmäßig deaktiviert. Nur beim ersten Laden setzen.
+    // Pollen-Vorauswahl: alle verfügbaren Pollenarten beim ersten Laden aktivieren.
     if(_selPollenTypes.size === 0) {
-      allPollenTypes.forEach(t => {
-        if(_knownAllergenPollen.has(t)) _selPollenTypes.add(t);
-      });
+      allPollenTypes.forEach(t => _selPollenTypes.add(t));
     }
     _buildParamButtons();
 
@@ -183,15 +165,11 @@ export async function refresh(forceRefresh=false) {
         padding:14px;margin-bottom:1rem">
         <canvas id="ch-konfig" height="240"></canvas>
       </div>
-      ${_box('⚠️ Bekannte Allergene','<div id="st-allergene"></div>')}
-      ${aus.length?_box('🍽️ Ausschlussdiät','<div id="st-aus"></div>'):''}
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
 
     await _buildChart(_cachedData);
-    _renderAllergene(all);
-    if(aus.length) _renderAusschluss(aus);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -460,48 +438,7 @@ async function _buildChart(data) {
   });
 }
 
-function _renderAllergene(all) {
-  const el=document.getElementById('st-allergene'); if(!el) return;
-  el.innerHTML=all.length?all.map(r=>{
-    const reakt=parseInt(g(r,3))||0;
-    const color=reakt>=4?C.red:reakt>=3?C.amber:C.green;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:14px;font-weight:600">${esc(g(r,1))}</div>
-        <div style="font-size:12px;color:var(--sub)">${esc(g(r,2))} · ${esc(g(r,4))}</div></div>
-      <div style="font-size:18px;color:${color};letter-spacing:2px">
-        ${'●'.repeat(reakt)}${'○'.repeat(5-reakt)}</div></div>`;
-  }).join(''):'<p style="color:var(--sub);font-size:13px">Keine Allergene erfasst.</p>';
-}
 
-function _renderAusschluss(aus) {
-  const el=document.getElementById('st-aus'); if(!el) return;
-  const statusColor=s=>{
-    if(!s) return C.amber;
-    const sl=s.toLowerCase();
-    if(sl.includes('vertr')) return C.green;
-    if(sl.includes('reaktion')||sl.includes('gesperrt')) return C.red;
-    return C.amber;
-  };
-  const sorted=[...aus].sort((a,b)=>(g(a,4)||'').localeCompare(g(b,4)||''));
-  el.innerHTML=sorted.map(r=>{
-    const status=g(r,4)||'–';
-    const verdacht=parseInt(g(r,2))||0;
-    const col=statusColor(status);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:9px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${esc(g(r,1))}</div>
-        ${g(r,3)?`<div style="font-size:11px;color:var(--sub)">${esc(g(r,3))}</div>`:''}
-        ${g(r,6)?`<div style="font-size:11px;color:var(--sub);margin-top:2px">↳ ${esc(g(r,6))}</div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;margin-left:8px">
-        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
-          background:${col}22;color:${col};border:1px solid ${col}44">${esc(status)}</span>
-        ${verdacht>0?`<span style="font-size:10px;color:var(--sub)">Verdacht: ${'▲'.repeat(verdacht)}${'△'.repeat(3-verdacht)}</span>`:''}
-      </div></div>`;
-  }).join('')||'<p style="color:var(--sub);font-size:13px">Keine Ausschlussdiät-Einträge.</p>';
-}
 
 function _renderFutter(fut) {
   const el=document.getElementById('st-futter'); if(!el) return;

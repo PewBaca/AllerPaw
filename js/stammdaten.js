@@ -316,6 +316,45 @@ export function showZutatModal(zutatId) {
 
     <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;
+          cursor:pointer;user-select:none;margin-bottom:8px"
+        onclick="const s=document.getElementById('import-section');
+                 const open=s.style.display!=='none';
+                 s.style.display=open?'none':'block';
+                 document.getElementById('import-toggle-arrow').textContent=open?'▶':'▼'">
+        <div style="font-size:13px;font-weight:600">🔍 Nährwerte importieren</div>
+        <span id="import-toggle-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+      </div>
+      <div id="import-section" style="display:none">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:10px;padding:8px 10px;
+          background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          💡 Werte werden als Vorschlag geladen – bitte prüfen und ggf. anpassen.
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer">
+            <input type="radio" name="import-src" value="usda" checked style="accent-color:var(--c2)"> USDA FoodData Central
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer">
+            <input type="radio" name="import-src" value="off" style="accent-color:var(--c2)"> Open Food Facts
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="import-query" placeholder="z.B. chicken breast raw…"
+            style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+              background:var(--bg);color:var(--text);font-family:inherit;font-size:13px"
+            onkeydown="if(event.key==='Enter')STAMMDATEN.runImportSearch()">
+          <button onclick="STAMMDATEN.runImportSearch()"
+            style="padding:9px 14px;font-size:13px;font-weight:700;border:none;
+              border-radius:var(--radius-sm);background:var(--c2);color:#fff;cursor:pointer;font-family:inherit">
+            Suchen
+          </button>
+        </div>
+        <div id="import-status" style="font-size:12px;color:var(--sub);margin-bottom:6px"></div>
+        <div id="import-results"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;
           cursor:pointer;user-select:none;margin-bottom:4px"
         onclick="const s=document.getElementById('nutr-section');
                  const open=s.style.display!=='none';
@@ -363,6 +402,235 @@ function _fillNutrInputs(map) {
       if (inp && wert != null && wert !== '') inp.value = wert;
     }
   });
+}
+
+// ── USDA / Open Food Facts Import ───────────────────────────────
+
+/**
+ * Mapping USDA nutrient names → NRC Nährstoffnamen (Auswahl der wichtigsten)
+ * USDA liefert nutrient.name z.B. "Protein", "Total lipid (fat)", "Fiber, total dietary"
+ */
+const USDA_MAP = {
+  'Protein':                          'Rohprotein',
+  'Total lipid (fat)':                'Rohfett',
+  'Fiber, total dietary':             'Rohfaser',
+  'Water':                            'Feuchtigkeit',
+  'Ash':                              'Asche',
+  // Aminosäuren
+  'Arginine':                         'Arginin',
+  'Histidine':                        'Histidin',
+  'Isoleucine':                       'Isoleucin',
+  'Leucine':                          'Leucin',
+  'Lysine':                           'Lysin',
+  'Methionine':                       'Methionin',
+  'Phenylalanine':                    'Phenylalanin',
+  'Threonine':                        'Threonin',
+  'Tryptophan':                       'Tryptophan',
+  'Valine':                           'Valin',
+  'Cystine':                          'Cystein',
+  'Tyrosine':                         'Tyrosin',
+  'Taurine':                          'Taurin',
+  // Fettsäuren
+  'Fatty acids, total saturated':     null, // kein direktes NRC-Äquivalent
+  'Fatty acids, total polyunsaturated': null,
+  '18:2 undifferentiated':            'Linolsäure (LA)',
+  '18:3 undifferentiated':            'α-Linolensäure (ALA)',
+  '20:5 n-3 (EPA)':                   null, // Teil von EPA+DHA
+  '22:6 n-3 (DHA)':                   null, // Teil von EPA+DHA
+  // Mineralstoffe
+  'Calcium, Ca':                      'Kalzium',
+  'Phosphorus, P':                    'Phosphor',
+  'Magnesium, Mg':                    'Magnesium',
+  'Sodium, Na':                       'Natrium',
+  'Potassium, K':                     'Kalium',
+  'Chlorine, Cl':                     'Chlorid',
+  'Iron, Fe':                         'Eisen',
+  'Zinc, Zn':                         'Zink',
+  'Copper, Cu':                       'Kupfer',
+  'Manganese, Mn':                    'Mangan',
+  'Selenium, Se':                     'Selen',
+  'Iodine, I':                        'Jod',
+  // Vitamine
+  'Vitamin A, RAE':                   'Vitamin A',
+  'Vitamin D (D2 + D3)':              'Vitamin D3',
+  'Vitamin E (alpha-tocopherol)':     'Vitamin E',
+  'Vitamin K (phylloquinone)':        'Vitamin K',
+  'Thiamin':                          'Vitamin B1',
+  'Riboflavin':                       'Vitamin B2',
+  'Niacin':                           'Vitamin B3',
+  'Pantothenic acid':                 'Vitamin B5',
+  'Vitamin B-6':                      'Vitamin B6',
+  'Folate, DFE':                      'Vitamin B9',
+  'Vitamin B-12':                     'Vitamin B12',
+  'Choline, total':                   'Cholin',
+  'Biotin':                           'Biotin',
+};
+
+/** Mapping Open Food Facts nutriments-Keys → NRC-Namen */
+const OFF_MAP = {
+  'proteins_100g':        'Rohprotein',
+  'fat_100g':             'Rohfett',
+  'fiber_100g':           'Rohfaser',
+  'water_100g':           'Feuchtigkeit',
+  'ash_100g':             'Asche',
+  'calcium_100g':         'Kalzium',
+  'phosphorus_100g':      'Phosphor',
+  'magnesium_100g':       'Magnesium',
+  'sodium_100g':          'Natrium',
+  'potassium_100g':       'Kalium',
+  'iron_100g':            'Eisen',
+  'zinc_100g':            'Zink',
+  'copper_100g':          'Kupfer',
+  'manganese_100g':       'Mangan',
+  'selenium_100g':        'Selen',
+  'iodine_100g':          'Jod',
+  'vitamin-a_100g':       'Vitamin A',
+  'vitamin-d_100g':       'Vitamin D3',
+  'vitamin-e_100g':       'Vitamin E',
+  'vitamin-k_100g':       'Vitamin K',
+  'vitamin-b1_100g':      'Vitamin B1',
+  'vitamin-b2_100g':      'Vitamin B2',
+  'niacin_100g':          'Vitamin B3',
+  'pantothenic-acid_100g':'Vitamin B5',
+  'vitamin-b6_100g':      'Vitamin B6',
+  'folates_100g':         'Vitamin B9',
+  'vitamin-b12_100g':     'Vitamin B12',
+  'choline_100g':         'Cholin',
+  'biotin_100g':          'Biotin',
+  'linoleic-acid_100g':   'Linolsäure (LA)',
+  'alpha-linolenic-acid_100g': 'α-Linolensäure (ALA)',
+};
+
+/** Startet die Suche je nach gewählter Quelle */
+export async function runImportSearch() {
+  const query   = document.getElementById('import-query')?.value.trim();
+  const src     = document.querySelector('input[name="import-src"]:checked')?.value || 'usda';
+  const statusEl = document.getElementById('import-status');
+  const resultsEl = document.getElementById('import-results');
+  if (!query) { if(statusEl) statusEl.textContent = '⚠️ Bitte Suchbegriff eingeben.'; return; }
+
+  if (statusEl) statusEl.textContent = '⏳ Wird gesucht…';
+  if (resultsEl) resultsEl.innerHTML = '';
+
+  try {
+    let results;
+    if (src === 'usda') {
+      results = await _searchUSDA(query);
+    } else {
+      results = await _searchOpenFoodFacts(query);
+    }
+    _renderImportResults(results, resultsEl, statusEl, src);
+  } catch (e) {
+    if (statusEl) statusEl.textContent = `❌ Fehler: ${e.message}`;
+  }
+}
+
+/** USDA FoodData Central API Suche */
+async function _searchUSDA(query) {
+  const { get: getCfg } = await import('./config.js');
+  const key = getCfg().usdaApiKey;
+  if (!key) throw new Error('USDA API-Key fehlt. Bitte in Einstellungen → "USDA API-Key" eintragen.');
+
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${encodeURIComponent(key)}&pageSize=8&dataType=Foundation,SR%20Legacy`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`USDA API Fehler: ${res.status}`);
+  const data = await res.json();
+
+  return (data.foods || []).map(food => {
+    const naehrstoffe = {};
+    // EPA + DHA zusammenführen
+    let epa = 0, dha = 0;
+    (food.foodNutrients || []).forEach(fn => {
+      const nrcName = USDA_MAP[fn.nutrientName];
+      if (nrcName && fn.value != null) {
+        naehrstoffe[nrcName] = fn.value;
+      }
+      if (fn.nutrientName === '20:5 n-3 (EPA)') epa = fn.value || 0;
+      if (fn.nutrientName === '22:6 n-3 (DHA)') dha = fn.value || 0;
+    });
+    if (epa + dha > 0) naehrstoffe['EPA + DHA'] = parseFloat((epa + dha).toFixed(4));
+    return { name: food.description, naehrstoffe };
+  });
+}
+
+/** Open Food Facts API Suche */
+async function _searchOpenFoodFacts(query) {
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=8&fields=product_name,nutriments`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Open Food Facts Fehler: ${res.status}`);
+  const data = await res.json();
+
+  return (data.products || [])
+    .filter(p => p.product_name)
+    .map(p => {
+      const naehrstoffe = {};
+      const nm = p.nutriments || {};
+      Object.entries(OFF_MAP).forEach(([offKey, nrcName]) => {
+        const v = nm[offKey];
+        if (v != null && !isNaN(parseFloat(v))) {
+          // OFF liefert Werte in g/100g; Mineralstoffe in mg, Vitamine in mg/µg → Konvertierung nötig
+          // Wir übernehmen den Rohwert – der Nutzer soll prüfen
+          naehrstoffe[nrcName] = parseFloat(v);
+        }
+      });
+      return { name: p.product_name, naehrstoffe };
+    });
+}
+
+/** Rendert die Suchergebnisse als klickbare Liste */
+function _renderImportResults(results, el, statusEl, src) {
+  if (!el) return;
+  if (!results.length) {
+    if (statusEl) statusEl.textContent = 'Keine Ergebnisse gefunden.';
+    return;
+  }
+  if (statusEl) statusEl.textContent = `${results.length} Ergebnis${results.length !== 1 ? 'se' : ''} gefunden – antippen zum Übernehmen:`;
+
+  el.innerHTML = results.map((r, i) => {
+    const nutrCount = Object.keys(r.naehrstoffe).length;
+    return `
+    <div style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+      margin-bottom:6px;cursor:pointer;background:var(--bg2);transition:background .15s"
+      onclick="STAMMDATEN.applyImportResult(${i})"
+      onmouseover="this.style.background='var(--c4)'" onmouseout="this.style.background='var(--bg2)'">
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px">${esc(r.name)}</div>
+      <div style="font-size:11px;color:var(--sub)">${nutrCount} Nährstoffe verfügbar · ${src === 'usda' ? 'USDA' : 'Open Food Facts'}</div>
+    </div>`;
+  }).join('');
+
+  // Ergebnisse im globalen State merken (für applyImportResult)
+  window._importResults = results;
+}
+
+/** Übernimmt ein Suchergebnis in die Nährstoff-Inputs */
+export function applyImportResult(idx) {
+  const results = window._importResults;
+  if (!results || !results[idx]) return;
+  const { naehrstoffe } = results[idx];
+
+  const naehr = getNaehrstoffe();
+  let filled = 0;
+  Object.entries(naehrstoffe).forEach(([nrcName, wert]) => {
+    if (wert == null || wert <= 0) return;
+    const n = naehr.find(n => n.name === nrcName);
+    if (!n) return;
+    const inp = document.getElementById(`nutr-${n.naehrstoff_id}`);
+    if (inp) {
+      inp.value = wert;
+      filled++;
+    }
+  });
+
+  // Nährstoff-Abschnitt aufklappen damit Nutzer die Werte sieht
+  const nutrSec = document.getElementById('nutr-section');
+  if (nutrSec) nutrSec.style.display = 'block';
+  const arrow = document.getElementById('nutr-toggle-arrow');
+  if (arrow) arrow.textContent = '▼';
+
+  // Import-Status aktualisieren
+  const statusEl = document.getElementById('import-status');
+  if (statusEl) statusEl.textContent = `✅ ${filled} Nährstoffe übernommen – bitte prüfen!`;
+  document.getElementById('import-results').innerHTML = '';
 }
 
 export async function saveZutat(existingId) {
