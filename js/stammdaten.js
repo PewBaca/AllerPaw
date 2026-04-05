@@ -285,6 +285,10 @@ export function showZutatModal(zutatId) {
               <label style="font-size:10px;color:var(--sub);display:block;margin-bottom:2px">
                 ${esc(n.name)}<span style="opacity:.6"> (${esc(n.einheit || 'g')})</span>
               </label>
+              <div id="nutr-preview-${n.naehrstoff_id}"
+                style="display:none;font-size:9px;padding:2px 5px;margin-bottom:3px;
+                  background:var(--bg2);border:1px solid var(--border);border-radius:3px;
+                  line-height:1.6;word-break:break-all"></div>
               <input type="number" step="any" min="0"
                 id="nutr-${n.naehrstoff_id}"
                 data-nutr-id="${n.naehrstoff_id}"
@@ -313,6 +317,57 @@ export function showZutatModal(zutatId) {
         <option value="ja"   ${(z.aktiv || 'ja') === 'ja'   ? 'selected' : ''}>✅ Aktiv</option>
         <option value="nein" ${z.aktiv === 'nein'            ? 'selected' : ''}>🚫 Inaktiv</option>
       </select></div>
+
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+          cursor:pointer;user-select:none;margin-bottom:8px"
+        onclick="const s=document.getElementById('import-section');
+                 const open=s.style.display!=='none';
+                 s.style.display=open?'none':'block';
+                 document.getElementById('import-toggle-arrow').textContent=open?'▶':'▼'">
+        <div style="font-size:13px;font-weight:600">🔍 Nährwerte importieren</div>
+        <span id="import-toggle-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+      </div>
+      <div id="import-section" style="display:none">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:10px;padding:8px 10px;
+          background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          💡 USDA und Open Food Facts werden <strong>parallel</strong> abgerufen.
+          Vorhandene Felder werden <strong>nicht</strong> überschrieben.
+          Die Werte beider Quellen werden über den Feldern angezeigt.
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="import-query" placeholder="z.B. chicken breast raw…"
+            style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+              background:var(--bg);color:var(--text);font-family:inherit;font-size:13px"
+            onkeydown="if(event.key==='Enter')STAMMDATEN.runImportSearch()">
+          <button onclick="STAMMDATEN.runImportSearch()"
+            style="padding:9px 14px;font-size:13px;font-weight:700;border:none;
+              border-radius:var(--radius-sm);background:var(--c2);color:#fff;cursor:pointer;font-family:inherit">
+            Suchen
+          </button>
+        </div>
+        <div id="import-status" style="font-size:12px;color:var(--sub);margin-bottom:8px"></div>
+        <div id="import-results" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--c2);text-transform:uppercase;
+              letter-spacing:.05em;margin-bottom:4px">USDA FoodData</div>
+            <div id="import-list-usda"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;
+              letter-spacing:.05em;margin-bottom:4px">Open Food Facts</div>
+            <div id="import-list-off"></div>
+          </div>
+        </div>
+        <div id="import-apply-row" style="display:none">
+          <button onclick="STAMMDATEN.applyImportToFields()"
+            style="width:100%;padding:10px;font-size:13px;font-weight:700;border:none;
+              border-radius:var(--radius-sm);background:var(--c2);color:#fff;cursor:pointer;font-family:inherit">
+            ↓ Leere Felder befüllen (USDA + OFF kombiniert)
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;
@@ -365,6 +420,295 @@ function _fillNutrInputs(map) {
   });
 }
 
+// ── USDA / Open Food Facts Import ───────────────────────────────
+
+/**
+ * Mapping USDA nutrient names → NRC Nährstoffnamen (Auswahl der wichtigsten)
+ * USDA liefert nutrient.name z.B. "Protein", "Total lipid (fat)", "Fiber, total dietary"
+ */
+const USDA_MAP = {
+  'Protein':                          'Rohprotein',
+  'Total lipid (fat)':                'Rohfett',
+  'Fiber, total dietary':             'Rohfaser',
+  'Water':                            'Feuchtigkeit',
+  'Ash':                              'Asche',
+  // Aminosäuren
+  'Arginine':                         'Arginin',
+  'Histidine':                        'Histidin',
+  'Isoleucine':                       'Isoleucin',
+  'Leucine':                          'Leucin',
+  'Lysine':                           'Lysin',
+  'Methionine':                       'Methionin',
+  'Phenylalanine':                    'Phenylalanin',
+  'Threonine':                        'Threonin',
+  'Tryptophan':                       'Tryptophan',
+  'Valine':                           'Valin',
+  'Cystine':                          'Cystein',
+  'Tyrosine':                         'Tyrosin',
+  'Taurine':                          'Taurin',
+  // Fettsäuren
+  'Fatty acids, total saturated':     null, // kein direktes NRC-Äquivalent
+  'Fatty acids, total polyunsaturated': null,
+  '18:2 undifferentiated':            'Linolsäure (LA)',
+  '18:3 undifferentiated':            'α-Linolensäure (ALA)',
+  '20:5 n-3 (EPA)':                   null, // Teil von EPA+DHA
+  '22:6 n-3 (DHA)':                   null, // Teil von EPA+DHA
+  // Mineralstoffe
+  'Calcium, Ca':                      'Kalzium',
+  'Phosphorus, P':                    'Phosphor',
+  'Magnesium, Mg':                    'Magnesium',
+  'Sodium, Na':                       'Natrium',
+  'Potassium, K':                     'Kalium',
+  'Chlorine, Cl':                     'Chlorid',
+  'Iron, Fe':                         'Eisen',
+  'Zinc, Zn':                         'Zink',
+  'Copper, Cu':                       'Kupfer',
+  'Manganese, Mn':                    'Mangan',
+  'Selenium, Se':                     'Selen',
+  'Iodine, I':                        'Jod',
+  // Vitamine
+  'Vitamin A, RAE':                   'Vitamin A',
+  'Vitamin D (D2 + D3)':              'Vitamin D3',
+  'Vitamin E (alpha-tocopherol)':     'Vitamin E',
+  'Vitamin K (phylloquinone)':        'Vitamin K',
+  'Thiamin':                          'Vitamin B1',
+  'Riboflavin':                       'Vitamin B2',
+  'Niacin':                           'Vitamin B3',
+  'Pantothenic acid':                 'Vitamin B5',
+  'Vitamin B-6':                      'Vitamin B6',
+  'Folate, DFE':                      'Vitamin B9',
+  'Vitamin B-12':                     'Vitamin B12',
+  'Choline, total':                   'Cholin',
+  'Biotin':                           'Biotin',
+};
+
+/** Mapping Open Food Facts nutriments-Keys → NRC-Namen */
+const OFF_MAP = {
+  'proteins_100g':        'Rohprotein',
+  'fat_100g':             'Rohfett',
+  'fiber_100g':           'Rohfaser',
+  'water_100g':           'Feuchtigkeit',
+  'ash_100g':             'Asche',
+  'calcium_100g':         'Kalzium',
+  'phosphorus_100g':      'Phosphor',
+  'magnesium_100g':       'Magnesium',
+  'sodium_100g':          'Natrium',
+  'potassium_100g':       'Kalium',
+  'iron_100g':            'Eisen',
+  'zinc_100g':            'Zink',
+  'copper_100g':          'Kupfer',
+  'manganese_100g':       'Mangan',
+  'selenium_100g':        'Selen',
+  'iodine_100g':          'Jod',
+  'vitamin-a_100g':       'Vitamin A',
+  'vitamin-d_100g':       'Vitamin D3',
+  'vitamin-e_100g':       'Vitamin E',
+  'vitamin-k_100g':       'Vitamin K',
+  'vitamin-b1_100g':      'Vitamin B1',
+  'vitamin-b2_100g':      'Vitamin B2',
+  'niacin_100g':          'Vitamin B3',
+  'pantothenic-acid_100g':'Vitamin B5',
+  'vitamin-b6_100g':      'Vitamin B6',
+  'folates_100g':         'Vitamin B9',
+  'vitamin-b12_100g':     'Vitamin B12',
+  'choline_100g':         'Cholin',
+  'biotin_100g':          'Biotin',
+  'linoleic-acid_100g':   'Linolsäure (LA)',
+  'alpha-linolenic-acid_100g': 'α-Linolensäure (ALA)',
+};
+
+/** Startet die Suche parallel in USDA und Open Food Facts */
+export async function runImportSearch() {
+  const query    = document.getElementById('import-query')?.value.trim();
+  const statusEl = document.getElementById('import-status');
+  if (!query) { if (statusEl) statusEl.textContent = '⚠️ Bitte Suchbegriff eingeben.'; return; }
+
+  if (statusEl) statusEl.textContent = '⏳ Beide Quellen werden abgerufen…';
+  document.getElementById('import-list-usda').innerHTML = '<div style="font-size:11px;color:var(--sub);padding:4px 0">Lädt…</div>';
+  document.getElementById('import-list-off').innerHTML  = '<div style="font-size:11px;color:var(--sub);padding:4px 0">Lädt…</div>';
+  document.getElementById('import-apply-row').style.display = 'none';
+
+  // Globale Auswahl zurücksetzen
+  window._importUSDA = null;
+  window._importOFF  = null;
+  _refreshImportPreviews();
+
+  const [usdaRes, offRes] = await Promise.allSettled([
+    _searchUSDA(query),
+    _searchOpenFoodFacts(query),
+  ]);
+
+  const usdaData = usdaRes.status === 'fulfilled' ? usdaRes.value : null;
+  const offData  = offRes.status  === 'fulfilled' ? offRes.value  : null;
+  const usdaErr  = usdaRes.status === 'rejected'  ? usdaRes.reason?.message : null;
+  const offErr   = offRes.status  === 'rejected'  ? offRes.reason?.message  : null;
+
+  _renderSourceCol(usdaData, usdaErr, 'usda');
+  _renderSourceCol(offData,  offErr,  'off');
+
+  const total = (usdaData?.length || 0) + (offData?.length || 0);
+  if (statusEl) statusEl.textContent = total
+    ? `${usdaData?.length || 0} USDA · ${offData?.length || 0} OFF Treffer – Ergebnis antippen zum Auswählen`
+    : 'Keine Ergebnisse gefunden.';
+}
+
+/** USDA FoodData Central API Suche */
+async function _searchUSDA(query) {
+  const { get: getCfg } = await import('./config.js');
+  const key = getCfg().usdaApiKey;
+  if (!key) throw new Error('USDA API-Key fehlt. Bitte in Einstellungen → "USDA API-Key" eintragen.');
+
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${encodeURIComponent(key)}&pageSize=8&dataType=Foundation,SR%20Legacy`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`USDA API Fehler: ${res.status}`);
+  const data = await res.json();
+
+  return (data.foods || []).map(food => {
+    const naehrstoffe = {};
+    // EPA + DHA zusammenführen
+    let epa = 0, dha = 0;
+    (food.foodNutrients || []).forEach(fn => {
+      const nrcName = USDA_MAP[fn.nutrientName];
+      if (nrcName && fn.value != null) {
+        naehrstoffe[nrcName] = fn.value;
+      }
+      if (fn.nutrientName === '20:5 n-3 (EPA)') epa = fn.value || 0;
+      if (fn.nutrientName === '22:6 n-3 (DHA)') dha = fn.value || 0;
+    });
+    if (epa + dha > 0) naehrstoffe['EPA + DHA'] = parseFloat((epa + dha).toFixed(4));
+    return { name: food.description, naehrstoffe };
+  });
+}
+
+/** Open Food Facts API Suche */
+async function _searchOpenFoodFacts(query) {
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=8&fields=product_name,nutriments`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Open Food Facts Fehler: ${res.status}`);
+  const data = await res.json();
+
+  return (data.products || [])
+    .filter(p => p.product_name)
+    .map(p => {
+      const naehrstoffe = {};
+      const nm = p.nutriments || {};
+      Object.entries(OFF_MAP).forEach(([offKey, nrcName]) => {
+        const v = nm[offKey];
+        if (v != null && !isNaN(parseFloat(v))) {
+          // OFF liefert Werte in g/100g; Mineralstoffe in mg, Vitamine in mg/µg → Konvertierung nötig
+          // Wir übernehmen den Rohwert – der Nutzer soll prüfen
+          naehrstoffe[nrcName] = parseFloat(v);
+        }
+      });
+      return { name: p.product_name, naehrstoffe };
+    });
+}
+
+/** Rendert eine Quell-Spalte (usda oder off) */
+function _renderSourceCol(results, errMsg, src) {
+  const col = document.getElementById(`import-list-${src}`);
+  if (!col) return;
+  const accentColor = src === 'usda' ? 'var(--c2)' : '#22c55e';
+
+  if (errMsg) {
+    col.innerHTML = `<div style="font-size:10px;color:var(--sub);padding:4px 0;line-height:1.5">${esc(errMsg)}</div>`;
+    return;
+  }
+  if (!results?.length) {
+    col.innerHTML = `<div style="font-size:10px;color:var(--sub);padding:4px 0">Keine Treffer.</div>`;
+    return;
+  }
+
+  // State merken
+  window[`_importList_${src}`] = results;
+
+  col.innerHTML = results.map((r, i) => {
+    const cnt = Object.keys(r.naehrstoffe).length;
+    const short = r.name.length > 42 ? r.name.slice(0, 40) + '…' : r.name;
+    return `<div id="imp-item-${src}-${i}"
+      style="padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+        margin-bottom:4px;cursor:pointer;background:var(--bg2);font-size:11px;line-height:1.4"
+      onclick="STAMMDATEN.selectImportResult(${i},'${src}')"
+      onmouseover="this.style.background='var(--c4)'" onmouseout="if(!this.dataset.sel)this.style.background='var(--bg2)'">
+      <div style="font-weight:600;margin-bottom:1px">${esc(short)}</div>
+      <div style="color:var(--sub);font-size:10px">${cnt} Nährstoffe</div>
+    </div>`;
+  }).join('');
+}
+
+/** Wird aufgerufen wenn der Nutzer ein Ergebnis in einer Spalte antippt */
+export function selectImportResult(idx, src) {
+  const list = window[`_importList_${src}`];
+  if (!list?.[idx]) return;
+
+  // Auswahl-State setzen
+  if (src === 'usda') window._importUSDA = list[idx].naehrstoffe;
+  else                window._importOFF  = list[idx].naehrstoffe;
+
+  // Visuelle Markierung: ausgewähltes Item hervorheben, andere zurücksetzen
+  const accentColor = src === 'usda' ? 'var(--c2)' : '#22c55e';
+  list.forEach((_, i) => {
+    const el = document.getElementById(`imp-item-${src}-${i}`);
+    if (!el) return;
+    if (i === idx) {
+      el.style.border = `1px solid ${accentColor}`;
+      el.style.background = src === 'usda' ? 'rgba(59,130,246,.1)' : 'rgba(34,197,94,.1)';
+      el.dataset.sel = '1';
+    } else {
+      el.style.border = '1px solid var(--border)';
+      el.style.background = 'var(--bg2)';
+      delete el.dataset.sel;
+    }
+  });
+
+  _refreshImportPreviews();
+
+  // Apply-Button einblenden
+  document.getElementById('import-apply-row').style.display = 'block';
+}
+
+/** Aktualisiert alle Vorschau-Divs über den Nährstoff-Inputs */
+function _refreshImportPreviews() {
+  const naehr = getNaehrstoffe();
+  naehr.forEach(n => {
+    const preEl = document.getElementById(`nutr-preview-${n.naehrstoff_id}`);
+    if (!preEl) return;
+    const uVal = window._importUSDA?.[n.name];
+    const oVal = window._importOFF?.[n.name];
+    if (uVal == null && oVal == null) { preEl.style.display = 'none'; return; }
+    const parts = [];
+    if (uVal != null) parts.push(`<span style="color:var(--c2);font-weight:700">USDA: ${uVal}</span>`);
+    if (oVal != null) parts.push(`<span style="color:#22c55e;font-weight:700">OFF: ${oVal}</span>`);
+    preEl.innerHTML = parts.join('<span style="color:var(--sub)"> | </span>');
+    preEl.style.display = '';
+  });
+}
+
+/** Befüllt leere Felder aus USDA- und/oder OFF-Auswahl; überschreibt keine vorhandenen Werte */
+export function applyImportToFields() {
+  if (!window._importUSDA && !window._importOFF) return;
+  const naehr = getNaehrstoffe();
+  let filled = 0;
+  naehr.forEach(n => {
+    const inp = document.getElementById(`nutr-${n.naehrstoff_id}`);
+    if (!inp || inp.value.trim() !== '') return; // vorhandene Werte NICHT überschreiben
+    // Bevorzuge USDA, Fallback OFF
+    const val = window._importUSDA?.[n.name] ?? window._importOFF?.[n.name];
+    if (val != null && val > 0) { inp.value = val; filled++; }
+  });
+
+  // Nährstoff-Abschnitt aufklappen
+  const nutrSec = document.getElementById('nutr-section');
+  if (nutrSec) nutrSec.style.display = 'block';
+  const arrow = document.getElementById('nutr-toggle-arrow');
+  if (arrow) arrow.textContent = '▼';
+
+  const statusEl = document.getElementById('import-status');
+  if (statusEl) statusEl.textContent = filled
+    ? `✅ ${filled} leere Felder befüllt – bestehende Werte unverändert.`
+    : 'ℹ️ Alle Felder bereits gefüllt – keine Änderung.';
+}
+
 export async function saveZutat(existingId) {
   const name = document.getElementById('zutat-name')?.value.trim();
   if (!name) { setStatus('status-zutat', 'err', 'Bitte Name eingeben.'); return; }
@@ -375,6 +719,7 @@ export async function saveZutat(existingId) {
   const aktiv      = document.getElementById('zutat-aktiv')?.value || 'ja';
 
   setStatus('status-zutat', 'loading', 'Wird gespeichert…');
+  let newId; // außerhalb des if/else deklarieren damit es im gesamten try-Block sichtbar ist
   try {
     if (existingId) {
       // Bestehenede Zutat bearbeiten: Zeile im Sheet finden und überschreiben
@@ -390,8 +735,8 @@ export async function saveZutat(existingId) {
     } else {
       // Neue Zutat anlegen
       const zutaten = getZutaten();
-      const newId   = Math.max(0, ...zutaten.map(z => z.zutaten_id)) + 1;
-      const now     = new Date().toISOString().slice(0, 19);
+      newId = Math.max(0, ...zutaten.map(z => z.zutaten_id)) + 1;
+      const now = new Date().toISOString().slice(0, 19);
       await appendRow('Zutaten', [newId, name, hersteller, kategorie, aktiv, now, 'FALSE', ''], sid);
       addZutat({ zutaten_id: newId, name, hersteller, kategorie, aktiv });
     }

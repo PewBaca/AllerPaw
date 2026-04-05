@@ -1,14 +1,16 @@
 /**
- * MODULE: statistik.js  (v4 – Pollen-Popup, Symptome als rotes Band, Ausschlussdiät zurück)
+ * MODULE: statistik.js  (v7 – Korrelationsanalyse Umweltfaktoren vs. Schweregrad)
  *
  * Konfigurierbarer Mixed-Chart.
  * Y-Links  (y):  Temperatur °C, Luftfeuchtigkeit %, Gewicht kg
  * Y-Rechts (y2): Schweregrad 0–5 (rotes Flächenband), Pollen-Stufe 0–5
  *
- * Neu in v4:
- * - Schweregrad Symptome: gefülltes rotes Band (fill:'origin') statt Balken
- * - Pollen-Typen: Popup-Dialog statt Inline-Buttons; inkl. Custom-Pollen aus localStorage
- * - Ausschlussdiät: wieder als Liste in der Statistik (wie Medikamente), nur wenn Daten vorhanden
+ * Neu in v7:
+ * - Sektion "🔗 Korrelationsanalyse": Verknüpft Umweltagebuch + Pollen_Log mit
+ *   Symptomtagebuch über das Datum; berechnet Avg/Max Schweregrad je Faktorgruppe.
+ *   Faktoren: Pollenarten (0/gering/mittel/stark), Aussentemp (4 Gruppen),
+ *   Luftfeuchte (4 Gruppen). Min. 3 Datenpunkte/Gruppe; Gruppen mit Avg > 2.0 orange.
+ *   Ein-/ausklappbar; nur wenn mind. 1 Faktor mit auswertbaren Daten vorhanden.
  */
 
 import { getSheet, invalidateAll, getAge } from './cache.js';
@@ -29,9 +31,6 @@ const C = {
 let _chart      = null;
 let _selected   = new Set(['temp_band','symptome']);
 let _cachedData = null;
-// Bekannte Allergene (Pollenarten) aus dem Sheet – für Pollen-Vorauswahl
-let _knownAllergenPollen = new Set();
-
 const POLLEN_COLORS = [C.green,C.amber,C.teal,C.sky,C.orange,C.purple,'#10b981','#6366f1'];
 let _pollenTypes    = [];
 let _selPollenTypes = new Set();
@@ -107,13 +106,11 @@ export async function refresh(forceRefresh=false) {
   if(!content) return;
   content.innerHTML='<div class="view-loading"><div class="spinner"></div>Lade Daten…</div>';
   try {
-    const [rSym,rUmw,rFut,rAll,rMed,rAus] = await Promise.all([
+    const [rSym,rUmw,rFut,rMed] = await Promise.all([
       getSheet('Symptomtagebuch',   'tagebuch',forceRefresh),
       getSheet('Umweltagebuch',     'tagebuch',forceRefresh),
       getSheet('Futtertagebuch',    'tagebuch',forceRefresh),
-      getSheet('Bekannte Allergene','tagebuch',forceRefresh),
       getSheet('Medikamente',       'tagebuch',forceRefresh),
-      getSheet('Ausschlussdiät',    'tagebuch',forceRefresh).catch(()=>[]),
     ]);
     const rGew=await getSheet('Hund_Gewicht','tagebuch',forceRefresh).catch(()=>[]);
     const rPol=await getSheet('Pollen_Log',  'tagebuch',forceRefresh).catch(()=>[]);
@@ -130,39 +127,26 @@ export async function refresh(forceRefresh=false) {
 
     const _pr=(raw,skip)=>_parseRows(raw,skip);
     const allSym=_pr(rSym,2); const allUmw=_pr(rUmw,2);
-    const allFut=_pr(rFut,2); const allAll=_pr(rAll,2);
-    const allMed=_pr(rMed,2); const allAus=_pr(rAus,2);
+    const allFut=_pr(rFut,2);
+    const allMed=_pr(rMed,2);
     const allGew=_pr(rGew,2); const allPol=_pr(rPol,2);
 
     const sym=allSym.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(9)(r));
     const umw=allUmw.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(13)(r));
     const fut=allFut.filter(r=>_matchH(r,hundId)&&_inRange(g(r,1),cutoff)&&notDel(11)(r));
-    const all=allAll.filter(r=>_matchH(r,hundId)&&notDel(8)(r));
     const med=allMed.filter(r=>_matchH(r,hundId)&&notDel(11)(r));
-    const aus=allAus.filter(r=>_matchH(r,hundId)&&notDel(10)(r));
     const gew=allGew.filter(r=>g(r,1)===String(hundId)&&_inRange(g(r,2),cutoff));
     const pol=allPol.filter(r=>g(r,1)===String(hundId)&&_inRange(g(r,2),cutoff));
 
-    _cachedData={sym,umw,fut,all,med,aus,gew,pol};
+    _cachedData={sym,umw,fut,med,gew,pol};
 
     const discoveredPollen=[...new Set(pol.map(r=>g(r,3)).filter(Boolean))].sort();
     _pollenTypes=discoveredPollen;
     const allPollenTypes=_getAllPollenTypes();
 
-    // Bekannte Allergene (Futterallergene ausschließen): Pollen-Namen normiert
-    _knownAllergenPollen = new Set(
-      all.filter(r => {
-        const kat = g(r,2).toLowerCase();
-        return kat.includes('umwelt') || kat.includes('pollen') || kat === '';
-      }).map(r => g(r,1))
-    );
-
-    // Pollen-Vorauswahl: nur Pollenarten die in bekannten Allergenen stehen,
-    // alles andere standardmäßig deaktiviert. Nur beim ersten Laden setzen.
+    // Pollen-Vorauswahl: alle verfügbaren Pollenarten beim ersten Laden aktivieren.
     if(_selPollenTypes.size === 0) {
-      allPollenTypes.forEach(t => {
-        if(_knownAllergenPollen.has(t)) _selPollenTypes.add(t);
-      });
+      allPollenTypes.forEach(t => _selPollenTypes.add(t));
     }
     _buildParamButtons();
 
@@ -183,15 +167,15 @@ export async function refresh(forceRefresh=false) {
         padding:14px;margin-bottom:1rem">
         <canvas id="ch-konfig" height="240"></canvas>
       </div>
-      ${_box('⚠️ Bekannte Allergene','<div id="st-allergene"></div>')}
-      ${aus.length?_box('🍽️ Ausschlussdiät','<div id="st-aus"></div>'):''}
+      <div id="st-muster"></div>
+      <div id="st-korrelation"></div>
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
 
     await _buildChart(_cachedData);
-    _renderAllergene(all);
-    if(aus.length) _renderAusschluss(aus);
+    _renderSymptomMuster(sym);
+    _renderKorrelation(_cachedData);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -460,48 +444,7 @@ async function _buildChart(data) {
   });
 }
 
-function _renderAllergene(all) {
-  const el=document.getElementById('st-allergene'); if(!el) return;
-  el.innerHTML=all.length?all.map(r=>{
-    const reakt=parseInt(g(r,3))||0;
-    const color=reakt>=4?C.red:reakt>=3?C.amber:C.green;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:14px;font-weight:600">${esc(g(r,1))}</div>
-        <div style="font-size:12px;color:var(--sub)">${esc(g(r,2))} · ${esc(g(r,4))}</div></div>
-      <div style="font-size:18px;color:${color};letter-spacing:2px">
-        ${'●'.repeat(reakt)}${'○'.repeat(5-reakt)}</div></div>`;
-  }).join(''):'<p style="color:var(--sub);font-size:13px">Keine Allergene erfasst.</p>';
-}
 
-function _renderAusschluss(aus) {
-  const el=document.getElementById('st-aus'); if(!el) return;
-  const statusColor=s=>{
-    if(!s) return C.amber;
-    const sl=s.toLowerCase();
-    if(sl.includes('vertr')) return C.green;
-    if(sl.includes('reaktion')||sl.includes('gesperrt')) return C.red;
-    return C.amber;
-  };
-  const sorted=[...aus].sort((a,b)=>(g(a,4)||'').localeCompare(g(b,4)||''));
-  el.innerHTML=sorted.map(r=>{
-    const status=g(r,4)||'–';
-    const verdacht=parseInt(g(r,2))||0;
-    const col=statusColor(status);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:9px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${esc(g(r,1))}</div>
-        ${g(r,3)?`<div style="font-size:11px;color:var(--sub)">${esc(g(r,3))}</div>`:''}
-        ${g(r,6)?`<div style="font-size:11px;color:var(--sub);margin-top:2px">↳ ${esc(g(r,6))}</div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;margin-left:8px">
-        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
-          background:${col}22;color:${col};border:1px solid ${col}44">${esc(status)}</span>
-        ${verdacht>0?`<span style="font-size:10px;color:var(--sub)">Verdacht: ${'▲'.repeat(verdacht)}${'△'.repeat(3-verdacht)}</span>`:''}
-      </div></div>`;
-  }).join('')||'<p style="color:var(--sub);font-size:13px">Keine Ausschlussdiät-Einträge.</p>';
-}
 
 function _renderFutter(fut) {
   const el=document.getElementById('st-futter'); if(!el) return;
@@ -530,6 +473,325 @@ function _renderMedis(med) {
       <div style="font-size:12px;color:var(--sub);text-align:right">
         ${esc(g(r,5)||'?')}<br>bis ${esc(g(r,6)||'laufend')}</div>
     </div>`).join(''):'<p style="color:var(--sub);font-size:13px">Keine Medikamente erfasst.</p>';
+}
+
+// ── Symptom-Muster (Wochentag / Monat) ──────────────────────────
+
+/**
+ * Rendert ein- / ausklappbare Heatmap-Sektionen für Wochentag- und
+ * Monatsmuster des Symptom-Schweregrads.
+ * Nur anzeigen wenn >= 14 Symptomeinträge vorhanden sind.
+ */
+function _renderSymptomMuster(sym) {
+  const el = document.getElementById('st-muster');
+  if (!el) return;
+
+  // Nur Einträge mit Schweregrad > 0
+  const entries = sym
+    .map(r => ({ date: _parseDate(g(r,1)), schwere: parseInt(g(r,4)) || 0 }))
+    .filter(e => e.date && e.schwere > 0);
+
+  if (entries.length < 14) { el.innerHTML = ''; return; }
+
+  // ── Aggregation Wochentag (0=So…6=Sa → umordnen auf Mo=0…So=6) ─
+  const wdData = Array.from({length:7}, () => ({sum:0, count:0}));
+  entries.forEach(e => {
+    // getDay(): 0=Sun,1=Mon…6=Sat → Mo=0…So=6
+    const wd = (e.date.getDay() + 6) % 7;
+    wdData[wd].sum   += e.schwere;
+    wdData[wd].count += 1;
+  });
+
+  // ── Aggregation Monat ────────────────────────────────────────────
+  const moData = Array.from({length:12}, () => ({sum:0, count:0}));
+  entries.forEach(e => {
+    moData[e.date.getMonth()].sum   += e.schwere;
+    moData[e.date.getMonth()].count += 1;
+  });
+
+  const WD_LABELS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const MO_LABELS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Höchsten Ø Monat ermitteln
+  let maxMoAvg = 0, maxMoIdx = -1;
+  moData.forEach((m,i) => {
+    if (m.count >= 2) {
+      const avg = m.sum / m.count;
+      if (avg > maxMoAvg) { maxMoAvg = avg; maxMoIdx = i; }
+    }
+  });
+
+  const wdHtml  = _heatmapRow(wdData, WD_LABELS);
+  const moHtml  = _heatmapRow(moData, MO_LABELS);
+  const moHint  = maxMoIdx >= 0
+    ? `<div style="font-size:11px;color:var(--sub);margin-top:8px">
+        📌 Höchster Ø Schweregrad: <strong>${MO_LABELS[maxMoIdx]}</strong>
+        (Ø ${(maxMoAvg).toFixed(1)} · ${moData[maxMoIdx].count} Einträge)
+       </div>`
+    : '';
+
+  el.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:1rem;overflow:hidden">
+    <div id="st-muster-header"
+      style="display:flex;justify-content:space-between;align-items:center;
+        padding:14px;cursor:pointer;user-select:none"
+      onclick="const b=document.getElementById('st-muster-body');
+               const open=b.style.display!=='none';
+               b.style.display=open?'none':'block';
+               document.getElementById('st-muster-arrow').textContent=open?'▶':'▼'">
+      <div style="font-size:14px;font-weight:700">📅 Symptom-Muster</div>
+      <span id="st-muster-arrow" style="font-size:11px;color:var(--sub)">▼</span>
+    </div>
+    <div id="st-muster-body" style="padding:0 14px 14px">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:12px">
+        Ø Schweregrad pro Wochentag / Monat · ${entries.length} Einträge ausgewertet
+      </div>
+
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--sub);
+        text-transform:uppercase;letter-spacing:.04em">Wochentag</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px">
+        ${wdHtml}
+      </div>
+
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--sub);
+        text-transform:uppercase;letter-spacing:.04em">Monat</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">
+        ${moHtml}
+      </div>
+      ${moHint}
+    </div>
+  </div>`;
+}
+
+/**
+ * Gibt HTML für eine Heatmap-Zeile zurück.
+ * @param {Array<{sum:number,count:number}>} data
+ * @param {string[]} labels
+ */
+function _heatmapRow(data, labels) {
+  return data.map((d, i) => {
+    const label = labels[i];
+    if (d.count < 2) {
+      return `<div style="border-radius:6px;padding:6px 2px;text-align:center;
+          background:var(--bg2);border:1px solid var(--border)" title="${label} · zu wenig Daten">
+        <div style="font-size:11px;font-weight:700;color:var(--sub)">${label}</div>
+        <div style="font-size:10px;color:var(--sub);margin-top:2px">–</div>
+      </div>`;
+    }
+    const avg  = d.sum / d.count;
+    const col  = _heatColor(avg);
+    const textCol = avg >= 3 ? '#fff' : 'var(--text)';
+    return `<div style="border-radius:6px;padding:6px 2px;text-align:center;
+        background:${col};border:1px solid ${col}"
+        title="${label} · Ø ${avg.toFixed(1)} · ${d.count} Einträge">
+      <div style="font-size:11px;font-weight:700;color:${textCol}">${label}</div>
+      <div style="font-size:11px;font-weight:700;color:${textCol};margin-top:2px">${avg.toFixed(1)}</div>
+      <div style="font-size:9px;color:${avg>=3?'rgba(255,255,255,.7)':'var(--sub)'};margin-top:1px">${d.count}×</div>
+    </div>`;
+  }).join('');
+}
+
+/**
+ * Farbskala Schweregrad 0–5:
+ * 0   → var(--bg2) neutral
+ * 0–2 → grün (bar-ok) mit Transparenz gestaffelt
+ * 3   → gelb (bar-low / amber)
+ * 4–5 → rot (danger / red)
+ */
+function _heatColor(avg) {
+  if (avg <= 0)   return 'var(--bg2)';
+  if (avg < 1)    return 'rgba(34,197,94,.25)';
+  if (avg < 2)    return 'rgba(34,197,94,.50)';
+  if (avg < 2.5)  return 'rgba(34,197,94,.75)';
+  if (avg < 3)    return C.green;
+  if (avg < 3.5)  return C.amber;
+  if (avg < 4)    return '#f97316'; // orange
+  if (avg < 4.5)  return 'rgba(239,68,68,.80)';
+  return C.red;
+}
+
+// ── Korrelationsanalyse ──────────────────────────────────────────
+
+/**
+ * Rendert die Korrelationsanalyse-Sektion.
+ * Liest sym, umw, pol aus _cachedData (kein neuer API-Call).
+ * Verknüpft über ISO-Datum; berechnet Avg/Max Schweregrad je Faktorgruppe.
+ */
+function _renderKorrelation(data) {
+  const el = document.getElementById('st-korrelation');
+  if (!el) return;
+
+  const { sym, umw, pol } = data;
+
+  // Symptom-Schweregrad-Map: ISO-Datum → max. Schweregrad des Tages
+  const schwereMap = {};
+  sym.forEach(r => {
+    const iso = _toISO(g(r,1)); if (!iso) return;
+    const s = parseInt(g(r,4)) || 0; if (s <= 0) return;
+    schwereMap[iso] = Math.max(schwereMap[iso] || 0, s);
+  });
+
+  if (!Object.keys(schwereMap).length) { el.innerHTML = ''; return; }
+
+  // Hilfsfunktion: Gruppen aggregieren
+  function _aggregate(groups) {
+    // groups: { label: string, dates: Set<iso> }[]
+    // → { label, count, avg, max }[]
+    return groups.map(gr => {
+      const vals = [...gr.dates]
+        .map(d => schwereMap[d])
+        .filter(v => v !== undefined);
+      if (vals.length < 3) return { label: gr.label, count: vals.length, avg: null, max: null };
+      const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+      const max = Math.max(...vals);
+      return { label: gr.label, count: vals.length, avg, max };
+    });
+  }
+
+  const sections = [];
+
+  // ── 1. Pollenarten ──────────────────────────────────────────────
+  const polTypes = [...new Set(pol.map(r => g(r,3)).filter(Boolean))].sort();
+  polTypes.forEach(art => {
+    const groups = [
+      { label: 'keine (0)',     dates: new Set() },
+      { label: 'gering (1–2)', dates: new Set() },
+      { label: 'mittel (3)',   dates: new Set() },
+      { label: 'stark (4–5)', dates: new Set() },
+    ];
+    // Tage MIT Pollen-Eintrag für diese Art
+    const polDayMap = {};
+    pol.filter(r => g(r,3) === art).forEach(r => {
+      const iso = _toISO(g(r,2)); if (!iso) return;
+      const stufe = parseInt(g(r,4)) || 0;
+      polDayMap[iso] = Math.max(polDayMap[iso] || 0, stufe);
+    });
+    // Alle Tage mit Symptomen einteilen
+    Object.keys(schwereMap).forEach(iso => {
+      const stufe = polDayMap[iso]; // undefined = kein Eintrag = keine Belastung
+      if (stufe === undefined || stufe === 0) groups[0].dates.add(iso);
+      else if (stufe <= 2)                    groups[1].dates.add(iso);
+      else if (stufe === 3)                   groups[2].dates.add(iso);
+      else                                    groups[3].dates.add(iso);
+    });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: `🌿 Pollen: ${art}`, rows });
+    }
+  });
+
+  // ── 2. Außentemperatur (temp_max, Spalte 3) ──────────────────────
+  {
+    const groups = [
+      { label: '< 5 °C',    dates: new Set() },
+      { label: '5–15 °C',  dates: new Set() },
+      { label: '15–25 °C', dates: new Set() },
+      { label: '> 25 °C',  dates: new Set() },
+    ];
+    umw.forEach(r => {
+      const iso = _toISO(g(r,1)); if (!iso || !schwereMap[iso]) return;
+      const t = parseFloat(g(r,3)); if (isNaN(t)) return;
+      if (t < 5)       groups[0].dates.add(iso);
+      else if (t < 15) groups[1].dates.add(iso);
+      else if (t < 25) groups[2].dates.add(iso);
+      else             groups[3].dates.add(iso);
+    });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: '🌡️ Außentemperatur (Max)', rows });
+    }
+  }
+
+  // ── 3. Luftfeuchtigkeit außen (Spalte 4) ────────────────────────
+  {
+    const groups = [
+      { label: '< 40 %',   dates: new Set() },
+      { label: '40–60 %', dates: new Set() },
+      { label: '60–80 %', dates: new Set() },
+      { label: '> 80 %',  dates: new Set() },
+    ];
+    umw.forEach(r => {
+      const iso = _toISO(g(r,1)); if (!iso || !schwereMap[iso]) return;
+      const h = parseFloat(g(r,4)); if (isNaN(h)) return;
+      if (h < 40)       groups[0].dates.add(iso);
+      else if (h < 60)  groups[1].dates.add(iso);
+      else if (h < 80)  groups[2].dates.add(iso);
+      else              groups[3].dates.add(iso);
+    });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: '💧 Luftfeuchtigkeit außen', rows });
+    }
+  }
+
+  if (!sections.length) { el.innerHTML = ''; return; }
+
+  // ── Render ────────────────────────────────────────────────────────
+  const tableHtml = sections.map(sec => {
+    const rowsHtml = sec.rows.map(r => {
+      if (r.avg === null) {
+        return `<tr>
+          <td style="padding:6px 4px;font-size:12px">${esc(r.label)}</td>
+          <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center">${r.count}</td>
+          <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center"
+              colspan="2">zu wenig Daten</td>
+        </tr>`;
+      }
+      const highlight = r.avg > 2.0;
+      const avgCol = highlight ? C.amber : 'var(--text)';
+      const bgRow  = highlight ? `background:rgba(245,158,11,.08)` : '';
+      return `<tr style="${bgRow}">
+        <td style="padding:6px 4px;font-size:12px;font-weight:${highlight?'700':'400'}">${esc(r.label)}</td>
+        <td style="padding:6px 4px;font-size:12px;text-align:center">${r.count}</td>
+        <td style="padding:6px 4px;font-size:13px;font-weight:700;text-align:center;color:${avgCol}">${r.avg.toFixed(1)}</td>
+        <td style="padding:6px 4px;font-size:12px;text-align:center;color:var(--sub)">${r.max}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">${esc(sec.title)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase">Gruppe</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:40px">Tage</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:48px">Ø</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:40px">Max</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }).join('<div style="height:1px;background:var(--border);margin:4px 0 14px"></div>');
+
+  el.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:1rem;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:14px;cursor:pointer;user-select:none"
+      onclick="const b=document.getElementById('st-korr-body');
+               const open=b.style.display!=='none';
+               b.style.display=open?'none':'block';
+               document.getElementById('st-korr-arrow').textContent=open?'▶':'▼'">
+      <div style="font-size:14px;font-weight:700">🔗 Korrelationsanalyse</div>
+      <span id="st-korr-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+    </div>
+    <div id="st-korr-body" style="display:none;padding:0 14px 14px">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
+        background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        ℹ️ Statistischer Hinweis – kein medizinischer Befund.
+        Ø Schweregrad an Tagen in der jeweiligen Gruppe. Orange = Ø &gt; 2.0.
+        Mindestens 3 Datenpunkte pro Gruppe erforderlich.
+      </div>
+      ${tableHtml}
+    </div>
+  </div>`;
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────
