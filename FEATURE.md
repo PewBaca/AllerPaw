@@ -1,4 +1,4 @@
-# Hund Manager – Feature-Übersicht (v1.1.0)
+# Hund Manager – Feature-Übersicht (v1.3.2)
 
 > Letzte Aktualisierung: 2026-04-04
 
@@ -24,8 +24,9 @@
 | Zutat soft-löschen | Soft-Delete mit Undo-Banner (8 Sek.) |
 | Undo letzter Löschung | Bis zu 5 Löschungen rückgängig machbar |
 | Automatischer Futterrechner-Sync | Dropdown im Rechner wird nach Speichern sofort aktualisiert |
-| **Nährstoff-Import USDA** | Suche in USDA FoodData Central direkt im Zutat-Modal (API-Key in Einstellungen) |
-| **Nährstoff-Import Open Food Facts** | Suche ohne API-Key in Open Food Facts, Ergebnisse direkt in Nährstoff-Inputs übernehmen |
+| **Nährstoff-Import USDA + OFF parallel** | Beide Quellen gleichzeitig abgerufen · Zwei-Spalten-Ergebnisliste · Werte pro Quelle über jedem Feld sichtbar |
+| **Einheitenkonvertierung Import** | Automatische Umrechnung USDA/OFF-Einheiten → DB-Einheiten (g/mg/µg/IE); Vorschau zeigt Quell- und Zielwert |
+| **Import überschreibt keine Werte** | Nur leere Felder werden befüllt – vorhandene Einträge bleiben erhalten |
 
 ---
 
@@ -88,9 +89,11 @@
 | Temp-Band | Gefülltes oranges Band Min–Max |
 | Temp. innen | Linie |
 | Feuchte außen/innen | Gestrichelte Linien |
-| **Schweregrad Symptome** | **Rotes gefülltes Band (fill from 0)** – deutliche visuelle Hervorhebung |
+| **Schweregrad Symptome** | **Rotes gefülltes Band** · Tage ohne Eintrag als 0 dargestellt · echte Einträge mit sichtbarem Punkt |
 | Gewicht | Linie (nur wenn Hund_Gewicht-Daten vorhanden) |
 | Pollen-Popup | **Popup-Dialog** mit allen Pollen-Typen aus Pollen_Log + eigenen Pollen; alle standardmäßig aktiviert |
+| **Symptom-Muster** | **Heatmap Wochentag (Mo–So) + Monat (Jan–Dez)** · Ø Schweregrad als farbige Kacheln · ab 14 Einträgen |
+| **Korrelationsanalyse** | Alle Pollenarten, 7 Klimafaktoren, Futtermittel frei auswählbar · Gruppen mit Ø > 2.0 orange · min. 3 Datenpunkte |
 | Futter-Reaktionen | Liste (nur Einträge mit Reaktion oder Provokation) |
 | Medikamente | Liste mit Zeitraum |
 | Cache-Status | Anzeige ob Daten aus Cache oder frisch geladen |
@@ -107,6 +110,7 @@
 | DWD-Region | Pollen-Region aus 18 deutschen Regionen |
 | Neue Sheets anlegen | Automatisch via Knopf (Rezept_Komponenten, Translations, Hund_Gewicht, Pollen_Log) |
 | USDA API-Key | Key für automatischen Nährstoff-Import aus USDA FoodData Central |
+| **💾 Einstellungen speichern** | Expliziter Speichern-Button mit Bestätigungs-Feedback (zusätzlich zum Auto-Save) |
 | Sprache | Deutsch / Englisch (i18n) |
 | Verbindungstest | Prüft Sheets-API-Zugang |
 

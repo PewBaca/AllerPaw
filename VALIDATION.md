@@ -1,8 +1,8 @@
-# Hund Manager – Softwarevalidierung (v1.1.0)
+# Hund Manager – Softwarevalidierung (v1.3.2)
 
 > **Zweck:** Manuelle und automatisierte Testszenarien zur Verifikation aller implementierten Features.
 > Letzte Aktualisierung: 2026-04-04
-> Version: v1.1.0
+> Version: v1.3.2
 
 ---
 
@@ -289,6 +289,172 @@
 
 ---
 
+### T-IMPORT-07 – Bugfix: Neue Zutat mit Nährwerten speichern
+**Schritte:**
+1. Stammdaten → Zutaten → Neue Zutat
+2. Name eingeben
+3. Nährstoff-Abschnitt aufklappen → mind. 1 Wert eintragen
+4. Speichern
+
+**Erwartetes Ergebnis:** Kein Fehler „newId is not defined". Zutat und Nährwerte werden korrekt gespeichert.
+
+### T-IMPORT-08 – Parallele Suche USDA + OFF
+**Schritte:**
+1. Zutat-Modal öffnen → Import-Abschnitt aufklappen
+2. Suchbegriff eingeben → Suchen
+
+**Erwartetes Ergebnis:**
+- Zwei Spalten werden gleichzeitig befüllt (USDA links blau, OFF rechts grün)
+- Fehler in einer Quelle (z.B. kein USDA-Key) blockieren die andere nicht
+- Status zeigt „X USDA · Y OFF Treffer"
+
+### T-IMPORT-09 – Vorschau über Feldern
+**Schritte:**
+1. Nach Suche ein USDA-Ergebnis antippen → blaue Vorschau erscheint über Feldern
+2. Ein OFF-Ergebnis antippen → grüne Vorschau ergänzt sich nebeneinander
+
+**Erwartetes Ergebnis:** Über Feldern mit Werten steht z.B. „USDA: 21.3 | OFF: 20.8". Felder ohne Wert aus keiner Quelle zeigen keine Vorschau.
+
+### T-IMPORT-10 – Keine Überschreibung vorhandener Werte
+**Schritte:**
+1. Zutat bearbeiten die bereits Rohprotein = 18.0 hat
+2. Import-Suche durchführen → Import-Ergebnis auswählen
+3. „Leere Felder befüllen" tippen
+
+**Erwartetes Ergebnis:** Rohprotein bleibt bei 18.0. Nur wirklich leere Felder werden befüllt. Status: „X leere Felder befüllt – bestehende Werte unverändert."
+
+### T-CFG-01 – Einstellungen Speichern-Button
+**Schritte:**
+1. Einstellungen → beliebiges Feld ändern
+2. „💾 Einstellungen speichern" tippen
+
+**Erwartetes Ergebnis:** Kurze Meldung „✅ Einstellungen gespeichert!" erscheint und verschwindet nach 2,5s.
+
+
+### T-UNIT-01 – Einheitenkonvertierung Mineralstoff
+**Voraussetzung:** USDA-Suche nach „beef raw"
+
+**Schritte:**
+1. USDA-Ergebnis auswählen
+2. Vorschau über Feld „Kalzium" prüfen (DB-Einheit i.d.R. mg)
+
+**Erwartetes Ergebnis:**
+- USDA liefert Kalzium in mg/100g
+- Vorschau zeigt: „USDA: 12 mg" (keine Konvertierung nötig falls DB=mg)
+- Falls DB-Einheit g: Vorschau zeigt „12 mg → 0.012 g"
+
+### T-UNIT-02 – Einheitenkonvertierung Vitamin A
+**Erwartetes Ergebnis:**
+- USDA liefert Vitamin A in µg RAE
+- DB-Einheit ist IE → Vorschau zeigt z.B. „10 µg → 33.3 IE"
+- Gespeicherter Wert ist der konvertierte IE-Wert
+
+### T-KORR-06 – Faktoren-Toggle Korrelation
+**Schritte:**
+1. Korrelationsanalyse aufklappen
+2. Einen Klimafaktor-Button antippen (z.B. „Feuchte innen")
+3. Tabelle prüfen
+
+**Erwartetes Ergebnis:**
+- Button-Farbe wechselt zu blau (aktiv)
+- Tabelle für diesen Faktor erscheint sofort ohne Seitenreload
+- Erneutes Antippen entfernt den Faktor wieder
+
+### T-CHART-01 – Symptom-Chart 0-Fill
+**Schritte:**
+1. Statistik → Schweregrad Symptome aktivieren
+2. Zeitraum mit Lücken in Symptomeinträgen wählen
+
+**Erwartetes Ergebnis:**
+- Keine Lücken/Null-Werte in der roten Fläche – durchgehende Linie
+- Tage mit echten Einträgen haben sichtbaren roten Punkt
+- Tage ohne Eintrag: Linie auf 0, kein Punkt
+
+
+## Modul 12: Korrelationsanalyse (statistik.js)
+
+### T-KORR-01 – Sektion nur mit ausreichend Daten
+**Schritte:**
+1. Hund wählen ohne Umwelt- oder Pollen-Daten im Zeitraum
+
+**Erwartetes Ergebnis:** Kein „🔗 Korrelationsanalyse"-Block sichtbar.
+
+### T-KORR-02 – Standardmäßig eingeklappt
+**Voraussetzung:** Ausreichend Daten vorhanden
+
+**Erwartetes Ergebnis:**
+- Sektion wird angezeigt, ist aber standardmäßig **eingeklappt** (▶)
+- Erst nach Antippen des Headers klappt der Inhalt auf (▼)
+
+### T-KORR-03 – Temperatur-Gruppen korrekt
+**Schritte:**
+1. Korrelationsanalyse aufklappen → Abschnitt „🌡️ Außentemperatur (Max)" prüfen
+
+**Erwartetes Ergebnis:**
+- 4 Zeilen: < 5°C, 5–15°C, 15–25°C, > 25°C
+- Anzahl Tage pro Gruppe plausibel (Summe ≈ Anzahl Symptomtage mit Umweltdaten)
+- Gruppen mit < 3 Einträgen: „zu wenig Daten"
+- Gruppen mit Ø > 2.0: orange hervorgehoben
+
+### T-KORR-04 – Pollen-Gruppen korrekt
+**Voraussetzung:** Pollen_Log-Daten für mind. eine Pollenart vorhanden
+
+**Erwartetes Ergebnis:**
+- Je Pollenart ein Block mit 4 Gruppen: keine (0), gering (1–2), mittel (3), stark (4–5)
+- Korrekte Zuordnung der Pollen-Stufen
+
+### T-KORR-05 – Kein zusätzlicher API-Call
+**Schritte:**
+1. Netzwerk-Tab im Browser öffnen
+2. Statistik laden (↺ Aktualisieren)
+3. Korrelationsanalyse aufklappen
+
+**Erwartetes Ergebnis:** Kein neuer API-Request beim Aufklappen – Daten kommen aus bestehendem Cache.
+
+
+## Modul 11: Symptom-Muster-Heatmap (statistik.js)
+
+### T-MUSTER-01 – Sektion erscheint erst ab 14 Einträgen
+**Schritte:**
+1. Hund wählen der weniger als 14 Symptomeinträge im Zeitraum hat
+2. Statistik-Panel laden
+
+**Erwartetes Ergebnis:** Kein „📅 Symptom-Muster"-Block sichtbar.
+
+### T-MUSTER-02 – Wochentag-Heatmap korrekt
+**Voraussetzung:** Mindestens 14 Symptomeinträge vorhanden, darunter mehrere Dienstage mit Schweregrad 3–4
+
+**Schritte:**
+1. Statistik-Panel → „📅 Symptom-Muster" ist sichtbar
+2. Wochentag-Reihe prüfen
+
+**Erwartetes Ergebnis:**
+- 7 Kacheln (Mo bis So) angezeigt
+- Kacheln mit <2 Einträgen: grau + „–"
+- Kacheln mit Daten: Farbkodierung grün/gelb/orange/rot je nach Ø Schweregrad
+- Tooltip (title) enthält: Wochentag · Ø X.X · N Einträge
+
+### T-MUSTER-03 – Monats-Heatmap korrekt
+**Erwartetes Ergebnis:**
+- 12 Kacheln (Jan–Dez), 2 Spalten mit je 6 Kacheln
+- Monate ohne Daten: grau + „–"
+- Hinweis unter der Monats-Heatmap: Monat mit höchstem Ø (z.B. „📌 Höchster Ø Schweregrad: Mai")
+
+### T-MUSTER-04 – Ein-/Ausklappen
+**Schritte:**
+1. Auf „📅 Symptom-Muster" Header tippen
+
+**Erwartetes Ergebnis:** Inhalt klappt ein; Pfeil wechselt von ▼ zu ▶. Erneutes Tippen klappt wieder auf.
+
+### T-MUSTER-05 – Farbskala
+**Erwartetes Ergebnis:**
+- Ø < 1: sehr helles Grün / neutral
+- Ø ≈ 2: grün
+- Ø ≈ 3: gelb/amber
+- Ø ≈ 4: orange/rot
+- Ø ≥ 4.5: kräftiges Rot
+
+
 ## Modul 10: USDA / Open Food Facts Import (stammdaten.js)
 
 ### T-IMPORT-01 – USDA Suche mit gültigem Key
@@ -353,7 +519,7 @@
 - Chart + KPIs unverändert funktional
 
 
-## Regressionstests nach v1.1.0
+## Regressionstests nach v1.3.2
 
 Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden:
 

@@ -552,6 +552,10 @@
         <input type="number" id="cfg-pollen-region" placeholder="50 (Berlin)" oninput="CONFIG.save()">
         <div style="font-size:11px;color:var(--sub);margin-top:4px">Berlin=50 · Hamburg=10 · München=91 · Frankfurt=82</div>
       </div>
+      <button class="btn-primary" style="margin-top:4px" onclick="CONFIG.saveWithFeedback()">
+        💾 Einstellungen speichern
+      </button>
+      <div id="cfg-save-status" style="font-size:12px;min-height:1.4em;margin-top:6px"></div>
       <button class="btn-primary" onclick="CONFIG.testConnection()">🔌 Verbindung testen</button>
       <div class="status" id="status-conn"></div>
     </div>
