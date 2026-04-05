@@ -1,14 +1,16 @@
 /**
- * MODULE: statistik.js  (v5 – Allergene+Ausschlussdiät aus Statistik entfernt, Pollen-Vorauswahl alle)
+ * MODULE: statistik.js  (v7 – Korrelationsanalyse Umweltfaktoren vs. Schweregrad)
  *
  * Konfigurierbarer Mixed-Chart.
  * Y-Links  (y):  Temperatur °C, Luftfeuchtigkeit %, Gewicht kg
  * Y-Rechts (y2): Schweregrad 0–5 (rotes Flächenband), Pollen-Stufe 0–5
  *
- * Neu in v5:
- * - Bekannte Allergene: Sektion entfernt (führende Stelle: Tagebuch → Allergen-Tab)
- * - Ausschlussdiät: Sektion entfernt (führende Stelle: Tagebuch → Ausschluss-Tab)
- * - Pollen-Vorauswahl: alle verfügbaren Pollenarten standardmäßig aktiv
+ * Neu in v7:
+ * - Sektion "🔗 Korrelationsanalyse": Verknüpft Umweltagebuch + Pollen_Log mit
+ *   Symptomtagebuch über das Datum; berechnet Avg/Max Schweregrad je Faktorgruppe.
+ *   Faktoren: Pollenarten (0/gering/mittel/stark), Aussentemp (4 Gruppen),
+ *   Luftfeuchte (4 Gruppen). Min. 3 Datenpunkte/Gruppe; Gruppen mit Avg > 2.0 orange.
+ *   Ein-/ausklappbar; nur wenn mind. 1 Faktor mit auswertbaren Daten vorhanden.
  */
 
 import { getSheet, invalidateAll, getAge } from './cache.js';
@@ -73,7 +75,12 @@ const PARAM_DEFS = [
   {
     key:'symptome', label:'Schweregrad Symptome (0–5)', emoji:'🔍',
     color:C.red, colorL:'rgba(239,68,68,.22)', yAxis:'y2', chartType:'area',
-    extract:({sym})=>_byDate(sym,1,r=>parseInt(g(r,4)),Math.max),
+    // extract gibt { map, realDates } zurück; map enthält nur Tage MIT echten Einträgen
+    extract:({sym})=>{
+      const map=_byDate(sym,1,r=>parseInt(g(r,4)),Math.max);
+      const realDates=new Set(Object.keys(map));
+      return {map, realDates};
+    },
   },
   {
     key:'gewicht', label:'Gewicht (kg)', emoji:'⚖️',
@@ -165,11 +172,15 @@ export async function refresh(forceRefresh=false) {
         padding:14px;margin-bottom:1rem">
         <canvas id="ch-konfig" height="240"></canvas>
       </div>
+      <div id="st-muster"></div>
+      <div id="st-korrelation"></div>
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
 
     await _buildChart(_cachedData);
+    _renderSymptomMuster(sym);
+    _renderKorrelation(_cachedData);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -179,6 +190,32 @@ export async function refresh(forceRefresh=false) {
 }
 
 export function forceRefresh() { invalidateAll(); _cachedData=null; refresh(true); }
+
+export function toggleKorrFaktor(key) {
+  if (!window._korrSelected) return;
+  if (window._korrSelected.has(key)) window._korrSelected.delete(key);
+  else window._korrSelected.add(key);
+  // Tabellen neu rendern ohne vollständiges Reload
+  if (window._korrFaktoren && _cachedData) {
+    // Button-Styles aktualisieren
+    document.querySelectorAll('[data-korr-key]').forEach(btn => {
+      const sel = window._korrSelected.has(btn.dataset.korrKey);
+      btn.style.border = `1px solid ${sel ? 'var(--c2)' : 'var(--border)'}`;
+      btn.style.background = sel ? 'rgba(59,130,246,.12)' : 'var(--bg)';
+      btn.style.color = sel ? 'var(--c2)' : 'var(--sub)';
+      btn.style.fontWeight = sel ? '700' : '400';
+    });
+    // Tabellen re-rendern
+    const selected = window._korrFaktoren.filter(f => window._korrSelected.has(f.key));
+    // Neu rendern durch _renderKorrelation mit bestehendem _cachedData
+    _renderKorrelation(_cachedData);
+    // Korr-Body wieder aufklappen
+    const body = document.getElementById('st-korr-body');
+    if (body) body.style.display = 'block';
+    const arrow = document.getElementById('st-korr-arrow');
+    if (arrow) arrow.textContent = '▼';
+  }
+}
 
 export async function toggleParam(key) {
   _selected.has(key)?_selected.delete(key):_selected.add(key);
@@ -365,10 +402,14 @@ async function _buildChart(data) {
         borderDash:[3,3],yAxisID:'y',spanGaps:true,
       });
     } else if(p.chartType==='area'){
-      // Rotes gefülltes Band: fill von y=0 bis zur Linie
-      const map=p.extract(data);
+      // Rotes gefülltes Band: 0 für Tage ohne Eintrag, Punkt nur für echte Einträge
+      const extracted=p.extract(data);
+      const map        = extracted.map ?? extracted; // Kompatibilität
+      const realDates  = extracted.realDates ?? new Set(Object.keys(map));
       datasets.push({
-        label:`${p.emoji} ${p.label}`,data:null,_map:map,type:'line',
+        label:`${p.emoji} ${p.label}`,data:null,_map:map,
+        _realDates:realDates,_zeroFill:true,
+        type:'line',
         borderColor:p.color,backgroundColor:p.colorL,
         borderWidth:2,pointRadius:3,pointHoverRadius:5,
         pointBackgroundColor:p.color,
@@ -402,9 +443,19 @@ async function _buildChart(data) {
     return;
   }
   datasets.forEach(d=>{
-    d.data=allDates.map(date=>{const v=d._map?.[date];return(v!==undefined&&!isNaN(v))?v:null;});
-    if(allDates.length>60&&d.type==='line') d.pointRadius=0;
-    delete d._map;
+    if(d._zeroFill){
+      // 0 für alle Daten im Zeitraum; Punkt (radius 4) nur für echte Einträge
+      d.data = allDates.map(date => {
+        const v = d._map?.[date];
+        return (v !== undefined && !isNaN(v)) ? v : 0;
+      });
+      d.pointRadius = allDates.map(date => d._realDates?.has(date) ? 4 : 0);
+      d.pointHoverRadius = allDates.map(date => d._realDates?.has(date) ? 6 : 2);
+    } else {
+      d.data=allDates.map(date=>{const v=d._map?.[date];return(v!==undefined&&!isNaN(v))?v:null;});
+      if(allDates.length>60&&d.type==='line') d.pointRadius=0;
+    }
+    delete d._map; delete d._realDates; delete d._zeroFill;
   });
 
   const hasY=datasets.some(d=>d.yAxisID==='y');
@@ -467,6 +518,453 @@ function _renderMedis(med) {
       <div style="font-size:12px;color:var(--sub);text-align:right">
         ${esc(g(r,5)||'?')}<br>bis ${esc(g(r,6)||'laufend')}</div>
     </div>`).join(''):'<p style="color:var(--sub);font-size:13px">Keine Medikamente erfasst.</p>';
+}
+
+// ── Symptom-Muster (Wochentag / Monat) ──────────────────────────
+
+/**
+ * Rendert ein- / ausklappbare Heatmap-Sektionen für Wochentag- und
+ * Monatsmuster des Symptom-Schweregrads.
+ * Nur anzeigen wenn >= 14 Symptomeinträge vorhanden sind.
+ */
+function _renderSymptomMuster(sym) {
+  const el = document.getElementById('st-muster');
+  if (!el) return;
+
+  // Nur Einträge mit Schweregrad > 0
+  const entries = sym
+    .map(r => ({ date: _parseDate(g(r,1)), schwere: parseInt(g(r,4)) || 0 }))
+    .filter(e => e.date && e.schwere > 0);
+
+  if (entries.length < 14) { el.innerHTML = ''; return; }
+
+  // ── Aggregation Wochentag (0=So…6=Sa → umordnen auf Mo=0…So=6) ─
+  const wdData = Array.from({length:7}, () => ({sum:0, count:0}));
+  entries.forEach(e => {
+    // getDay(): 0=Sun,1=Mon…6=Sat → Mo=0…So=6
+    const wd = (e.date.getDay() + 6) % 7;
+    wdData[wd].sum   += e.schwere;
+    wdData[wd].count += 1;
+  });
+
+  // ── Aggregation Monat ────────────────────────────────────────────
+  const moData = Array.from({length:12}, () => ({sum:0, count:0}));
+  entries.forEach(e => {
+    moData[e.date.getMonth()].sum   += e.schwere;
+    moData[e.date.getMonth()].count += 1;
+  });
+
+  const WD_LABELS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const MO_LABELS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Höchsten Ø Monat ermitteln
+  let maxMoAvg = 0, maxMoIdx = -1;
+  moData.forEach((m,i) => {
+    if (m.count >= 2) {
+      const avg = m.sum / m.count;
+      if (avg > maxMoAvg) { maxMoAvg = avg; maxMoIdx = i; }
+    }
+  });
+
+  const wdHtml  = _heatmapRow(wdData, WD_LABELS);
+  const moHtml  = _heatmapRow(moData, MO_LABELS);
+  const moHint  = maxMoIdx >= 0
+    ? `<div style="font-size:11px;color:var(--sub);margin-top:8px">
+        📌 Höchster Ø Schweregrad: <strong>${MO_LABELS[maxMoIdx]}</strong>
+        (Ø ${(maxMoAvg).toFixed(1)} · ${moData[maxMoIdx].count} Einträge)
+       </div>`
+    : '';
+
+  el.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:1rem;overflow:hidden">
+    <div id="st-muster-header"
+      style="display:flex;justify-content:space-between;align-items:center;
+        padding:14px;cursor:pointer;user-select:none"
+      onclick="const b=document.getElementById('st-muster-body');
+               const open=b.style.display!=='none';
+               b.style.display=open?'none':'block';
+               document.getElementById('st-muster-arrow').textContent=open?'▶':'▼'">
+      <div style="font-size:14px;font-weight:700">📅 Symptom-Muster</div>
+      <span id="st-muster-arrow" style="font-size:11px;color:var(--sub)">▼</span>
+    </div>
+    <div id="st-muster-body" style="padding:0 14px 14px">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:12px">
+        Ø Schweregrad pro Wochentag / Monat · ${entries.length} Einträge ausgewertet
+      </div>
+
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--sub);
+        text-transform:uppercase;letter-spacing:.04em">Wochentag</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px">
+        ${wdHtml}
+      </div>
+
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--sub);
+        text-transform:uppercase;letter-spacing:.04em">Monat</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">
+        ${moHtml}
+      </div>
+      ${moHint}
+    </div>
+  </div>`;
+}
+
+/**
+ * Gibt HTML für eine Heatmap-Zeile zurück.
+ * @param {Array<{sum:number,count:number}>} data
+ * @param {string[]} labels
+ */
+function _heatmapRow(data, labels) {
+  return data.map((d, i) => {
+    const label = labels[i];
+    if (d.count < 2) {
+      return `<div style="border-radius:6px;padding:6px 2px;text-align:center;
+          background:var(--bg2);border:1px solid var(--border)" title="${label} · zu wenig Daten">
+        <div style="font-size:11px;font-weight:700;color:var(--sub)">${label}</div>
+        <div style="font-size:10px;color:var(--sub);margin-top:2px">–</div>
+      </div>`;
+    }
+    const avg  = d.sum / d.count;
+    const col  = _heatColor(avg);
+    const textCol = avg >= 3 ? '#fff' : 'var(--text)';
+    return `<div style="border-radius:6px;padding:6px 2px;text-align:center;
+        background:${col};border:1px solid ${col}"
+        title="${label} · Ø ${avg.toFixed(1)} · ${d.count} Einträge">
+      <div style="font-size:11px;font-weight:700;color:${textCol}">${label}</div>
+      <div style="font-size:11px;font-weight:700;color:${textCol};margin-top:2px">${avg.toFixed(1)}</div>
+      <div style="font-size:9px;color:${avg>=3?'rgba(255,255,255,.7)':'var(--sub)'};margin-top:1px">${d.count}×</div>
+    </div>`;
+  }).join('');
+}
+
+/**
+ * Farbskala Schweregrad 0–5:
+ * 0   → var(--bg2) neutral
+ * 0–2 → grün (bar-ok) mit Transparenz gestaffelt
+ * 3   → gelb (bar-low / amber)
+ * 4–5 → rot (danger / red)
+ */
+function _heatColor(avg) {
+  if (avg <= 0)   return 'var(--bg2)';
+  if (avg < 1)    return 'rgba(34,197,94,.25)';
+  if (avg < 2)    return 'rgba(34,197,94,.50)';
+  if (avg < 2.5)  return 'rgba(34,197,94,.75)';
+  if (avg < 3)    return C.green;
+  if (avg < 3.5)  return C.amber;
+  if (avg < 4)    return '#f97316'; // orange
+  if (avg < 4.5)  return 'rgba(239,68,68,.80)';
+  return C.red;
+}
+
+// ── Korrelationsanalyse ──────────────────────────────────────────
+
+/**
+ * Rendert die Korrelationsanalyse-Sektion mit auswählbaren Faktoren.
+ * Faktoren: alle Pollenarten, alle Klimadaten, alle Futtermittel.
+ * Kein API-Call – nutzt _cachedData.
+ */
+function _renderKorrelation(data) {
+  const el = document.getElementById('st-korrelation');
+  if (!el) return;
+
+  const { sym, umw, pol, fut } = data;
+
+  // Symptom-Schweregrad-Map: ISO-Datum → max. Schweregrad
+  const schwereMap = {};
+  sym.forEach(r => {
+    const iso = _toISO(g(r,1)); if (!iso) return;
+    const s = parseInt(g(r,4)) || 0; if (s <= 0) return;
+    schwereMap[iso] = Math.max(schwereMap[iso] || 0, s);
+  });
+
+  if (!Object.keys(schwereMap).length) { el.innerHTML = ''; return; }
+
+  // ── Faktor-Definitionen ─────────────────────────────────────────
+  const FAKTOREN = [];
+
+  // Pollenarten
+  const polTypes = [...new Set(pol.map(r => g(r,3)).filter(Boolean))].sort();
+  polTypes.forEach(art => {
+    const polDayMap = {};
+    pol.filter(r => g(r,3) === art).forEach(r => {
+      const iso = _toISO(g(r,2)); if (!iso) return;
+      const stufe = parseInt(g(r,4)) || 0;
+      polDayMap[iso] = Math.max(polDayMap[iso] || 0, stufe);
+    });
+    FAKTOREN.push({
+      key: `pol_${art}`, label: `🌿 Pollen: ${art}`, gruppe: 'Pollen',
+      gruppen: [
+        { label:'keine (0)',    dates: new Set(Object.keys(schwereMap).filter(d => !polDayMap[d] || polDayMap[d]===0)) },
+        { label:'gering (1–2)', dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]>=1&&polDayMap[d]<=2)) },
+        { label:'mittel (3)',   dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]===3)) },
+        { label:'stark (4–5)', dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]>=4)) },
+      ],
+    });
+  });
+
+  // Klimadaten
+  const klimaFaktoren = [
+    {
+      key:'temp_max', label:'🌡️ Temp. außen Max (°C)', gruppe:'Klima',
+      gruppen:[
+        { label:'< 0 °C',    dates: new Set() },
+        { label:'0–10 °C',  dates: new Set() },
+        { label:'10–20 °C', dates: new Set() },
+        { label:'20–30 °C', dates: new Set() },
+        { label:'> 30 °C',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const t = parseFloat(g(r,3)); if (isNaN(t)) return;
+        if (t < 0)       gs[0].dates.add(_toISO(g(r,1)));
+        else if (t < 10) gs[1].dates.add(_toISO(g(r,1)));
+        else if (t < 20) gs[2].dates.add(_toISO(g(r,1)));
+        else if (t < 30) gs[3].dates.add(_toISO(g(r,1)));
+        else             gs[4].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'temp_min', label:'🌡️ Temp. außen Min (°C)', gruppe:'Klima',
+      gruppen:[
+        { label:'< 0 °C',    dates: new Set() },
+        { label:'0–10 °C',  dates: new Set() },
+        { label:'10–20 °C', dates: new Set() },
+        { label:'> 20 °C',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const t = parseFloat(g(r,2)); if (isNaN(t)) return;
+        if (t < 0)       gs[0].dates.add(_toISO(g(r,1)));
+        else if (t < 10) gs[1].dates.add(_toISO(g(r,1)));
+        else if (t < 20) gs[2].dates.add(_toISO(g(r,1)));
+        else             gs[3].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'feuchte_aus', label:'💧 Feuchte außen (%)', gruppe:'Klima',
+      gruppen:[
+        { label:'< 40 %',   dates: new Set() },
+        { label:'40–60 %', dates: new Set() },
+        { label:'60–80 %', dates: new Set() },
+        { label:'> 80 %',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const h = parseFloat(g(r,4)); if (isNaN(h)) return;
+        if (h < 40)      gs[0].dates.add(_toISO(g(r,1)));
+        else if (h < 60) gs[1].dates.add(_toISO(g(r,1)));
+        else if (h < 80) gs[2].dates.add(_toISO(g(r,1)));
+        else             gs[3].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'temp_in', label:'🏠 Temp. innen (°C)', gruppe:'Klima',
+      gruppen:[
+        { label:'< 18 °C',   dates: new Set() },
+        { label:'18–22 °C', dates: new Set() },
+        { label:'> 22 °C',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const t = parseFloat(g(r,7)); if (isNaN(t)) return;
+        if (t < 18)      gs[0].dates.add(_toISO(g(r,1)));
+        else if (t < 22) gs[1].dates.add(_toISO(g(r,1)));
+        else             gs[2].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'feuchte_in', label:'🏠 Feuchte innen (%)', gruppe:'Klima',
+      gruppen:[
+        { label:'< 40 %',   dates: new Set() },
+        { label:'40–60 %', dates: new Set() },
+        { label:'> 60 %',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const h = parseFloat(g(r,8)); if (isNaN(h)) return;
+        if (h < 40)      gs[0].dates.add(_toISO(g(r,1)));
+        else if (h < 60) gs[1].dates.add(_toISO(g(r,1)));
+        else             gs[2].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'regen', label:'🌧️ Niederschlag (mm)', gruppe:'Klima',
+      gruppen:[
+        { label:'kein (0)',      dates: new Set() },
+        { label:'wenig (< 5)',  dates: new Set() },
+        { label:'mittel (5–20)',dates: new Set() },
+        { label:'viel (> 20)',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const mm = parseFloat(g(r,5)); if (isNaN(mm)) return;
+        if (mm <= 0)      gs[0].dates.add(_toISO(g(r,1)));
+        else if (mm < 5)  gs[1].dates.add(_toISO(g(r,1)));
+        else if (mm < 20) gs[2].dates.add(_toISO(g(r,1)));
+        else              gs[3].dates.add(_toISO(g(r,1)));
+      },
+    },
+    {
+      key:'bett', label:'🛏️ Bett', gruppe:'Klima',
+      gruppen:[
+        { label:'Unverändert', dates: new Set() },
+        { label:'Gewechselt',  dates: new Set() },
+      ],
+      fn: (r, gs) => {
+        const b = g(r,9).toLowerCase();
+        const iso = _toISO(g(r,1)); if (!iso) return;
+        if (b.includes('wechsel')) gs[1].dates.add(iso);
+        else if (b)                gs[0].dates.add(iso);
+      },
+    },
+  ];
+
+  // Klimadaten befüllen
+  klimaFaktoren.forEach(fak => {
+    umw.forEach(r => {
+      if (!schwereMap[_toISO(g(r,1))]) return;
+      fak.fn(r, fak.gruppen);
+    });
+    // nur Gruppen mit Null bereinigen
+    fak.gruppen.forEach(gr => { gr.dates.delete(null); gr.dates.delete(''); });
+    FAKTOREN.push(fak);
+  });
+
+  // Futtermittel: eindeutige Einträge aus Futtertagebuch-Freitext
+  const futterSet = new Set();
+  fut.forEach(r => {
+    const txt = g(r,2); // Spalte C = futter-Freitext
+    if (!txt) return;
+    txt.split(/[,
+;]+/).forEach(t => {
+      const trimmed = t.trim();
+      if (trimmed.length > 1 && trimmed.length < 60) futterSet.add(trimmed);
+    });
+  });
+  [...futterSet].sort().slice(0, 20).forEach(futterName => {
+    // Tage AN denen dieses Futter gegessen wurde
+    const gegessen = new Set();
+    const nichtGegessen = new Set();
+    fut.forEach(r => {
+      const iso = _toISO(g(r,1));
+      if (!iso || !schwereMap[iso]) return;
+      if (g(r,2).includes(futterName)) gegessen.add(iso);
+    });
+    Object.keys(schwereMap).forEach(d => {
+      if (!gegessen.has(d)) nichtGegessen.add(d);
+    });
+    if (gegessen.size >= 3) {
+      FAKTOREN.push({
+        key: `fut_${futterName}`, label: `🥩 ${futterName}`, gruppe: 'Futter',
+        gruppen: [
+          { label: 'nicht gegessen', dates: nichtGegessen },
+          { label: 'gegessen',       dates: gegessen },
+        ],
+      });
+    }
+  });
+
+  if (!FAKTOREN.length) { el.innerHTML = ''; return; }
+
+  // ── State: welche Faktoren sind ausgewählt ──────────────────────
+  if (!window._korrSelected) {
+    // Default: Pollen + Temp_max + Feuchte_aus ausgewählt
+    window._korrSelected = new Set(FAKTOREN
+      .filter(f => ['temp_max','feuchte_aus'].includes(f.key) || f.gruppe==='Pollen')
+      .map(f => f.key)
+    );
+  }
+
+  // ── Aggregation ─────────────────────────────────────────────────
+  function _agg(gruppen) {
+    return gruppen.map(gr => {
+      const vals = [...gr.dates].map(d => schwereMap[d]).filter(v => v !== undefined);
+      if (vals.length < 3) return { label: gr.label, count: vals.length, avg: null, max: null };
+      return { label: gr.label, count: vals.length,
+               avg: vals.reduce((a,b)=>a+b,0)/vals.length, max: Math.max(...vals) };
+    });
+  }
+
+  // ── Tabellen-HTML für gewählte Faktoren ─────────────────────────
+  const selected = FAKTOREN.filter(f => window._korrSelected.has(f.key));
+  const tableHtml = selected.length === 0
+    ? '<p style="color:var(--sub);font-size:12px;padding:8px 0">Bitte oben mindestens einen Faktor auswählen.</p>'
+    : selected.map(fak => {
+        const rows = _agg(fak.gruppen);
+        const rowsHtml = rows.map(r => {
+          if (r.avg === null) return `<tr>
+            <td style="padding:6px 4px;font-size:12px">${esc(r.label)}</td>
+            <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center">${r.count}</td>
+            <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center" colspan="2">zu wenig Daten</td></tr>`;
+          const hi = r.avg > 2.0;
+          const avgCol = hi ? C.amber : 'var(--text)';
+          return `<tr style="${hi?'background:rgba(245,158,11,.08)':''}">
+            <td style="padding:6px 4px;font-size:12px;font-weight:${hi?700:400}">${esc(r.label)}</td>
+            <td style="padding:6px 4px;font-size:12px;text-align:center">${r.count}</td>
+            <td style="padding:6px 4px;font-size:13px;font-weight:700;text-align:center;color:${avgCol}">${r.avg.toFixed(1)}</td>
+            <td style="padding:6px 4px;font-size:12px;text-align:center;color:var(--sub)">${r.max}</td></tr>`;
+        }).join('');
+        return `<div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px">${esc(fak.label)}</div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Gruppe</th>
+              <th style="width:36px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Tage</th>
+              <th style="width:44px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Ø</th>
+              <th style="width:36px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Max</th>
+            </tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table></div>`;
+    }).join('<div style="height:1px;background:var(--border);margin:2px 0 14px"></div>');
+
+  // ── Faktor-Filter-UI ────────────────────────────────────────────
+  const gruppen = {};
+  FAKTOREN.forEach(f => {
+    (gruppen[f.gruppe] = gruppen[f.gruppe] || []).push(f);
+  });
+  const filterHtml = Object.entries(gruppen).map(([grpName, faks]) => `
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+        color:var(--sub);margin-bottom:4px">${esc(grpName)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${faks.map(f => {
+          const sel = window._korrSelected.has(f.key);
+          return `<button
+            data-korr-key="${esc(f.key)}"
+            onclick="STATISTIK.toggleKorrFaktor('${esc(f.key)}')"
+            style="font-size:11px;padding:4px 8px;border-radius:var(--radius-sm);cursor:pointer;
+              font-family:inherit;border:1px solid ${sel?'var(--c2)':'var(--border)'};
+              background:${sel?'rgba(59,130,246,.12)':'var(--bg)'};
+              color:${sel?'var(--c2)':'var(--sub)'};font-weight:${sel?700:400}">
+            ${esc(f.label)}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  el.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:1rem;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:14px;cursor:pointer;user-select:none"
+      onclick="const b=document.getElementById('st-korr-body');
+               const open=b.style.display!=='none';
+               b.style.display=open?'none':'block';
+               document.getElementById('st-korr-arrow').textContent=open?'▶':'▼'">
+      <div style="font-size:14px;font-weight:700">🔗 Korrelationsanalyse</div>
+      <span id="st-korr-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+    </div>
+    <div id="st-korr-body" style="display:none;padding:0 14px 14px">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
+        background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        ℹ️ Statistischer Hinweis – kein medizinischer Befund.
+        Ø Schweregrad an Tagen in der jeweiligen Gruppe. Orange = Ø &gt; 2.0. Min. 3 Datenpunkte.
+      </div>
+      <div style="margin-bottom:14px;padding:10px;background:var(--bg);
+        border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Faktoren auswählen</div>
+        ${filterHtml}
+      </div>
+      <div id="st-korr-tables">${tableHtml}</div>
+    </div>
+  </div>`;
+
+  // Store FAKTOREN für toggleKorrFaktor
+  window._korrFaktoren = FAKTOREN;
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────

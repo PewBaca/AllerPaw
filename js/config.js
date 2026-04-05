@@ -104,6 +104,19 @@ export async function testConnection() {
 }
 
 /**
+ * Konfiguration explizit speichern mit visuellem Feedback.
+ * Wird vom Speichern-Button in den Einstellungen aufgerufen.
+ */
+export function saveWithFeedback() {
+  save();
+  const el = document.getElementById('cfg-save-status');
+  if (!el) return;
+  el.textContent = '✅ Einstellungen gespeichert!';
+  el.style.color = 'var(--bar-ok, #22c55e)';
+  setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+/**
  * Aktuelle Konfiguration zurückgeben (read-only Referenz).
  * @returns {{ clientId: string, stammdatenId: string, tagebuchId: string,
  *             lat: number, lon: number, pollenRegion: number }}
