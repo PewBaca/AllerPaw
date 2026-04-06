@@ -211,7 +211,8 @@ Melde Sheet-Änderungen explizit (erwartet: keine).
 ## Idee 5 – Reaktions-Score pro Zutat
 
 Optimierung 
-in den stammdaten für Hundefutter vergleiche ob es bereits einen identisch eitnrag gib
+füge eine Suchfunktion für die Stammdaten Zutaten. 
+in den stammdaten zutaten für Hundefutter vergleiche ob es bereits einen identisch eitnrag gib
 in der Korrelationsanalyse eine sortierung einfügen die es nsch Häufigkeit und Korrelation sortieren kann
 
 
