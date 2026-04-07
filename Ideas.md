@@ -210,6 +210,12 @@ Melde Sheet-Änderungen explizit (erwartet: keine).
 
 ## Idee 5 – Reaktions-Score pro Zutat
 
+bugfixes
+Berechnung der Zutaten mit kommastellen sicherstellen. Sicherstellung das Kommastellen richtig gespeichert und angezeigt werden
+
+im Futterrechner funktioniert das beimischen eines Rezeptes nicht
+ wird ausgewählt aber kann nicht hinzugefügt werden. 
+
 ### Beschreibung
 Automatisch aus den Tagebuchdaten berechnen: Wie oft folgte auf einen Futtertageintrag mit Zutat X innerhalb von 48 Stunden ein Symptomeintrag mit Schweregrad > 2? Das ergibt einen datenbasierten Verdachtsscore unabhängig von manuellen Einschätzungen. Wird als sortierte Liste mit Score-Balken in der Statistik angezeigt.
 
