@@ -1,7 +1,7 @@
 # Hund Manager – Feature-Ideen & Implementierungsprompts (v1.3.2)
 
 > Letzte Aktualisierung: 2026-04-04
-> Status: Ideen – noch nicht implementiert
+> Status: Ideen 1–4 implementiert (v1.1.0–v1.3.0) · Ideen 5–9 offen
 > Jede Idee ist als eigenständiger Prompt formuliert und kann einzeln beauftragt werden.
 > Vor jeder Implementierung: PROJECT.md als Kontext einfügen + das betreffende Modul mitliefern.
 
@@ -209,12 +209,6 @@ Melde Sheet-Änderungen explizit (erwartet: keine).
 ---
 
 ## Idee 5 – Reaktions-Score pro Zutat
-
-Optimierung 
-füge eine Suchfunktion für die Stammdaten Zutaten. 
-in den stammdaten zutaten für Hundefutter vergleiche ob es bereits einen identisch eitnrag gib
-in der Korrelationsanalyse eine sortierung einfügen die es nsch Häufigkeit und Korrelation sortieren kann
-
 
 ### Beschreibung
 Automatisch aus den Tagebuchdaten berechnen: Wie oft folgte auf einen Futtertageintrag mit Zutat X innerhalb von 48 Stunden ein Symptomeintrag mit Schweregrad > 2? Das ergibt einen datenbasierten Verdachtsscore unabhängig von manuellen Einschätzungen. Wird als sortierte Liste mit Score-Balken in der Statistik angezeigt.

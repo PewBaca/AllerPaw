@@ -1,7 +1,7 @@
 # Hund Manager – Projektbeschreibung (v1.3.2)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-04-04 · Status: v1.3.2 – Import-Vergleich USDA+OFF, Bugfix newId, Einstellungen-Speichern
+> Letzte Aktualisierung: 2026-04-04 · Status: v1.3.2 – Einheitenkonvertierung Import, Korrelation auswählbar (Pollen/Klima/Futter), Symptom-Chart 0-Fill
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -511,7 +511,7 @@ Statistik-Panel:
   │   - Pollen: Balken (y2-Achse, 0–5)
   │   - Sonstige: Linien
   ├── Symptom-Muster (Heatmap Wochentag Mo–So + Monat Jan–Dez, ab 14 Einträgen, ein-/ausklappbar)
-  ├── Korrelationsanalyse (Pollen/Temp/Feuchte vs. Ø Schweregrad, gruppiert, min. 3 Datenpunkte, ein-/ausklappbar)
+  ├── Korrelationsanalyse (alle Pollenarten, 7 Klimafaktoren, Futtermittel – Toggle-Buttons auswählbar, min. 3 Datenpunkte, ein-/ausklappbar)
   ├── Futter-Reaktionen (Liste, nur Einträge mit Reaktion/Provokation)
   └── Medikamente (Liste mit Von–Bis)
 
@@ -686,7 +686,7 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 - `statistik.js` lädt `Ausschlussdiät`- und `Bekannte Allergene`-Sheets **nicht mehr** (seit v1.1.0)
 - `_renderSymptomMuster(sym)` – rendert Wochentag/Monat-Heatmap; `_heatmapRow()`, `_heatColor()` als Hilfsfunktionen
 - `_renderKorrelation(data)` – rendert Korrelationsanalyse mit auswählbaren Faktoren; `window._korrSelected` (Set), `window._korrFaktoren` (Array)
-- `toggleKorrFaktor(key)` – exportierte Funktion für Button-onclick; re-rendert Tabellen
+- `toggleKorrFaktor(key)` – exportiertes Funktion → `window.STATISTIK.toggleKorrFaktor`; re-rendert nur Tabellen, kein Reload
 - Symptom-Chart: `_zeroFill=true` + `_realDates` Set → `pointRadius`-Array (4=echt, 0=0-Fill)
 - PARAM_DEF `symptome` hat `chartType:'area'` (rotes Flächenband, `fill:'origin'`)
 - `stammdaten.js` exportiert zusätzlich: `runImportSearch`, `selectImportResult`, `applyImportToFields`
