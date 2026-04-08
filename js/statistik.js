@@ -14,7 +14,7 @@
  */
 
 import { getSheet, invalidateAll, getAge } from './cache.js';
-import { getHunde }                         from './store.js';
+import { getHunde, getRezepte }             from './store.js';
 import { esc }                              from './ui.js';
 
 const C = {
@@ -174,6 +174,7 @@ export async function refresh(forceRefresh=false) {
       </div>
       <div id="st-muster"></div>
       <div id="st-korrelation"></div>
+      <div id="st-reaktionsscore"></div>
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
@@ -181,6 +182,7 @@ export async function refresh(forceRefresh=false) {
     await _buildChart(_cachedData);
     _renderSymptomMuster(sym);
     _renderKorrelation(_cachedData);
+    _renderReaktionsScore(_cachedData, hundId);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -964,6 +966,135 @@ function _renderKorrelation(data) {
 
   // Store FAKTOREN für toggleKorrFaktor
   window._korrFaktoren = FAKTOREN;
+}
+
+// ── Reaktions-Score pro Zutat / Futtermittel ─────────────────────
+
+/**
+ * Berechnet für jede Zutat/Rezept im Futtertagebuch:
+ * Score = Anteil der Tage, an denen innerhalb von 48h Symptome (Schweregrad > 2) auftraten.
+ * Mindestens 3 Beobachtungen pro Zutat. Nur aus Cache – kein API-Call.
+ */
+function _renderReaktionsScore({ fut, sym }, hundId) {
+  const el = document.getElementById('st-reaktionsscore');
+  if (!el) return;
+
+  if (!fut.length || !sym.length) { el.innerHTML = ''; return; }
+
+  // Symptom-Map: ISO-Datum → max Schweregrad
+  const schwereMap = {};
+  sym.forEach(r => {
+    const iso = _toISO(g(r, 1)); if (!iso) return;
+    const s = parseInt(g(r, 4)) || 0;
+    schwereMap[iso] = Math.max(schwereMap[iso] || 0, s);
+  });
+
+  // Alle Rezeptnamen für diesen Hund vorab sammeln (für besseres Matching)
+  const rezeptNamen = new Set(
+    getRezepte(hundId).map(rz => rz.name?.trim()).filter(Boolean)
+  );
+
+  // Futtereinträge: Datum → Set von Futtermittelnamen
+  const tagFutter = {}; // ISO-Datum → Set<name>
+  fut.forEach(r => {
+    const iso = _toISO(g(r, 1)); if (!iso) return;
+    const text = g(r, 2); // Spalte C = futter-Freitext
+    if (!text) return;
+    if (!tagFutter[iso]) tagFutter[iso] = new Set();
+    // Split auf Komma/Semikolon/Zeilenumbruch
+    text.split(/[,;\n]+/).forEach(t => {
+      const trimmed = t.trim();
+      if (trimmed.length > 1 && trimmed.length < 80) tagFutter[iso].add(trimmed);
+    });
+    // Auch Rezeptname aus Spalte D (Produkt) erfassen falls vorhanden
+    const produkt = g(r, 3);
+    if (produkt && produkt.length > 1 && produkt.length < 80) tagFutter[iso].add(produkt);
+  });
+
+  // Alle eindeutigen Futtermittel sammeln
+  const alleNamen = new Set();
+  Object.values(tagFutter).forEach(namen => namen.forEach(n => alleNamen.add(n)));
+
+  // Score berechnen
+  const scores = [];
+  alleNamen.forEach(name => {
+    // Tage an denen dieses Futter eingetragen war
+    const futterTage = Object.keys(tagFutter).filter(iso => tagFutter[iso].has(name)).sort();
+    if (futterTage.length < 3) return; // Mindestens 3 Beobachtungen
+
+    let reaktionsTage = 0;
+    const reaktionsDaten = [];
+
+    futterTage.forEach(iso => {
+      const d = new Date(iso);
+      // Prüfe Tag +1 und +2
+      let hatReaktion = false;
+      for (let offset = 1; offset <= 2; offset++) {
+        const next = new Date(d); next.setDate(d.getDate() + offset);
+        const nextISO = next.toISOString().slice(0, 10);
+        if ((schwereMap[nextISO] || 0) > 2) { hatReaktion = true; break; }
+      }
+      if (hatReaktion) { reaktionsTage++; reaktionsDaten.push(iso); }
+    });
+
+    const score = (reaktionsTage / futterTage.length) * 100;
+    const istRezept = rezeptNamen.has(name);
+    scores.push({ name, score, futterTage: futterTage.length, reaktionsTage, istRezept });
+  });
+
+  if (!scores.length) { el.innerHTML = ''; return; }
+
+  // Sortieren: absteigend nach Score
+  scores.sort((a, b) => b.score - a.score);
+
+  // Nur Einträge mit Score > 0 oder die Top-20 anzeigen
+  const anzeigeScores = scores.slice(0, 20);
+
+  const rowsHtml = anzeigeScores.map(({ name, score, futterTage, reaktionsTage, istRezept }) => {
+    const scoreRound = Math.round(score);
+    const barColor = score < 20 ? C.green : score < 50 ? C.amber : C.red;
+    const textColor = score >= 50 ? C.red : score >= 20 ? C.amber : 'var(--text)';
+    const badge = istRezept
+      ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:rgba(59,130,246,.12);color:${C.blue};border:1px solid rgba(59,130,246,.3)">Rezept</span>`
+      : '';
+    return `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${esc(name)} ${badge}
+        </div>
+        <div style="font-size:13px;font-weight:700;color:${textColor};margin-left:8px;flex-shrink:0">${scoreRound}%</div>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:4px">
+        <div style="height:100%;border-radius:3px;background:${barColor};width:${Math.min(scoreRound,100)}%;transition:width .3s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--sub)">${reaktionsTage} von ${futterTage} Malen gefolgt von Symptomen (≤48h-Fenster, Schweregrad &gt; 2)</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:1rem;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+        padding:14px;cursor:pointer;user-select:none"
+      onclick="const b=document.getElementById('st-rscore-body');
+               const open=b.style.display!=='none';
+               b.style.display=open?'none':'block';
+               document.getElementById('st-rscore-arrow').textContent=open?'▶':'▼'">
+      <div style="font-size:14px;font-weight:700">🧪 Zutaten-Reaktionsscores</div>
+      <span id="st-rscore-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+    </div>
+    <div id="st-rscore-body" style="display:none;padding:0 14px 14px">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
+        background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        ⚠️ Statistischer Hinweis – kein medizinischer Befund.
+        Score = Anteil der Gaben, nach denen innerhalb von 48h Symptome (Schweregrad &gt; 2) auftraten.
+        Mindestens 3 Beobachtungen erforderlich.
+      </div>
+      ${anzeigeScores.length ? rowsHtml : '<p style="color:var(--sub);font-size:13px">Zu wenig strukturierte Futterdaten für eine Auswertung.</p>'}
+      ${scores.length > 20 ? `<div style="font-size:11px;color:var(--sub);margin-top:8px;text-align:center">Zeige Top 20 von ${scores.length} ausgewerteten Einträgen.</div>` : ''}
+    </div>
+  </div>`;
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────
