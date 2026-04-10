@@ -1,7 +1,7 @@
-# Hund Manager – Projektbeschreibung (v1.3.1)
+# Hund Manager – Projektbeschreibung (v1.4.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-04-04 · Status: v1.3.1 – Import-Vergleich USDA+OFF, Bugfix newId, Einstellungen-Speichern
+> Letzte Aktualisierung: 2026-04-09 · Status: v1.4.0 – Bugfixes Dezimal/Rezept-Mix/Doppelspeichern + Reaktionsscore
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -595,6 +595,12 @@ Z Bugfixes
 - **Dokumentations-Fixes:** `verdacht`-Skala korrigiert (0–3), styles.css-Duplikat entfernt, Kochverlust präzisiert (nur B-Vitamine), EPA+DHA-Namenskonvention dokumentiert, VALIDATION.md um T-RECHN-06 erweitert.
 
 
+**v1.4.0:**
+- **Bugfix Dezimal-Nachkommastellen** (store.js): `wert_pro_100g` nutzte `parseFloat()` statt `_float()` – Nährwerte mit Komma als Dezimaltrenner (z.B. Google-Sheets-Export „0,5") wurden als 0 eingelesen. Fix: `_float()` für korrektes Komma→Punkt-Handling.
+- **Bugfix Rezept-Mix bleibt nicht ausgewählt** (index.html): Das `<select id="fr-mix-rezept-select">` hatte `onclick="RECHNER.initMixSelect()"`. Da `onclick` auch beim Auswählen einer Option feuert, wurde das Dropdown bei jeder Auswahl sofort zurückgesetzt. Fix: `initMixSelect()` wird jetzt beim Öffnen der Akkordeon-Sektion aufgerufen (im Toggle-Header), nicht am Select selbst.
+- **Bugfix Zutaten doppelt gespeichert beim wiederholten Speichern** (rechner.js): `saveRecipe()` hat bei existierenden Rezepten immer alle Zutaten angehängt statt zu überschreiben. Fix: Beim Update werden vorhandene `Rezept_Zutaten`-Zeilen für das Rezept zunächst geleert (`writeRange` → leer), dann neu geschrieben. Leere Zeilen werden beim Lesen durch den `r[2]`-Check (Name muss gesetzt sein) herausgefiltert.
+- **Zutaten-Reaktionsscore** (statistik.js): Neue einklappbare Sektion „🧪 Zutaten-Reaktionsscore" zwischen Korrelationsanalyse und Futter-Reaktionen. Berechnet aus Futtertagebuch (Futter-Freitext, split by Komma) und Symptomtagebuch: Score = Anteil der Futtertage mit Symptom-Schweregrad > 2 in den folgenden 48h. Mindestens 3 Beobachtungen pro Zutat. Farbgebung: grün (<20%), gelb (<50%), rot (≥50%). Filter-Chips mit **Alle/Keine**-Toggle analog Korrelationsanalyse. Kein neuer API-Call – ausschließlich Cache.
+
 **v1.3.1:**
 - **Bugfix `newId` not defined** (stammdaten.js): `let newId` wurde außerhalb des `if/else`-Blocks deklariert – Fehler beim Anlegen neuer Zutaten mit Nährwerten behoben.
 - **Paralleler USDA + OFF Import mit Vergleich** (stammdaten.js): Beide Quellen werden simultan via `Promise.allSettled` abgerufen. Zwei-Spalten-Anzeige der Ergebnisse (USDA blau, OFF grün). Auswahl pro Quelle unabhängig via `selectImportResult()`. Über jedem Nährstoff-Input wird der Wert beider Quellen nebeneinander angezeigt (Preview-Divs). `applyImportToFields()` befüllt **nur leere Felder** – vorhandene Werte bleiben unverändert.
@@ -618,6 +624,13 @@ Z Bugfixes
 - **Doppeltes Einstellungs-Symbol** (index.html): Dupliziertes `⚙️ Einst.` in der Top-Navigation entfernt.
 
 
+## Konvention: Rückfragen vor der Implementierung
+
+> **Claude soll vor jeder Implementierung so viele Fragen wie möglich stellen**, um Unklarheiten zu minimieren.
+> Konkret: Wenn ein Feature-Wunsch oder Bugfix beschrieben wird, erst alle offenen Punkte klären
+> (Verhalten bei Grenzfällen, Aussehen, Datenquellen, Sheet-Änderungen, Rückwärtskompatibilität),
+> bevor Code geschrieben wird. Lieber 5 Fragen stellen als falsch implementieren.
+
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
 ```
@@ -638,7 +651,12 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 
 ### ✅ Pflicht nach jeder Änderung
 
-1. **PROJECT.md aktualisieren:**
+1. **App-Info in `index.html` aktualisieren:**
+   - Versionsnummer im HTML-Header-Kommentar (Zeile ~5: `Version X.Y.Z | ES Modules | …`)
+   - Versionsnummer + Feature-Zeilen in der `ℹ️ App-Info`-Box im Einstellungen-Panel
+   - Neue Hauptfeatures knapp in der App-Info-Box ergänzen (max. 5 Zeilen)
+
+2. **PROJECT.md aktualisieren:**
    - Versionsnummer erhöhen 
    - Project.md immer aktualisieren
    - Datum auf aktuelles Datum setzen
@@ -682,6 +700,7 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 - `stammdaten.js` importiert `getNaehrstoffe` und `addZutatNutr` aus `store.js`
 - `wetter.js` exportiert zusätzlich: `showPollenManager`, `_addCustomPollen`, `_removeCustomPollen`
 - `statistik.js` exportiert zusätzlich: `showPollenPopup`
+- `_renderReaktionsscore(fut, sym)` – rendert Zutaten-Reaktionsscore mit Chip-Filter; `_reaktionFilter` (Set<string>|null) hält Auswahl; `window._STAT_toggleReak`, `window._STAT_reaktionAlle`, `window._STAT_reaktionKeine` als globale Callbacks
 - Custom-Pollen werden in `localStorage['hundapp_custom_pollen']` als JSON-Array gespeichert
 - `statistik.js` lädt `Ausschlussdiät`- und `Bekannte Allergene`-Sheets **nicht mehr** (seit v1.1.0)
 - `_renderSymptomMuster(sym)` – rendert Wochentag/Monat-Heatmap; `_heatmapRow()`, `_heatColor()` als Hilfsfunktionen

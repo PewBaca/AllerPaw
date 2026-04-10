@@ -186,3 +186,16 @@ A: Ja. Alle Daten liegen in Google Sheets und sind auf jedem Gerät über den Br
 
 **Q: Was passiert wenn das Sheet-Sheet nicht existiert?**
 A: Die App zeigt einen Hinweis „Sheet noch nicht angelegt". In Einstellungen → „Neue Sheets anlegen" erstellt die App alle fehlenden Sheets automatisch.
+
+### Warum werden manche Nährstoffe im Futterrechner als 0 angezeigt, obwohl ich Werte eingetragen habe?
+Wenn Google Sheets Dezimalzahlen mit Komma speichert (z.B. „0,5" statt „0.5"), wurde der Wert bisher als 0 eingelesen. Mit v1.4.0 ist das behoben – `_float()` wandelt beide Formate korrekt um. Bestehende Einträge müssen nicht korrigiert werden.
+
+### Warum konnte ich im Futterrechner kein Rezept einmischen – die Auswahl blieb nicht erhalten?
+Der Fehler lag daran, dass das Dropdown-Menü sich beim Klicken immer wieder zurückgesetzt hat. Mit v1.4.0 wird die Liste nur noch beim Öffnen der Sektion geladen, nicht bei jeder Auswahl.
+
+### Warum wurden beim wiederholten Speichern eines Rezepts die Zutaten verdoppelt?
+Beim Speichern wurden immer alle Zutaten neu angehängt, auch wenn das Rezept bereits existierte. Mit v1.4.0 werden bestehende Zutaten-Zeilen vor dem Speichern geleert und dann neu geschrieben.
+
+### Was ist der Zutaten-Reaktionsscore?
+Der Score zeigt statistisch, wie oft nach einem Futtereintrag innerhalb von 48h Symptome mit Schweregrad > 2 aufgetreten sind. Er ist ein Hinweis – kein medizinischer Befund. Zutaten mit weniger als 3 Beobachtungen werden nicht angezeigt. Die Namen stammen aus dem Freitextfeld „Futter" im Futtertagebuch (Komma-getrennt).
+
