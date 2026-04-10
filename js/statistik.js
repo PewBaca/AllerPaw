@@ -14,7 +14,7 @@
  */
 
 import { getSheet, invalidateAll, getAge } from './cache.js';
-import { getHunde, getRezepte }             from './store.js';
+import { getHunde }                         from './store.js';
 import { esc }                              from './ui.js';
 
 const C = {
@@ -75,12 +75,7 @@ const PARAM_DEFS = [
   {
     key:'symptome', label:'Schweregrad Symptome (0–5)', emoji:'🔍',
     color:C.red, colorL:'rgba(239,68,68,.22)', yAxis:'y2', chartType:'area',
-    // extract gibt { map, realDates } zurück; map enthält nur Tage MIT echten Einträgen
-    extract:({sym})=>{
-      const map=_byDate(sym,1,r=>parseInt(g(r,4)),Math.max);
-      const realDates=new Set(Object.keys(map));
-      return {map, realDates};
-    },
+    extract:({sym})=>_byDate(sym,1,r=>parseInt(g(r,4)),Math.max),
   },
   {
     key:'gewicht', label:'Gewicht (kg)', emoji:'⚖️',
@@ -174,7 +169,7 @@ export async function refresh(forceRefresh=false) {
       </div>
       <div id="st-muster"></div>
       <div id="st-korrelation"></div>
-      <div id="st-reaktionsscore"></div>
+      <div id="st-reaktion"></div>
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
@@ -182,7 +177,7 @@ export async function refresh(forceRefresh=false) {
     await _buildChart(_cachedData);
     _renderSymptomMuster(sym);
     _renderKorrelation(_cachedData);
-    _renderReaktionsScore(_cachedData, hundId);
+    _renderReaktionsscore(fut, sym);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -192,32 +187,6 @@ export async function refresh(forceRefresh=false) {
 }
 
 export function forceRefresh() { invalidateAll(); _cachedData=null; refresh(true); }
-
-export function toggleKorrFaktor(key) {
-  if (!window._korrSelected) return;
-  if (window._korrSelected.has(key)) window._korrSelected.delete(key);
-  else window._korrSelected.add(key);
-  // Tabellen neu rendern ohne vollständiges Reload
-  if (window._korrFaktoren && _cachedData) {
-    // Button-Styles aktualisieren
-    document.querySelectorAll('[data-korr-key]').forEach(btn => {
-      const sel = window._korrSelected.has(btn.dataset.korrKey);
-      btn.style.border = `1px solid ${sel ? 'var(--c2)' : 'var(--border)'}`;
-      btn.style.background = sel ? 'rgba(59,130,246,.12)' : 'var(--bg)';
-      btn.style.color = sel ? 'var(--c2)' : 'var(--sub)';
-      btn.style.fontWeight = sel ? '700' : '400';
-    });
-    // Tabellen re-rendern
-    const selected = window._korrFaktoren.filter(f => window._korrSelected.has(f.key));
-    // Neu rendern durch _renderKorrelation mit bestehendem _cachedData
-    _renderKorrelation(_cachedData);
-    // Korr-Body wieder aufklappen
-    const body = document.getElementById('st-korr-body');
-    if (body) body.style.display = 'block';
-    const arrow = document.getElementById('st-korr-arrow');
-    if (arrow) arrow.textContent = '▼';
-  }
-}
 
 export async function toggleParam(key) {
   _selected.has(key)?_selected.delete(key):_selected.add(key);
@@ -404,14 +373,10 @@ async function _buildChart(data) {
         borderDash:[3,3],yAxisID:'y',spanGaps:true,
       });
     } else if(p.chartType==='area'){
-      // Rotes gefülltes Band: 0 für Tage ohne Eintrag, Punkt nur für echte Einträge
-      const extracted=p.extract(data);
-      const map        = extracted.map ?? extracted; // Kompatibilität
-      const realDates  = extracted.realDates ?? new Set(Object.keys(map));
+      // Rotes gefülltes Band: fill von y=0 bis zur Linie
+      const map=p.extract(data);
       datasets.push({
-        label:`${p.emoji} ${p.label}`,data:null,_map:map,
-        _realDates:realDates,_zeroFill:true,
-        type:'line',
+        label:`${p.emoji} ${p.label}`,data:null,_map:map,type:'line',
         borderColor:p.color,backgroundColor:p.colorL,
         borderWidth:2,pointRadius:3,pointHoverRadius:5,
         pointBackgroundColor:p.color,
@@ -445,19 +410,9 @@ async function _buildChart(data) {
     return;
   }
   datasets.forEach(d=>{
-    if(d._zeroFill){
-      // 0 für alle Daten im Zeitraum; Punkt (radius 4) nur für echte Einträge
-      d.data = allDates.map(date => {
-        const v = d._map?.[date];
-        return (v !== undefined && !isNaN(v)) ? v : 0;
-      });
-      d.pointRadius = allDates.map(date => d._realDates?.has(date) ? 4 : 0);
-      d.pointHoverRadius = allDates.map(date => d._realDates?.has(date) ? 6 : 2);
-    } else {
-      d.data=allDates.map(date=>{const v=d._map?.[date];return(v!==undefined&&!isNaN(v))?v:null;});
-      if(allDates.length>60&&d.type==='line') d.pointRadius=0;
-    }
-    delete d._map; delete d._realDates; delete d._zeroFill;
+    d.data=allDates.map(date=>{const v=d._map?.[date];return(v!==undefined&&!isNaN(v))?v:null;});
+    if(allDates.length>60&&d.type==='line') d.pointRadius=0;
+    delete d._map;
   });
 
   const hasY=datasets.some(d=>d.yAxisID==='y');
@@ -491,6 +446,147 @@ async function _buildChart(data) {
   });
 }
 
+
+// ── Reaktionsscore ────────────────────────────────────────────────
+// State: welche Zutaten angezeigt werden (null = alle)
+let _reaktionFilter = null; // Set<string> oder null
+
+function _renderReaktionsscore(fut, sym) {
+  const el = document.getElementById('st-reaktion');
+  if (!el) return;
+
+  // Mind. 5 Futter- und 3 Symptomeinträge nötig
+  if (!fut?.length || !sym?.length || fut.length < 5) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Symptome nach ISO-Datum indizieren
+  const symByDate = {};
+  sym.forEach(r => {
+    const iso = _toISO(g(r, 1));
+    if (!iso) return;
+    const sw = parseInt(g(r, 4)) || 0;
+    if (!symByDate[iso] || sw > symByDate[iso]) symByDate[iso] = sw;
+  });
+
+  // Futtereinträge: alle Zutaten-Namen extrahieren (split by comma)
+  const futEntries = fut.map(r => ({
+    iso:    _toISO(g(r, 1)),
+    namen:  g(r, 2).split(/[,;]+/).map(s => s.trim()).filter(Boolean),
+  })).filter(e => e.iso && e.namen.length);
+
+  // Score pro Zutat berechnen
+  const scoreMap = {}; // name → { total, reactions }
+  futEntries.forEach(entry => {
+    // Prüfe Symptome in den 2 Folgetagen
+    let hasReaction = false;
+    for (let d = 1; d <= 2; d++) {
+      const nextDate = new Date(entry.iso);
+      nextDate.setDate(nextDate.getDate() + d);
+      const nextISO = nextDate.toISOString().slice(0, 10);
+      if ((symByDate[nextISO] || 0) > 2) { hasReaction = true; break; }
+    }
+    entry.namen.forEach(name => {
+      if (!scoreMap[name]) scoreMap[name] = { total: 0, reactions: 0 };
+      scoreMap[name].total++;
+      if (hasReaction) scoreMap[name].reactions++;
+    });
+  });
+
+  // Nur Zutaten mit mind. 3 Vorkommen
+  const allScores = Object.entries(scoreMap)
+    .filter(([, v]) => v.total >= 3)
+    .map(([name, v]) => ({
+      name,
+      total:     v.total,
+      reactions: v.reactions,
+      score:     Math.round(v.reactions / v.total * 100),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (!allScores.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Filter initialisieren: beim ersten Render alle aktivieren
+  if (!_reaktionFilter) _reaktionFilter = new Set(allScores.map(s => s.name));
+
+  const visible = allScores.filter(s => _reaktionFilter.has(s.name));
+
+  // Chip-Buttons für Alle/Keine + individuelle Zutaten
+  const chipHtml = allScores.map(s => {
+    const sel = _reaktionFilter.has(s.name);
+    return `<button
+      style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--border);
+        cursor:pointer;font-family:inherit;font-weight:${sel?'700':'400'};
+        background:${sel?'var(--c2)':'var(--bg2)'};color:${sel?'#fff':'var(--text)'};
+        margin:2px;transition:all .15s"
+      onclick="window._STAT_toggleReak(${JSON.stringify(s.name)})">${esc(s.name)}</button>`;
+  }).join('');
+
+  // Score-Zeilen
+  const rowHtml = visible.length ? visible.map(s => {
+    const barColor = s.score < 20 ? 'var(--bar-ok)' : s.score < 50 ? 'var(--bar-low)' : 'var(--danger-text)';
+    const badgeCls = s.score < 20 ? 'badge-ok' : s.score < 50 ? 'badge-warn' : 'badge-bad';
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:13px;font-weight:600">${esc(s.name)}</span>
+        <span class="badge ${badgeCls}" style="font-size:11px">${s.score}%</span>
+      </div>
+      <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:3px">
+        <div style="height:100%;width:${s.score}%;background:${barColor};border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--sub)">${s.reactions} von ${s.total} Mal → Symptome (Schw. &gt; 2) in 48h</div>
+    </div>`;
+  }).join('') : '<p style="color:var(--sub);font-size:13px">Keine Zutaten ausgewählt.</p>';
+
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem">
+      <div id="st-reak-header"
+        style="display:flex;justify-content:space-between;align-items:center;
+          padding:12px 14px;cursor:pointer;background:var(--bg2);user-select:none"
+        onclick="const b=document.getElementById('st-reak-body');
+                 const open=b.style.display!=='none';
+                 b.style.display=open?'none':'block';
+                 document.getElementById('st-reak-arrow').textContent=open?'▶':'▼'">
+        <div style="font-size:14px;font-weight:700">🧪 Zutaten-Reaktionsscore</div>
+        <span id="st-reak-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+      </div>
+      <div id="st-reak-body" style="display:none;padding:14px">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
+          background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          ⚠️ Statistischer Hinweis – kein medizinischer Befund.
+          Score = Anteil der Tage mit Symptom-Schweregrad &gt; 2 in den 48h nach dem Futtereintrag.
+          Mind. 3 Beobachtungen pro Zutat erforderlich.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;align-items:center">
+          <button onclick="window._STAT_reaktionAlle()"
+            style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--c2);
+              cursor:pointer;font-family:inherit;font-weight:700;background:var(--c4);
+              color:var(--c2);margin:2px">Alle</button>
+          <button onclick="window._STAT_reaktionKeine()"
+            style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--border);
+              cursor:pointer;font-family:inherit;font-weight:400;background:var(--bg2);
+              color:var(--text);margin:2px">Keine</button>
+          ${chipHtml}
+        </div>
+        <div id="st-reak-rows">${rowHtml}</div>
+      </div>
+    </div>`;
+
+  // Globale Hilfsfunktionen für Chip-Interaktion
+  window._STAT_toggleReak = name => {
+    if (_reaktionFilter.has(name)) _reaktionFilter.delete(name);
+    else _reaktionFilter.add(name);
+    _renderReaktionsscore(fut, sym);
+    document.getElementById('st-reak-body').style.display = 'block';
+    document.getElementById('st-reak-arrow').textContent = '▼';
+  };
+  window._STAT_reaktionAlle  = () => { _reaktionFilter = new Set(allScores.map(s => s.name)); _renderReaktionsscore(fut, sym); document.getElementById('st-reak-body').style.display='block'; document.getElementById('st-reak-arrow').textContent='▼'; };
+  window._STAT_reaktionKeine = () => { _reaktionFilter = new Set(); _renderReaktionsscore(fut, sym); document.getElementById('st-reak-body').style.display='block'; document.getElementById('st-reak-arrow').textContent='▼'; };
+}
 
 
 function _renderFutter(fut) {
@@ -661,17 +757,17 @@ function _heatColor(avg) {
 // ── Korrelationsanalyse ──────────────────────────────────────────
 
 /**
- * Rendert die Korrelationsanalyse-Sektion mit auswählbaren Faktoren.
- * Faktoren: alle Pollenarten, alle Klimadaten, alle Futtermittel.
- * Kein API-Call – nutzt _cachedData.
+ * Rendert die Korrelationsanalyse-Sektion.
+ * Liest sym, umw, pol aus _cachedData (kein neuer API-Call).
+ * Verknüpft über ISO-Datum; berechnet Avg/Max Schweregrad je Faktorgruppe.
  */
 function _renderKorrelation(data) {
   const el = document.getElementById('st-korrelation');
   if (!el) return;
 
-  const { sym, umw, pol, fut } = data;
+  const { sym, umw, pol } = data;
 
-  // Symptom-Schweregrad-Map: ISO-Datum → max. Schweregrad
+  // Symptom-Schweregrad-Map: ISO-Datum → max. Schweregrad des Tages
   const schwereMap = {};
   sym.forEach(r => {
     const iso = _toISO(g(r,1)); if (!iso) return;
@@ -681,261 +777,141 @@ function _renderKorrelation(data) {
 
   if (!Object.keys(schwereMap).length) { el.innerHTML = ''; return; }
 
-  // ── Faktor-Definitionen ─────────────────────────────────────────
-  const FAKTOREN = [];
+  // Hilfsfunktion: Gruppen aggregieren
+  function _aggregate(groups) {
+    // groups: { label: string, dates: Set<iso> }[]
+    // → { label, count, avg, max }[]
+    return groups.map(gr => {
+      const vals = [...gr.dates]
+        .map(d => schwereMap[d])
+        .filter(v => v !== undefined);
+      if (vals.length < 3) return { label: gr.label, count: vals.length, avg: null, max: null };
+      const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+      const max = Math.max(...vals);
+      return { label: gr.label, count: vals.length, avg, max };
+    });
+  }
 
-  // Pollenarten
+  const sections = [];
+
+  // ── 1. Pollenarten ──────────────────────────────────────────────
   const polTypes = [...new Set(pol.map(r => g(r,3)).filter(Boolean))].sort();
   polTypes.forEach(art => {
+    const groups = [
+      { label: 'keine (0)',     dates: new Set() },
+      { label: 'gering (1–2)', dates: new Set() },
+      { label: 'mittel (3)',   dates: new Set() },
+      { label: 'stark (4–5)', dates: new Set() },
+    ];
+    // Tage MIT Pollen-Eintrag für diese Art
     const polDayMap = {};
     pol.filter(r => g(r,3) === art).forEach(r => {
       const iso = _toISO(g(r,2)); if (!iso) return;
       const stufe = parseInt(g(r,4)) || 0;
       polDayMap[iso] = Math.max(polDayMap[iso] || 0, stufe);
     });
-    FAKTOREN.push({
-      key: `pol_${art}`, label: `🌿 Pollen: ${art}`, gruppe: 'Pollen',
-      gruppen: [
-        { label:'keine (0)',    dates: new Set(Object.keys(schwereMap).filter(d => !polDayMap[d] || polDayMap[d]===0)) },
-        { label:'gering (1–2)', dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]>=1&&polDayMap[d]<=2)) },
-        { label:'mittel (3)',   dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]===3)) },
-        { label:'stark (4–5)', dates: new Set(Object.keys(schwereMap).filter(d => polDayMap[d]>=4)) },
-      ],
+    // Alle Tage mit Symptomen einteilen
+    Object.keys(schwereMap).forEach(iso => {
+      const stufe = polDayMap[iso]; // undefined = kein Eintrag = keine Belastung
+      if (stufe === undefined || stufe === 0) groups[0].dates.add(iso);
+      else if (stufe <= 2)                    groups[1].dates.add(iso);
+      else if (stufe === 3)                   groups[2].dates.add(iso);
+      else                                    groups[3].dates.add(iso);
     });
-  });
-
-  // Klimadaten
-  const klimaFaktoren = [
-    {
-      key:'temp_max', label:'🌡️ Temp. außen Max (°C)', gruppe:'Klima',
-      gruppen:[
-        { label:'< 0 °C',    dates: new Set() },
-        { label:'0–10 °C',  dates: new Set() },
-        { label:'10–20 °C', dates: new Set() },
-        { label:'20–30 °C', dates: new Set() },
-        { label:'> 30 °C',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const t = parseFloat(g(r,3)); if (isNaN(t)) return;
-        if (t < 0)       gs[0].dates.add(_toISO(g(r,1)));
-        else if (t < 10) gs[1].dates.add(_toISO(g(r,1)));
-        else if (t < 20) gs[2].dates.add(_toISO(g(r,1)));
-        else if (t < 30) gs[3].dates.add(_toISO(g(r,1)));
-        else             gs[4].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'temp_min', label:'🌡️ Temp. außen Min (°C)', gruppe:'Klima',
-      gruppen:[
-        { label:'< 0 °C',    dates: new Set() },
-        { label:'0–10 °C',  dates: new Set() },
-        { label:'10–20 °C', dates: new Set() },
-        { label:'> 20 °C',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const t = parseFloat(g(r,2)); if (isNaN(t)) return;
-        if (t < 0)       gs[0].dates.add(_toISO(g(r,1)));
-        else if (t < 10) gs[1].dates.add(_toISO(g(r,1)));
-        else if (t < 20) gs[2].dates.add(_toISO(g(r,1)));
-        else             gs[3].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'feuchte_aus', label:'💧 Feuchte außen (%)', gruppe:'Klima',
-      gruppen:[
-        { label:'< 40 %',   dates: new Set() },
-        { label:'40–60 %', dates: new Set() },
-        { label:'60–80 %', dates: new Set() },
-        { label:'> 80 %',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const h = parseFloat(g(r,4)); if (isNaN(h)) return;
-        if (h < 40)      gs[0].dates.add(_toISO(g(r,1)));
-        else if (h < 60) gs[1].dates.add(_toISO(g(r,1)));
-        else if (h < 80) gs[2].dates.add(_toISO(g(r,1)));
-        else             gs[3].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'temp_in', label:'🏠 Temp. innen (°C)', gruppe:'Klima',
-      gruppen:[
-        { label:'< 18 °C',   dates: new Set() },
-        { label:'18–22 °C', dates: new Set() },
-        { label:'> 22 °C',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const t = parseFloat(g(r,7)); if (isNaN(t)) return;
-        if (t < 18)      gs[0].dates.add(_toISO(g(r,1)));
-        else if (t < 22) gs[1].dates.add(_toISO(g(r,1)));
-        else             gs[2].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'feuchte_in', label:'🏠 Feuchte innen (%)', gruppe:'Klima',
-      gruppen:[
-        { label:'< 40 %',   dates: new Set() },
-        { label:'40–60 %', dates: new Set() },
-        { label:'> 60 %',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const h = parseFloat(g(r,8)); if (isNaN(h)) return;
-        if (h < 40)      gs[0].dates.add(_toISO(g(r,1)));
-        else if (h < 60) gs[1].dates.add(_toISO(g(r,1)));
-        else             gs[2].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'regen', label:'🌧️ Niederschlag (mm)', gruppe:'Klima',
-      gruppen:[
-        { label:'kein (0)',      dates: new Set() },
-        { label:'wenig (< 5)',  dates: new Set() },
-        { label:'mittel (5–20)',dates: new Set() },
-        { label:'viel (> 20)',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const mm = parseFloat(g(r,5)); if (isNaN(mm)) return;
-        if (mm <= 0)      gs[0].dates.add(_toISO(g(r,1)));
-        else if (mm < 5)  gs[1].dates.add(_toISO(g(r,1)));
-        else if (mm < 20) gs[2].dates.add(_toISO(g(r,1)));
-        else              gs[3].dates.add(_toISO(g(r,1)));
-      },
-    },
-    {
-      key:'bett', label:'🛏️ Bett', gruppe:'Klima',
-      gruppen:[
-        { label:'Unverändert', dates: new Set() },
-        { label:'Gewechselt',  dates: new Set() },
-      ],
-      fn: (r, gs) => {
-        const b = g(r,9).toLowerCase();
-        const iso = _toISO(g(r,1)); if (!iso) return;
-        if (b.includes('wechsel')) gs[1].dates.add(iso);
-        else if (b)                gs[0].dates.add(iso);
-      },
-    },
-  ];
-
-  // Klimadaten befüllen
-  klimaFaktoren.forEach(fak => {
-    umw.forEach(r => {
-      if (!schwereMap[_toISO(g(r,1))]) return;
-      fak.fn(r, fak.gruppen);
-    });
-    // nur Gruppen mit Null bereinigen
-    fak.gruppen.forEach(gr => { gr.dates.delete(null); gr.dates.delete(''); });
-    FAKTOREN.push(fak);
-  });
-
-  // Futtermittel: eindeutige Einträge aus Futtertagebuch-Freitext
-  const futterSet = new Set();
-  fut.forEach(r => {
-    const txt = g(r,2); // Spalte C = futter-Freitext
-    if (!txt) return;
-    txt.split(/[,;\n]+/).forEach(t => {
-      const trimmed = t.trim();
-      if (trimmed.length > 1 && trimmed.length < 60) futterSet.add(trimmed);
-    });
-  });
-  [...futterSet].sort().slice(0, 20).forEach(futterName => {
-    // Tage AN denen dieses Futter gegessen wurde
-    const gegessen = new Set();
-    const nichtGegessen = new Set();
-    fut.forEach(r => {
-      const iso = _toISO(g(r,1));
-      if (!iso || !schwereMap[iso]) return;
-      if (g(r,2).includes(futterName)) gegessen.add(iso);
-    });
-    Object.keys(schwereMap).forEach(d => {
-      if (!gegessen.has(d)) nichtGegessen.add(d);
-    });
-    if (gegessen.size >= 3) {
-      FAKTOREN.push({
-        key: `fut_${futterName}`, label: `🥩 ${futterName}`, gruppe: 'Futter',
-        gruppen: [
-          { label: 'nicht gegessen', dates: nichtGegessen },
-          { label: 'gegessen',       dates: gegessen },
-        ],
-      });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: `🌿 Pollen: ${art}`, rows });
     }
   });
 
-  if (!FAKTOREN.length) { el.innerHTML = ''; return; }
-
-  // ── State: welche Faktoren sind ausgewählt ──────────────────────
-  if (!window._korrSelected) {
-    // Default: Pollen + Temp_max + Feuchte_aus ausgewählt
-    window._korrSelected = new Set(FAKTOREN
-      .filter(f => ['temp_max','feuchte_aus'].includes(f.key) || f.gruppe==='Pollen')
-      .map(f => f.key)
-    );
-  }
-
-  // ── Aggregation ─────────────────────────────────────────────────
-  function _agg(gruppen) {
-    return gruppen.map(gr => {
-      const vals = [...gr.dates].map(d => schwereMap[d]).filter(v => v !== undefined);
-      if (vals.length < 3) return { label: gr.label, count: vals.length, avg: null, max: null };
-      return { label: gr.label, count: vals.length,
-               avg: vals.reduce((a,b)=>a+b,0)/vals.length, max: Math.max(...vals) };
+  // ── 2. Außentemperatur (temp_max, Spalte 3) ──────────────────────
+  {
+    const groups = [
+      { label: '< 5 °C',    dates: new Set() },
+      { label: '5–15 °C',  dates: new Set() },
+      { label: '15–25 °C', dates: new Set() },
+      { label: '> 25 °C',  dates: new Set() },
+    ];
+    umw.forEach(r => {
+      const iso = _toISO(g(r,1)); if (!iso || !schwereMap[iso]) return;
+      const t = parseFloat(g(r,3)); if (isNaN(t)) return;
+      if (t < 5)       groups[0].dates.add(iso);
+      else if (t < 15) groups[1].dates.add(iso);
+      else if (t < 25) groups[2].dates.add(iso);
+      else             groups[3].dates.add(iso);
     });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: '🌡️ Außentemperatur (Max)', rows });
+    }
   }
 
-  // ── Tabellen-HTML für gewählte Faktoren ─────────────────────────
-  const selected = FAKTOREN.filter(f => window._korrSelected.has(f.key));
-  const tableHtml = selected.length === 0
-    ? '<p style="color:var(--sub);font-size:12px;padding:8px 0">Bitte oben mindestens einen Faktor auswählen.</p>'
-    : selected.map(fak => {
-        const rows = _agg(fak.gruppen);
-        const rowsHtml = rows.map(r => {
-          if (r.avg === null) return `<tr>
-            <td style="padding:6px 4px;font-size:12px">${esc(r.label)}</td>
-            <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center">${r.count}</td>
-            <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center" colspan="2">zu wenig Daten</td></tr>`;
-          const hi = r.avg > 2.0;
-          const avgCol = hi ? C.amber : 'var(--text)';
-          return `<tr style="${hi?'background:rgba(245,158,11,.08)':''}">
-            <td style="padding:6px 4px;font-size:12px;font-weight:${hi?700:400}">${esc(r.label)}</td>
-            <td style="padding:6px 4px;font-size:12px;text-align:center">${r.count}</td>
-            <td style="padding:6px 4px;font-size:13px;font-weight:700;text-align:center;color:${avgCol}">${r.avg.toFixed(1)}</td>
-            <td style="padding:6px 4px;font-size:12px;text-align:center;color:var(--sub)">${r.max}</td></tr>`;
-        }).join('');
-        return `<div style="margin-bottom:14px">
-          <div style="font-size:12px;font-weight:700;margin-bottom:6px">${esc(fak.label)}</div>
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Gruppe</th>
-              <th style="width:36px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Tage</th>
-              <th style="width:44px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Ø</th>
-              <th style="width:36px;text-align:center;padding:4px;font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase">Max</th>
-            </tr></thead>
-            <tbody>${rowsHtml}</tbody>
-          </table></div>`;
-    }).join('<div style="height:1px;background:var(--border);margin:2px 0 14px"></div>');
+  // ── 3. Luftfeuchtigkeit außen (Spalte 4) ────────────────────────
+  {
+    const groups = [
+      { label: '< 40 %',   dates: new Set() },
+      { label: '40–60 %', dates: new Set() },
+      { label: '60–80 %', dates: new Set() },
+      { label: '> 80 %',  dates: new Set() },
+    ];
+    umw.forEach(r => {
+      const iso = _toISO(g(r,1)); if (!iso || !schwereMap[iso]) return;
+      const h = parseFloat(g(r,4)); if (isNaN(h)) return;
+      if (h < 40)       groups[0].dates.add(iso);
+      else if (h < 60)  groups[1].dates.add(iso);
+      else if (h < 80)  groups[2].dates.add(iso);
+      else              groups[3].dates.add(iso);
+    });
+    const rows = _aggregate(groups);
+    if (rows.some(r => r.avg !== null)) {
+      sections.push({ title: '💧 Luftfeuchtigkeit außen', rows });
+    }
+  }
 
-  // ── Faktor-Filter-UI ────────────────────────────────────────────
-  const gruppen = {};
-  FAKTOREN.forEach(f => {
-    (gruppen[f.gruppe] = gruppen[f.gruppe] || []).push(f);
-  });
-  const filterHtml = Object.entries(gruppen).map(([grpName, faks]) => `
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-        color:var(--sub);margin-bottom:4px">${esc(grpName)}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${faks.map(f => {
-          const sel = window._korrSelected.has(f.key);
-          return `<button
-            data-korr-key="${esc(f.key)}"
-            onclick="STATISTIK.toggleKorrFaktor('${esc(f.key)}')"
-            style="font-size:11px;padding:4px 8px;border-radius:var(--radius-sm);cursor:pointer;
-              font-family:inherit;border:1px solid ${sel?'var(--c2)':'var(--border)'};
-              background:${sel?'rgba(59,130,246,.12)':'var(--bg)'};
-              color:${sel?'var(--c2)':'var(--sub)'};font-weight:${sel?700:400}">
-            ${esc(f.label)}
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`).join('');
+  if (!sections.length) { el.innerHTML = ''; return; }
+
+  // ── Render ────────────────────────────────────────────────────────
+  const tableHtml = sections.map(sec => {
+    const rowsHtml = sec.rows.map(r => {
+      if (r.avg === null) {
+        return `<tr>
+          <td style="padding:6px 4px;font-size:12px">${esc(r.label)}</td>
+          <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center">${r.count}</td>
+          <td style="padding:6px 4px;font-size:12px;color:var(--sub);text-align:center"
+              colspan="2">zu wenig Daten</td>
+        </tr>`;
+      }
+      const highlight = r.avg > 2.0;
+      const avgCol = highlight ? C.amber : 'var(--text)';
+      const bgRow  = highlight ? `background:rgba(245,158,11,.08)` : '';
+      return `<tr style="${bgRow}">
+        <td style="padding:6px 4px;font-size:12px;font-weight:${highlight?'700':'400'}">${esc(r.label)}</td>
+        <td style="padding:6px 4px;font-size:12px;text-align:center">${r.count}</td>
+        <td style="padding:6px 4px;font-size:13px;font-weight:700;text-align:center;color:${avgCol}">${r.avg.toFixed(1)}</td>
+        <td style="padding:6px 4px;font-size:12px;text-align:center;color:var(--sub)">${r.max}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">${esc(sec.title)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase">Gruppe</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:40px">Tage</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:48px">Ø</th>
+              <th style="text-align:center;padding:4px 4px;font-size:10px;font-weight:600;
+                color:var(--sub);text-transform:uppercase;width:40px">Max</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }).join('<div style="height:1px;background:var(--border);margin:4px 0 14px"></div>');
 
   el.innerHTML = `
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
@@ -953,146 +929,10 @@ function _renderKorrelation(data) {
       <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
         background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
         ℹ️ Statistischer Hinweis – kein medizinischer Befund.
-        Ø Schweregrad an Tagen in der jeweiligen Gruppe. Orange = Ø &gt; 2.0. Min. 3 Datenpunkte.
+        Ø Schweregrad an Tagen in der jeweiligen Gruppe. Orange = Ø &gt; 2.0.
+        Mindestens 3 Datenpunkte pro Gruppe erforderlich.
       </div>
-      <div style="margin-bottom:14px;padding:10px;background:var(--bg);
-        border-radius:var(--radius-sm);border:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Faktoren auswählen</div>
-        ${filterHtml}
-      </div>
-      <div id="st-korr-tables">${tableHtml}</div>
-    </div>
-  </div>`;
-
-  // Store FAKTOREN für toggleKorrFaktor
-  window._korrFaktoren = FAKTOREN;
-}
-
-// ── Reaktions-Score pro Zutat / Futtermittel ─────────────────────
-
-/**
- * Berechnet für jede Zutat/Rezept im Futtertagebuch:
- * Score = Anteil der Tage, an denen innerhalb von 48h Symptome (Schweregrad > 2) auftraten.
- * Mindestens 3 Beobachtungen pro Zutat. Nur aus Cache – kein API-Call.
- */
-function _renderReaktionsScore({ fut, sym }, hundId) {
-  const el = document.getElementById('st-reaktionsscore');
-  if (!el) return;
-
-  if (!fut.length || !sym.length) { el.innerHTML = ''; return; }
-
-  // Symptom-Map: ISO-Datum → max Schweregrad
-  const schwereMap = {};
-  sym.forEach(r => {
-    const iso = _toISO(g(r, 1)); if (!iso) return;
-    const s = parseInt(g(r, 4)) || 0;
-    schwereMap[iso] = Math.max(schwereMap[iso] || 0, s);
-  });
-
-  // Alle Rezeptnamen für diesen Hund vorab sammeln (für besseres Matching)
-  const rezeptNamen = new Set(
-    getRezepte(hundId).map(rz => rz.name?.trim()).filter(Boolean)
-  );
-
-  // Futtereinträge: Datum → Set von Futtermittelnamen
-  const tagFutter = {}; // ISO-Datum → Set<name>
-  fut.forEach(r => {
-    const iso = _toISO(g(r, 1)); if (!iso) return;
-    const text = g(r, 2); // Spalte C = futter-Freitext
-    if (!text) return;
-    if (!tagFutter[iso]) tagFutter[iso] = new Set();
-    // Split auf Komma/Semikolon/Zeilenumbruch
-    text.split(/[,;\n]+/).forEach(t => {
-      const trimmed = t.trim();
-      if (trimmed.length > 1 && trimmed.length < 80) tagFutter[iso].add(trimmed);
-    });
-    // Auch Rezeptname aus Spalte D (Produkt) erfassen falls vorhanden
-    const produkt = g(r, 3);
-    if (produkt && produkt.length > 1 && produkt.length < 80) tagFutter[iso].add(produkt);
-  });
-
-  // Alle eindeutigen Futtermittel sammeln
-  const alleNamen = new Set();
-  Object.values(tagFutter).forEach(namen => namen.forEach(n => alleNamen.add(n)));
-
-  // Score berechnen
-  const scores = [];
-  alleNamen.forEach(name => {
-    // Tage an denen dieses Futter eingetragen war
-    const futterTage = Object.keys(tagFutter).filter(iso => tagFutter[iso].has(name)).sort();
-    if (futterTage.length < 3) return; // Mindestens 3 Beobachtungen
-
-    let reaktionsTage = 0;
-    const reaktionsDaten = [];
-
-    futterTage.forEach(iso => {
-      const d = new Date(iso);
-      // Prüfe Tag +1 und +2
-      let hatReaktion = false;
-      for (let offset = 1; offset <= 2; offset++) {
-        const next = new Date(d); next.setDate(d.getDate() + offset);
-        const nextISO = next.toISOString().slice(0, 10);
-        if ((schwereMap[nextISO] || 0) > 2) { hatReaktion = true; break; }
-      }
-      if (hatReaktion) { reaktionsTage++; reaktionsDaten.push(iso); }
-    });
-
-    const score = (reaktionsTage / futterTage.length) * 100;
-    const istRezept = rezeptNamen.has(name);
-    scores.push({ name, score, futterTage: futterTage.length, reaktionsTage, istRezept });
-  });
-
-  if (!scores.length) { el.innerHTML = ''; return; }
-
-  // Sortieren: absteigend nach Score
-  scores.sort((a, b) => b.score - a.score);
-
-  // Nur Einträge mit Score > 0 oder die Top-20 anzeigen
-  const anzeigeScores = scores.slice(0, 20);
-
-  const rowsHtml = anzeigeScores.map(({ name, score, futterTage, reaktionsTage, istRezept }) => {
-    const scoreRound = Math.round(score);
-    const barColor = score < 20 ? C.green : score < 50 ? C.amber : C.red;
-    const textColor = score >= 50 ? C.red : score >= 20 ? C.amber : 'var(--text)';
-    const badge = istRezept
-      ? `<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:rgba(59,130,246,.12);color:${C.blue};border:1px solid rgba(59,130,246,.3)">Rezept</span>`
-      : '';
-    return `
-    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${esc(name)} ${badge}
-        </div>
-        <div style="font-size:13px;font-weight:700;color:${textColor};margin-left:8px;flex-shrink:0">${scoreRound}%</div>
-      </div>
-      <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:4px">
-        <div style="height:100%;border-radius:3px;background:${barColor};width:${Math.min(scoreRound,100)}%;transition:width .3s"></div>
-      </div>
-      <div style="font-size:11px;color:var(--sub)">${reaktionsTage} von ${futterTage} Malen gefolgt von Symptomen (≤48h-Fenster, Schweregrad &gt; 2)</div>
-    </div>`;
-  }).join('');
-
-  el.innerHTML = `
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
-    margin-bottom:1rem;overflow:hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center;
-        padding:14px;cursor:pointer;user-select:none"
-      onclick="const b=document.getElementById('st-rscore-body');
-               const open=b.style.display!=='none';
-               b.style.display=open?'none':'block';
-               document.getElementById('st-rscore-arrow').textContent=open?'▶':'▼'">
-      <div style="font-size:14px;font-weight:700">🧪 Zutaten-Reaktionsscores</div>
-      <span id="st-rscore-arrow" style="font-size:11px;color:var(--sub)">▶</span>
-    </div>
-    <div id="st-rscore-body" style="display:none;padding:0 14px 14px">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
-        background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
-        ⚠️ Statistischer Hinweis – kein medizinischer Befund.
-        Score = Anteil der Gaben, nach denen innerhalb von 48h Symptome (Schweregrad &gt; 2) auftraten.
-        Mindestens 3 Beobachtungen erforderlich.
-      </div>
-      ${anzeigeScores.length ? rowsHtml : '<p style="color:var(--sub);font-size:13px">Zu wenig strukturierte Futterdaten für eine Auswertung.</p>'}
-      ${scores.length > 20 ? `<div style="font-size:11px;color:var(--sub);margin-top:8px;text-align:center">Zeige Top 20 von ${scores.length} ausgewerteten Einträgen.</div>` : ''}
+      ${tableHtml}
     </div>
   </div>`;
 }
