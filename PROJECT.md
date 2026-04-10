@@ -1,7 +1,7 @@
 # Hund Manager – Projektbeschreibung (v1.4.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-04-08 · Status: v1.4.0 – Zutaten-Reaktionsscores, alle MD-Dateien aktualisiert
+> Letzte Aktualisierung: 2026-04-09 · Status: v1.4.0 – Bugfixes Dezimal/Rezept-Mix/Doppelspeichern + Reaktionsscore
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -57,8 +57,8 @@
 ├── rechner.js              ← Futterrechner + Rezept-Mix + recommended_pct Marker
 ├── tagebuch.js             ← Submit-Handler 7 Typen + Multi-Futter mit Kcal-Berechnung
 ├── ansicht.js              ← Entry-Cards + Soft-Delete + Edit-Modal + Undo-Banner
-├── stammdaten.js           ← CRUD Hunde/Zutaten/Toleranzen + Kcal-Bedarf + Gewicht + Nährwerte im Zutat-Modal + USDA/OFF paralleler Import mit Einheitenkonvertierung
-├── statistik.js            ← Konfigurierbarer Chart: Temp-Band, Symptome-Flächenband (rot, 0-Fill, Punkte), Pollen-Popup-Dialog, Symptom-Muster-Heatmap, Korrelationsanalyse (auswählbare Faktoren), Zutaten-Reaktionsscores (48h-Fenster)
+├── stammdaten.js           ← CRUD Hunde/Zutaten/Toleranzen + Kcal-Bedarf + Gewicht + Nährwerte im Zutat-Modal + USDA/OFF paralleler Import mit Vergleichsvorschau
+├── statistik.js            ← Konfigurierbarer Chart: Temp-Band, Symptome-Flächenband (rot), Pollen-Popup-Dialog, Symptom-Muster-Heatmap, Korrelationsanalyse
 └── i18n.js                 ← Mehrsprachigkeit: t(), setLang(), applyAll(), loadDefaults()
 ```
 
@@ -511,8 +511,7 @@ Statistik-Panel:
   │   - Pollen: Balken (y2-Achse, 0–5)
   │   - Sonstige: Linien
   ├── Symptom-Muster (Heatmap Wochentag Mo–So + Monat Jan–Dez, ab 14 Einträgen, ein-/ausklappbar)
-  ├── Korrelationsanalyse (alle Pollenarten, 7 Klimafaktoren, Futtermittel – Toggle-Buttons auswählbar, min. 3 Datenpunkte, ein-/ausklappbar)
-  ├── Zutaten-Reaktionsscores (🧪 48h-Fenster, Score-Balken grün/gelb/rot, Rezept-Badge, min. 3 Beobachtungen, ein-/ausklappbar)
+  ├── Korrelationsanalyse (Pollen/Temp/Feuchte vs. Ø Schweregrad, gruppiert, min. 3 Datenpunkte, ein-/ausklappbar)
   ├── Futter-Reaktionen (Liste, nur Einträge mit Reaktion/Provokation)
   └── Medikamente (Liste mit Von–Bis)
 
@@ -549,7 +548,7 @@ Einstellungen-Panel: Google-Config + USDA-API-Key + 💾 Speichern-Button + Spra
 
 ---
 
-## Implementierungsstand v1.4.0 (aktuell)
+## Implementierungsstand v1.3.1 (aktuell)
 
 Versionierung X.Y.Z
 X wird nur durch den Nutzer freigegeben
@@ -597,12 +596,12 @@ Z Bugfixes
 
 
 **v1.4.0:**
-- **Zutaten-Reaktionsscores** (statistik.js): Neue ein-/ausklappbare Sektion „🧪 Zutaten-Reaktionsscores" unterhalb der Korrelationsanalyse. Berechnet für jede eingetragene Zutat/jedes Futtermittel den Anteil der Gaben, nach denen innerhalb von 48h Symptome mit Schweregrad > 2 aufgetreten sind. Liest Futtertagebuch (Freitext C + Produkt D) und Symptomtagebuch aus Cache – kein neuer API-Call. Mindestens 3 Beobachtungen erforderlich. Score-Balken mit Farbstufen (grün <20%, gelb 20–50%, rot >50%). Rezept-Badge für Einträge die mit gespeicherten Rezepten übereinstimmen. Top-20 sortiert nach Score absteigend. Disclaimer-Box (kein medizinischer Befund). Standardmäßig eingeklappt.
-- **MD-Dokumentation aktualisiert**: PROJECT.md, FEATURE.md, FAQ.md, Ideas.md, VALIDATION.md auf v1.4.0 gebracht. Alle bestehenden Features geprüft und erhalten.
-- `statistik.js` importiert jetzt zusätzlich `getRezepte` aus `store.js`.
+- **Bugfix Dezimal-Nachkommastellen** (store.js): `wert_pro_100g` nutzte `parseFloat()` statt `_float()` – Nährwerte mit Komma als Dezimaltrenner (z.B. Google-Sheets-Export „0,5") wurden als 0 eingelesen. Fix: `_float()` für korrektes Komma→Punkt-Handling.
+- **Bugfix Rezept-Mix bleibt nicht ausgewählt** (index.html): Das `<select id="fr-mix-rezept-select">` hatte `onclick="RECHNER.initMixSelect()"`. Da `onclick` auch beim Auswählen einer Option feuert, wurde das Dropdown bei jeder Auswahl sofort zurückgesetzt. Fix: `initMixSelect()` wird jetzt beim Öffnen der Akkordeon-Sektion aufgerufen (im Toggle-Header), nicht am Select selbst.
+- **Bugfix Zutaten doppelt gespeichert beim wiederholten Speichern** (rechner.js): `saveRecipe()` hat bei existierenden Rezepten immer alle Zutaten angehängt statt zu überschreiben. Fix: Beim Update werden vorhandene `Rezept_Zutaten`-Zeilen für das Rezept zunächst geleert (`writeRange` → leer), dann neu geschrieben. Leere Zeilen werden beim Lesen durch den `r[2]`-Check (Name muss gesetzt sein) herausgefiltert.
+- **Zutaten-Reaktionsscore** (statistik.js): Neue einklappbare Sektion „🧪 Zutaten-Reaktionsscore" zwischen Korrelationsanalyse und Futter-Reaktionen. Berechnet aus Futtertagebuch (Futter-Freitext, split by Komma) und Symptomtagebuch: Score = Anteil der Futtertage mit Symptom-Schweregrad > 2 in den folgenden 48h. Mindestens 3 Beobachtungen pro Zutat. Farbgebung: grün (<20%), gelb (<50%), rot (≥50%). Filter-Chips mit **Alle/Keine**-Toggle analog Korrelationsanalyse. Kein neuer API-Call – ausschließlich Cache.
 
-
-**v1.3.2:**
+**v1.3.1:**
 - **Bugfix `newId` not defined** (stammdaten.js): `let newId` wurde außerhalb des `if/else`-Blocks deklariert – Fehler beim Anlegen neuer Zutaten mit Nährwerten behoben.
 - **Paralleler USDA + OFF Import mit Vergleich** (stammdaten.js): Beide Quellen werden simultan via `Promise.allSettled` abgerufen. Zwei-Spalten-Anzeige der Ergebnisse (USDA blau, OFF grün). Auswahl pro Quelle unabhängig via `selectImportResult()`. Über jedem Nährstoff-Input wird der Wert beider Quellen nebeneinander angezeigt (Preview-Divs). `applyImportToFields()` befüllt **nur leere Felder** – vorhandene Werte bleiben unverändert.
 - **💾 Einstellungen speichern-Button** (config.js + index.html): Expliziter Speichern-Button in den Einstellungen mit 2,5s-Feedback-Anzeige `saveWithFeedback()`. Auto-Save via `oninput` bleibt erhalten.
@@ -624,6 +623,13 @@ Z Bugfixes
 - **Pollen-Vorauswahl** (statistik.js): Standardmäßig werden jetzt alle verfügbaren Pollenarten aktiviert (vorher: nur Pollenarten aus Bekannten Allergenen).
 - **Doppeltes Einstellungs-Symbol** (index.html): Dupliziertes `⚙️ Einst.` in der Top-Navigation entfernt.
 
+
+## Konvention: Rückfragen vor der Implementierung
+
+> **Claude soll vor jeder Implementierung so viele Fragen wie möglich stellen**, um Unklarheiten zu minimieren.
+> Konkret: Wenn ein Feature-Wunsch oder Bugfix beschrieben wird, erst alle offenen Punkte klären
+> (Verhalten bei Grenzfällen, Aussehen, Datenquellen, Sheet-Änderungen, Rückwärtskompatibilität),
+> bevor Code geschrieben wird. Lieber 5 Fragen stellen als falsch implementieren.
 
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
@@ -689,18 +695,14 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 - `stammdaten.js` importiert `getNaehrstoffe` und `addZutatNutr` aus `store.js`
 - `wetter.js` exportiert zusätzlich: `showPollenManager`, `_addCustomPollen`, `_removeCustomPollen`
 - `statistik.js` exportiert zusätzlich: `showPollenPopup`
+- `_renderReaktionsscore(fut, sym)` – rendert Zutaten-Reaktionsscore mit Chip-Filter; `_reaktionFilter` (Set<string>|null) hält Auswahl; `window._STAT_toggleReak`, `window._STAT_reaktionAlle`, `window._STAT_reaktionKeine` als globale Callbacks
 - Custom-Pollen werden in `localStorage['hundapp_custom_pollen']` als JSON-Array gespeichert
 - `statistik.js` lädt `Ausschlussdiät`- und `Bekannte Allergene`-Sheets **nicht mehr** (seit v1.1.0)
-- `statistik.js` importiert `getRezepte` aus `store.js` (seit v1.4.0) – für Rezept-Badge im Reaktionsscore
-- `_renderReaktionsScore(data, hundId)` – rendert Zutaten-Reaktionsscore-Sektion; nutzt `getRezepte(hundId)` für Badge-Erkennung
 - `_renderSymptomMuster(sym)` – rendert Wochentag/Monat-Heatmap; `_heatmapRow()`, `_heatColor()` als Hilfsfunktionen
-- `_renderKorrelation(data)` – rendert Korrelationsanalyse mit auswählbaren Faktoren; `window._korrSelected` (Set), `window._korrFaktoren` (Array)
-- `toggleKorrFaktor(key)` – exportiertes Funktion → `window.STATISTIK.toggleKorrFaktor`; re-rendert nur Tabellen, kein Reload
-- Symptom-Chart: `_zeroFill=true` + `_realDates` Set → `pointRadius`-Array (4=echt, 0=0-Fill)
+- `_renderKorrelation(data)` – rendert Korrelationsanalyse aus `{sym, umw, pol}`; kein API-Call
 - PARAM_DEF `symptome` hat `chartType:'area'` (rotes Flächenband, `fill:'origin'`)
 - `stammdaten.js` exportiert zusätzlich: `runImportSearch`, `selectImportResult`, `applyImportToFields`
-- Import: `window._importUSDA/_importUSDA_units` / `window._importOFF/_importOFF_units`; `_convertUnit(val, from, to, nrcName)` für IE-Konvertierungen
-- Preview-Divs `nutr-preview-{id}` zeigen: `Rohwert Quelleinheit → konvertierter Wert DB-Einheit`
+- Import: `window._importUSDA` / `window._importOFF` halten die gewählten Nährstoff-Maps; `_refreshImportPreviews()` aktualisiert Preview-Divs `nutr-preview-{id}`
 - `config.js` exportiert zusätzlich: `saveWithFeedback()` → zeigt Bestätigung in `#cfg-save-status`
 - USDA API-Key: `get().usdaApiKey` aus `config.js`, editierbar in Einstellungen
 - Pollen-Auswahl in Statistik ist ein Popup-Dialog (`showPollenPopup()`), kein Inline-Toggle mehr

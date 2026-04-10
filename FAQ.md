@@ -1,6 +1,6 @@
-# Hund Manager – FAQ (v1.4.0)
+# Hund Manager – FAQ (v1.3.1)
 
-> Letzte Aktualisierung: 2026-04-08
+> Letzte Aktualisierung: 2026-04-04
 
 ---
 
@@ -103,7 +103,7 @@ A: Kostenlose Registrierung unter [fdc.nal.usda.gov/api-key-signup](https://fdc.
 A: USDA FoodData Central enthält sehr präzise Nährstoffdaten für Rohzutaten (Fleisch, Gemüse, Öle) – erfordert API-Key. Open Food Facts hat einen breiteren Produktkatalog (Fertigprodukte, Marken) und benötigt keinen Key. Für BARF-Zutaten ist USDA in der Regel genauer.
 
 **Q: Werden beim Import vorhandene Nährwerte überschrieben?**
-A: Nein. Ab v1.3.2 werden nur leere Felder befüllt. Felder die bereits einen Wert enthalten bleiben unverändert.
+A: Nein. Ab v1.3.1 werden nur leere Felder befüllt. Felder die bereits einen Wert enthalten bleiben unverändert.
 
 **Q: Wie sehe ich USDA und Open Food Facts Werte gleichzeitig?**
 A: Nach dem Import-Abruf erscheinen die Werte beider Quellen als kleine Vorschau direkt über jedem Nährstoff-Eingabefeld (blau = USDA, grün = OFF). So kannst du die Quellen vergleichen bevor du auf „Leere Felder befüllen" tippst.
@@ -112,7 +112,7 @@ A: Nach dem Import-Abruf erscheinen die Werte beider Quellen als kleine Vorschau
 A: Ja. Wähle je eine Trefferliste aus USDA und eine aus Open Food Facts aus. Beim Befüllen werden leere Felder bevorzugt mit USDA-Werten gefüllt; wo USDA keinen Wert hat, wird der OFF-Wert verwendet.
 
 **Q: Ich sehe den Fehler „newId is not defined" beim Speichern einer Zutat.**
-A: Dieser Bug ist in v1.3.2 behoben. Bitte die aktuellen Dateien auf GitHub deployen.
+A: Dieser Bug ist in v1.3.1 behoben. Bitte die aktuellen Dateien auf GitHub deployen.
 
 **Q: Werden die Einstellungen automatisch gespeichert?**
 A: Ja – jedes Feld speichert beim Tippen automatisch (oninput). Der neue „💾 Einstellungen speichern"-Button bietet zusätzlich eine explizite Speicherbestätigung mit kurzer Meldung.
@@ -176,28 +176,6 @@ A: Nein – die App verwendet Soft-Delete. Einträge werden als `deleted=TRUE` m
 
 ---
 
-## 🧪 Zutaten-Reaktionsscores
-
-**Q: Was zeigt der Zutaten-Reaktionsscore?**
-A: Der Score gibt an, wie häufig nach einer Gabe eines bestimmten Futtermittels innerhalb von 48 Stunden Symptome mit Schweregrad > 2 aufgetreten sind. Beispiel: Score 40% = 4 von 10 Malen war innerhalb von 2 Tagen danach ein stärkeres Symptom im Tagebuch.
-
-**Q: Ist der Score ein verlässlicher medizinischer Hinweis?**
-A: Nein – es handelt sich ausschließlich um eine statistische Korrelation, keinen Kausalnachweis. Viele andere Faktoren (Pollen, Wetter, Stress) können gleichzeitig vorgelegen haben. Der Score ist ein Hinweis für eigene Beobachtungen, kein Befund.
-
-**Q: Warum werden nicht alle Futtermittel angezeigt?**
-A: Einträge mit weniger als 3 Beobachtungen werden nicht ausgewertet, da die Datenbasis zu klein ist. Je mehr Einträge im Futtertagebuch vorhanden sind, desto aussagekräftiger wird der Score.
-
-**Q: Was bedeutet das blaue „Rezept"-Badge?**
-A: Das Badge zeigt an, dass dieser Eintrag mit einem gespeicherten Rezept des Hundes übereinstimmt (Rezeptname aus dem Futterrechner).
-
-**Q: Was bedeuten die Balkenfarben?**
-A: Grün = Score unter 20% (kein auffälliger Zusammenhang), Gelb = 20–50% (erhöhte Aufmerksamkeit), Rot = über 50% (deutlicher statistischer Zusammenhang – aber kein Beweis).
-
-**Q: Warum ist die Sektion leer / nicht sichtbar?**
-A: Die Sektion erscheint nur wenn im Futtertagebuch strukturierte Einträge vorhanden sind (Text im Futter-Feld) und mindestens eine Zutat mindestens 3× vorkommt. Bei reinen Freitext-Notizen ohne klare Zutatennamen kann nichts ausgewertet werden.
-
----
-
 ## 🔧 Technisch
 
 **Q: Warum funktioniert die App nach einem Update nicht mehr?**
@@ -208,3 +186,16 @@ A: Ja. Alle Daten liegen in Google Sheets und sind auf jedem Gerät über den Br
 
 **Q: Was passiert wenn das Sheet-Sheet nicht existiert?**
 A: Die App zeigt einen Hinweis „Sheet noch nicht angelegt". In Einstellungen → „Neue Sheets anlegen" erstellt die App alle fehlenden Sheets automatisch.
+
+### Warum werden manche Nährstoffe im Futterrechner als 0 angezeigt, obwohl ich Werte eingetragen habe?
+Wenn Google Sheets Dezimalzahlen mit Komma speichert (z.B. „0,5" statt „0.5"), wurde der Wert bisher als 0 eingelesen. Mit v1.4.0 ist das behoben – `_float()` wandelt beide Formate korrekt um. Bestehende Einträge müssen nicht korrigiert werden.
+
+### Warum konnte ich im Futterrechner kein Rezept einmischen – die Auswahl blieb nicht erhalten?
+Der Fehler lag daran, dass das Dropdown-Menü sich beim Klicken immer wieder zurückgesetzt hat. Mit v1.4.0 wird die Liste nur noch beim Öffnen der Sektion geladen, nicht bei jeder Auswahl.
+
+### Warum wurden beim wiederholten Speichern eines Rezepts die Zutaten verdoppelt?
+Beim Speichern wurden immer alle Zutaten neu angehängt, auch wenn das Rezept bereits existierte. Mit v1.4.0 werden bestehende Zutaten-Zeilen vor dem Speichern geleert und dann neu geschrieben.
+
+### Was ist der Zutaten-Reaktionsscore?
+Der Score zeigt statistisch, wie oft nach einem Futtereintrag innerhalb von 48h Symptome mit Schweregrad > 2 aufgetreten sind. Er ist ein Hinweis – kein medizinischer Befund. Zutaten mit weniger als 3 Beobachtungen werden nicht angezeigt. Die Namen stammen aus dem Freitextfeld „Futter" im Futtertagebuch (Komma-getrennt).
+

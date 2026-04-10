@@ -1,8 +1,8 @@
-# Hund Manager – Softwarevalidierung (v1.4.0)
+# Hund Manager – Softwarevalidierung (v1.3.1)
 
 > **Zweck:** Manuelle und automatisierte Testszenarien zur Verifikation aller implementierten Features.
-> Letzte Aktualisierung: 2026-04-08
-> Version: v1.4.0
+> Letzte Aktualisierung: 2026-04-04
+> Version: v1.3.1
 
 ---
 
@@ -331,46 +331,6 @@
 **Erwartetes Ergebnis:** Kurze Meldung „✅ Einstellungen gespeichert!" erscheint und verschwindet nach 2,5s.
 
 
-### T-UNIT-01 – Einheitenkonvertierung Mineralstoff
-**Voraussetzung:** USDA-Suche nach „beef raw"
-
-**Schritte:**
-1. USDA-Ergebnis auswählen
-2. Vorschau über Feld „Kalzium" prüfen (DB-Einheit i.d.R. mg)
-
-**Erwartetes Ergebnis:**
-- USDA liefert Kalzium in mg/100g
-- Vorschau zeigt: „USDA: 12 mg" (keine Konvertierung nötig falls DB=mg)
-- Falls DB-Einheit g: Vorschau zeigt „12 mg → 0.012 g"
-
-### T-UNIT-02 – Einheitenkonvertierung Vitamin A
-**Erwartetes Ergebnis:**
-- USDA liefert Vitamin A in µg RAE
-- DB-Einheit ist IE → Vorschau zeigt z.B. „10 µg → 33.3 IE"
-- Gespeicherter Wert ist der konvertierte IE-Wert
-
-### T-KORR-06 – Faktoren-Toggle Korrelation
-**Schritte:**
-1. Korrelationsanalyse aufklappen
-2. Einen Klimafaktor-Button antippen (z.B. „Feuchte innen")
-3. Tabelle prüfen
-
-**Erwartetes Ergebnis:**
-- Button-Farbe wechselt zu blau (aktiv)
-- Tabelle für diesen Faktor erscheint sofort ohne Seitenreload
-- Erneutes Antippen entfernt den Faktor wieder
-
-### T-CHART-01 – Symptom-Chart 0-Fill
-**Schritte:**
-1. Statistik → Schweregrad Symptome aktivieren
-2. Zeitraum mit Lücken in Symptomeinträgen wählen
-
-**Erwartetes Ergebnis:**
-- Keine Lücken/Null-Werte in der roten Fläche – durchgehende Linie
-- Tage mit echten Einträgen haben sichtbaren roten Punkt
-- Tage ohne Eintrag: Linie auf 0, kein Punkt
-
-
 ## Modul 12: Korrelationsanalyse (statistik.js)
 
 ### T-KORR-01 – Sektion nur mit ausreichend Daten
@@ -519,54 +479,7 @@
 - Chart + KPIs unverändert funktional
 
 
-
-## Modul X: Zutaten-Reaktionsscores (statistik.js)
-
-### T-RSCORE-01 – Sektion sichtbar mit ausreichend Daten
-**Vorbedingung:** Futtertagebuch hat ≥ 3 Einträge derselben Zutat. Symptomtagebuch hat Einträge mit Schweregrad > 2.
-
-**Schritte:**
-1. Statistik öffnen → Hund wählen → Laden
-2. Nach unten scrollen bis „🧪 Zutaten-Reaktionsscores"
-
-**Erwartetes Ergebnis:**
-- Sektion ist vorhanden (eingeklappt)
-- Aufklappen zeigt mindestens eine Zutat mit Score-Balken
-
-### T-RSCORE-02 – Score-Berechnung nachvollziehbar
-**Vorbedingung:** Zutat „Pferd" wurde 5× eingetragen. An 2 der folgenden Tage (+1/+2) lag Schweregrad > 2 vor.
-
-**Erwartetes Ergebnis:**
-- Score für „Pferd" = 40% (2/5 × 100)
-- Balkenfarbe: gelb (20–50%)
-
-### T-RSCORE-03 – Mindest-Beobachtungen
-**Vorbedingung:** Zutat wurde nur 2× eingetragen.
-
-**Erwartetes Ergebnis:**
-- Diese Zutat erscheint NICHT in der Liste
-
-### T-RSCORE-04 – Sektion leer ohne Futterdaten
-**Vorbedingung:** Futtertagebuch ist leer oder hat keine strukturierten Einträge.
-
-**Erwartetes Ergebnis:**
-- `<div id="st-reaktionsscore">` ist leer (kein Block sichtbar)
-
-### T-RSCORE-05 – Rezept-Badge
-**Vorbedingung:** Ein gespeichertes Rezept heißt „Känguru-Mix". Im Futtertagebuch ist „Känguru-Mix" mehrfach eingetragen.
-
-**Erwartetes Ergebnis:**
-- Eintrag „Känguru-Mix" zeigt blaues „Rezept"-Badge
-
-### T-RSCORE-06 – Sektion erscheint nicht in Statistik ohne Symptome
-**Vorbedingung:** Symptomtagebuch ist leer oder alle Schweregrade ≤ 2.
-
-**Erwartetes Ergebnis:**
-- `st-reaktionsscore` bleibt leer (kein Block)
-
----
-
-## Regressionstests nach v1.4.0
+## Regressionstests nach v1.3.1
 
 Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden:
 
@@ -579,8 +492,6 @@ Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden
 7. T-AUTH-02 (Token-Ablauf)
 8. T-RECHN-02 (Ca:P-Verhältnis)
 9. T-RECHN-06 (EPA+DHA-Namenskonvention – Sheet-Prüfung)
-10. T-RSCORE-01 (Reaktionsscore sichtbar)
-11. T-RSCORE-03 (Mindest-Beobachtungen)
 
 ---
 
@@ -590,3 +501,113 @@ Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden
 - Google Sheets API-Calls können nicht ohne gültigen OAuth-Token getestet werden
 - Offline-Verhalten (kein Service Worker) nicht validiert
 - Keine Browser-Kompatibilitätstests (Zielplattform: Mobile Chrome/Safari)
+
+---
+
+## Tests v1.4.0 – Bugfixes & Reaktionsscore
+
+### T-STORE-01 – Nährwert-Dezimalstellen (Komma-Separator)
+**Schritte:**
+1. Google Sheet `Zutaten_Naehrstoffe` enthält Einträge mit Komma als Dezimaltrennzeichen (z.B. „0,5")
+2. App laden → Stammdaten → Zutat bearbeiten → Nährwert-Abschnitt öffnen
+
+**Erwartetes Ergebnis:**
+- Nährwert-Felder zeigen korrekte Dezimalwerte (z.B. 0.5), nicht 0
+- Futterrechner berechnet Nährwerte korrekt (nicht als 0)
+
+**Regression-Check:** Werte mit Punkt als Trennzeichen (z.B. „0.5") funktionieren weiterhin korrekt.
+
+---
+
+### T-RECHN-07 – Rezept-Mix: Auswahl bleibt erhalten
+**Schritte:**
+1. Futterrechner öffnen → Rezept öffnen oder neu anlegen
+2. Akkordeon-Sektion „Rezept mischen" öffnen (auf Header klicken)
+3. Rezept aus Dropdown wählen
+
+**Erwartetes Ergebnis:**
+- Dropdown zeigt alle verfügbaren Rezepte nach dem Öffnen der Sektion
+- Gewähltes Rezept bleibt nach der Auswahl sichtbar (kein automatisches Zurücksetzen)
+- Gramm-Eingabe und „+ Einmischen"-Button funktionieren
+
+**Negativtest:** Dropdown NICHT öffnen, wenn man nur auf den Pfeiltoggle klickt – initMixSelect wird immer beim Toggle aufgerufen.
+
+---
+
+### T-RECHN-08 – Kein Doppel-Speichern von Zutaten
+**Schritte:**
+1. Futterrechner → Rezept anlegen oder öffnen mit 2–3 Zutaten
+2. Rezept speichern (Button „💾 Rezept speichern")
+3. Eine Zutat ändern oder Gramm-Wert anpassen
+4. Rezept erneut speichern
+
+**Erwartetes Ergebnis:**
+- Sheet `Rezept_Zutaten` enthält für das Rezept genau N Zeilen (N = Anzahl Zutaten), nicht 2N oder 3N
+- Beim Öffnen des Rezepts erscheinen keine doppelten Zutaten
+- Leere Zeilen (durch das Glätten) werden beim Laden herausgefiltert
+
+**Regression-Check:** Neues Rezept (noch nicht gespeichert) → erstes Speichern funktioniert weiterhin.
+
+---
+
+### T-STAT-REAK-01 – Reaktionsscore: Grundfunktion
+**Vorbedingung:** Mind. 5 Futtereinträge im gewählten Zeitraum, mind. 3 Symptomeinträge mit Schweregrad > 2
+
+**Schritte:**
+1. Statistik-Panel öffnen → Hund + Zeitraum wählen
+2. Sektion „🧪 Zutaten-Reaktionsscore" suchen und aufklappen
+
+**Erwartetes Ergebnis:**
+- Sektion erscheint zwischen Korrelationsanalyse und Futter-Reaktionen
+- Score-Balken mit Prozentwert pro Zutat
+- Farben: grün < 20%, gelb < 50%, rot ≥ 50%
+- Hinweis-Box: „Statistischer Hinweis – kein medizinischer Befund"
+
+---
+
+### T-STAT-REAK-02 – Reaktionsscore: Filter-Chips
+**Schritte:**
+1. Reaktionsscore-Sektion öffnen
+2. Button „Keine" klicken
+3. Button „Alle" klicken
+4. Einzelne Zutat-Chip an- und abwählen
+
+**Erwartetes Ergebnis:**
+- „Keine": Alle Chips deselektiert, Anzeige zeigt „Keine Zutaten ausgewählt"
+- „Alle": Alle Chips selektiert, alle Zutaten sichtbar
+- Einzelner Chip: Toggle zwischen blau (selektiert) / grau (deselektiert)
+- Sektion bleibt nach Chip-Klick aufgeklappt
+
+---
+
+### T-STAT-REAK-03 – Reaktionsscore: Mindestanzahl
+**Vorbedingung:** Futtertagebuch mit < 5 Einträgen oder alle Zutaten < 3 Vorkommen
+
+**Erwartetes Ergebnis:**
+- Sektion wird nicht angezeigt (kein leerer Container)
+
+---
+
+### T-STAT-REAK-04 – Reaktionsscore: Freitext-Parsing
+**Schritte:**
+1. Futtertagebuch → Futter-Eintrag anlegen mit mehreren Zutaten, Komma-getrennt (z.B. „Pferd, Zucchini, Lachsöl")
+
+**Erwartetes Ergebnis:**
+- Jede Zutat erscheint separat im Reaktionsscore (wenn mind. 3 Einträge vorhanden)
+- Leerzeichen werden korrekt getrimmt
+
+---
+
+## Regressionstests nach v1.4.0
+
+Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden:
+
+1. T-STORE-01 (Dezimal-Nachkommastellen)
+2. T-RECHN-07 (Rezept-Mix Auswahl)
+3. T-RECHN-08 (Kein Doppel-Speichern)
+4. T-STAT-REAK-01 (Reaktionsscore Grundfunktion)
+5. T-STAT-REAK-02 (Filter-Chips)
+6. T-TAG-FUTTER-01 (Kcal-Konsistenz)
+7. T-UNDO-01 (Undo)
+8. T-RECHN-02 (Ca:P-Verhältnis)
+9. T-RECHN-06 (EPA+DHA-Namenskonvention)

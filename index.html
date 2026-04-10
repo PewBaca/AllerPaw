@@ -243,7 +243,7 @@
         </div>
       </div>
 
-      <div class="fr-section-toggle" onclick="UI.toggleSection('mix',this)">
+      <div class="fr-section-toggle" onclick="UI.toggleSection('mix',this); RECHNER.initMixSelect()">
         🔀 Rezept einmischen
         <span style="font-size:11px;color:var(--sub);margin-left:4px">Anderes Rezept als Basis nutzen</span>
         <span class="fst-arrow">▼</span>
@@ -255,7 +255,7 @@
         <div style="display:grid;grid-template-columns:1fr 80px;gap:8px;margin-bottom:8px">
           <div>
             <label style="font-size:12px;color:var(--sub);display:block;margin-bottom:4px">Rezept</label>
-            <select id="fr-mix-rezept-select" onclick="RECHNER.initMixSelect()"
+            <select id="fr-mix-rezept-select"
               style="width:100%;padding:10px 12px;border:1px solid var(--border);
                 border-radius:var(--radius-sm);background:var(--bg);color:var(--text);
                 font-family:inherit;font-size:14px">
