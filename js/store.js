@@ -143,7 +143,7 @@ export async function loadAll() {
       zutaten_id:      parseInt(r.zutaten_id)      || 0,
       naehrstoff_id:   parseInt(r.naehrstoff_id)   || 0,
       naehrstoff_name: r.naehrstoff_name,
-      wert_pro_100g:   parseFloat(r.wert_pro_100g) || 0,
+      wert_pro_100g:   _float(r.wert_pro_100g),
     }))
     .filter(r => r.zutaten_id && r.naehrstoff_id);
 

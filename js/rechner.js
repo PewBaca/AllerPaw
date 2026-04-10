@@ -454,11 +454,19 @@ export async function saveRecipe() {
       rezeptId   = Math.max(0, ...ids) + 1;
       currentRecipe.rezept_id = rezeptId;
       await appendRow('Rezepte', [rezeptId, currentHundId, name, heute, ''], sid);
+    } else {
+      // Bestehende Zutaten-Zeilen für dieses Rezept leeren (verhindert Verdopplung)
+      const ezRows = await readSheet('Rezept_Zutaten', sid);
+      for (let i = 2; i < ezRows.length; i++) {
+        if (parseInt(ezRows[i]?.[0]) === rezeptId) {
+          await writeRange('Rezept_Zutaten', `A${i + 1}:G${i + 1}`, [['','','','','','','']], sid);
+        }
+      }
     }
 
+    const totalG = currentRecipe.ingredients.reduce((s, i) => s + i.grams, 0);
     for (const ing of currentRecipe.ingredients) {
-      const totalG = currentRecipe.ingredients.reduce((s, i) => s + i.grams, 0);
-      const pct    = totalG > 0 ? (ing.grams / totalG * 100).toFixed(1) + '%' : '';
+      const pct = totalG > 0 ? (ing.grams / totalG * 100).toFixed(1) + '%' : '';
       await appendRow('Rezept_Zutaten',
         [rezeptId, ing.zutaten_id, ing.name, ing.grams, ing.cooked ? 'Ja' : 'Nein', pct, kg + 'kg'], sid);
     }

@@ -169,6 +169,7 @@ export async function refresh(forceRefresh=false) {
       </div>
       <div id="st-muster"></div>
       <div id="st-korrelation"></div>
+      <div id="st-reaktion"></div>
       ${_box('🥩 Futter-Reaktionen','<div id="st-futter"></div>')}
       ${_box('💊 Medikamente','<div id="st-medis"></div>')}
     `;
@@ -176,6 +177,7 @@ export async function refresh(forceRefresh=false) {
     await _buildChart(_cachedData);
     _renderSymptomMuster(sym);
     _renderKorrelation(_cachedData);
+    _renderReaktionsscore(fut, sym);
     _renderFutter(fut);
     _renderMedis(med);
 
@@ -444,6 +446,147 @@ async function _buildChart(data) {
   });
 }
 
+
+// ── Reaktionsscore ────────────────────────────────────────────────
+// State: welche Zutaten angezeigt werden (null = alle)
+let _reaktionFilter = null; // Set<string> oder null
+
+function _renderReaktionsscore(fut, sym) {
+  const el = document.getElementById('st-reaktion');
+  if (!el) return;
+
+  // Mind. 5 Futter- und 3 Symptomeinträge nötig
+  if (!fut?.length || !sym?.length || fut.length < 5) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Symptome nach ISO-Datum indizieren
+  const symByDate = {};
+  sym.forEach(r => {
+    const iso = _toISO(g(r, 1));
+    if (!iso) return;
+    const sw = parseInt(g(r, 4)) || 0;
+    if (!symByDate[iso] || sw > symByDate[iso]) symByDate[iso] = sw;
+  });
+
+  // Futtereinträge: alle Zutaten-Namen extrahieren (split by comma)
+  const futEntries = fut.map(r => ({
+    iso:    _toISO(g(r, 1)),
+    namen:  g(r, 2).split(/[,;]+/).map(s => s.trim()).filter(Boolean),
+  })).filter(e => e.iso && e.namen.length);
+
+  // Score pro Zutat berechnen
+  const scoreMap = {}; // name → { total, reactions }
+  futEntries.forEach(entry => {
+    // Prüfe Symptome in den 2 Folgetagen
+    let hasReaction = false;
+    for (let d = 1; d <= 2; d++) {
+      const nextDate = new Date(entry.iso);
+      nextDate.setDate(nextDate.getDate() + d);
+      const nextISO = nextDate.toISOString().slice(0, 10);
+      if ((symByDate[nextISO] || 0) > 2) { hasReaction = true; break; }
+    }
+    entry.namen.forEach(name => {
+      if (!scoreMap[name]) scoreMap[name] = { total: 0, reactions: 0 };
+      scoreMap[name].total++;
+      if (hasReaction) scoreMap[name].reactions++;
+    });
+  });
+
+  // Nur Zutaten mit mind. 3 Vorkommen
+  const allScores = Object.entries(scoreMap)
+    .filter(([, v]) => v.total >= 3)
+    .map(([name, v]) => ({
+      name,
+      total:     v.total,
+      reactions: v.reactions,
+      score:     Math.round(v.reactions / v.total * 100),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (!allScores.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Filter initialisieren: beim ersten Render alle aktivieren
+  if (!_reaktionFilter) _reaktionFilter = new Set(allScores.map(s => s.name));
+
+  const visible = allScores.filter(s => _reaktionFilter.has(s.name));
+
+  // Chip-Buttons für Alle/Keine + individuelle Zutaten
+  const chipHtml = allScores.map(s => {
+    const sel = _reaktionFilter.has(s.name);
+    return `<button
+      style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--border);
+        cursor:pointer;font-family:inherit;font-weight:${sel?'700':'400'};
+        background:${sel?'var(--c2)':'var(--bg2)'};color:${sel?'#fff':'var(--text)'};
+        margin:2px;transition:all .15s"
+      onclick="window._STAT_toggleReak(${JSON.stringify(s.name)})">${esc(s.name)}</button>`;
+  }).join('');
+
+  // Score-Zeilen
+  const rowHtml = visible.length ? visible.map(s => {
+    const barColor = s.score < 20 ? 'var(--bar-ok)' : s.score < 50 ? 'var(--bar-low)' : 'var(--danger-text)';
+    const badgeCls = s.score < 20 ? 'badge-ok' : s.score < 50 ? 'badge-warn' : 'badge-bad';
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:13px;font-weight:600">${esc(s.name)}</span>
+        <span class="badge ${badgeCls}" style="font-size:11px">${s.score}%</span>
+      </div>
+      <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:3px">
+        <div style="height:100%;width:${s.score}%;background:${barColor};border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--sub)">${s.reactions} von ${s.total} Mal → Symptome (Schw. &gt; 2) in 48h</div>
+    </div>`;
+  }).join('') : '<p style="color:var(--sub);font-size:13px">Keine Zutaten ausgewählt.</p>';
+
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem">
+      <div id="st-reak-header"
+        style="display:flex;justify-content:space-between;align-items:center;
+          padding:12px 14px;cursor:pointer;background:var(--bg2);user-select:none"
+        onclick="const b=document.getElementById('st-reak-body');
+                 const open=b.style.display!=='none';
+                 b.style.display=open?'none':'block';
+                 document.getElementById('st-reak-arrow').textContent=open?'▶':'▼'">
+        <div style="font-size:14px;font-weight:700">🧪 Zutaten-Reaktionsscore</div>
+        <span id="st-reak-arrow" style="font-size:11px;color:var(--sub)">▶</span>
+      </div>
+      <div id="st-reak-body" style="display:none;padding:14px">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:12px;padding:8px 10px;
+          background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          ⚠️ Statistischer Hinweis – kein medizinischer Befund.
+          Score = Anteil der Tage mit Symptom-Schweregrad &gt; 2 in den 48h nach dem Futtereintrag.
+          Mind. 3 Beobachtungen pro Zutat erforderlich.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;align-items:center">
+          <button onclick="window._STAT_reaktionAlle()"
+            style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--c2);
+              cursor:pointer;font-family:inherit;font-weight:700;background:var(--c4);
+              color:var(--c2);margin:2px">Alle</button>
+          <button onclick="window._STAT_reaktionKeine()"
+            style="padding:4px 9px;font-size:10px;border-radius:12px;border:1px solid var(--border);
+              cursor:pointer;font-family:inherit;font-weight:400;background:var(--bg2);
+              color:var(--text);margin:2px">Keine</button>
+          ${chipHtml}
+        </div>
+        <div id="st-reak-rows">${rowHtml}</div>
+      </div>
+    </div>`;
+
+  // Globale Hilfsfunktionen für Chip-Interaktion
+  window._STAT_toggleReak = name => {
+    if (_reaktionFilter.has(name)) _reaktionFilter.delete(name);
+    else _reaktionFilter.add(name);
+    _renderReaktionsscore(fut, sym);
+    document.getElementById('st-reak-body').style.display = 'block';
+    document.getElementById('st-reak-arrow').textContent = '▼';
+  };
+  window._STAT_reaktionAlle  = () => { _reaktionFilter = new Set(allScores.map(s => s.name)); _renderReaktionsscore(fut, sym); document.getElementById('st-reak-body').style.display='block'; document.getElementById('st-reak-arrow').textContent='▼'; };
+  window._STAT_reaktionKeine = () => { _reaktionFilter = new Set(); _renderReaktionsscore(fut, sym); document.getElementById('st-reak-body').style.display='block'; document.getElementById('st-reak-arrow').textContent='▼'; };
+}
 
 
 function _renderFutter(fut) {
