@@ -876,3 +876,87 @@ Folgende Tests müssen nach jedem Release mindestens einmal durchgeführt werden
 - Kein blaues Band (leeres Dataset)
 - Kein JavaScript-Fehler
 - KPI-Kacheln zeigen weiterhin Hund-1-Daten
+
+---
+
+## Tests v2.0.0 – Bugfixes + Export
+
+### T-PREC-01 – Rezept-Mix Berechnungsgenauigkeit
+**Schritte:**
+1. Rezept A mit 3 Zutaten anlegen (je 100g), Nährwerte mit Komma-Dezimalen (z.B. „1,5" g Calcium)
+2. Neues Rezept → Rezept A einmischen mit 300g
+3. Nährstoffsummen vergleichen mit manuell angelegtem Rezept gleicher Zutaten
+
+**Erwartetes Ergebnis:**
+- Nährwerte identisch (max. Rundungsunterschied < 0.01)
+- Keine Abweichungen durch Komma-Parsing oder Zwischenrundung
+
+---
+
+### T-PREC-02 – Gramm-Komma-Import aus Sheet
+**Vorbedingung:** Rezept_Zutaten-Sheet enthält Gramm-Werte mit Komma (z.B. „150,5")
+
+**Erwartetes Ergebnis:**
+- Rezept öffnet mit korrektem Gramm-Wert (150.5g, nicht 150g oder 0g)
+
+---
+
+### T-STAT-DEFAULT-01 – Keine Parameter standardmäßig aktiv
+**Schritte:**
+1. Statistik-Panel neu öffnen (oder Seite neu laden)
+
+**Erwartetes Ergebnis:**
+- Alle Parameter-Buttons sind nicht selektiert (grau)
+- Chart zeigt „Bitte oben mindestens einen Parameter auswählen."
+- Pollen-Button inaktiv
+
+---
+
+### T-REAK-PARSE-01 – Futter-Parsing im Reaktionsscore
+**Schritte:**
+1. Futtereinträge mit verschiedenen Formaten anlegen:
+   - „Futter 1: Pferd, 200g Zucchini, Lachsöl 10g"
+   - „Rezept: Basismenü, Möhre (fein)"
+   - „Pferd, Zucchini, Lachsöl"
+2. Reaktionsscore in Statistik prüfen
+
+**Erwartetes Ergebnis:**
+- Präfixe „Futter 1:", „Rezept:" werden entfernt
+- „200g", „10g" werden als Zutatenname ausgeschlossen
+- „Pferd", „Zucchini", „Lachsöl", „Möhre" erscheinen als Zutaten
+- Klammer-Inhalt „(fein)" wird entfernt
+
+---
+
+### T-EXPORT-CONFIG-01 – Sektionen konfigurieren
+**Schritte:**
+1. Export-Dialog öffnen
+2. „Keine" → alle Sektionen deaktivieren → prüfen
+3. „Alle" → alle aktivieren → prüfen
+4. Einzelne Sektion deaktivieren
+
+**Erwartetes Ergebnis:**
+- Toggle-Buttons ändern Farbe (blau=aktiv, grau=inaktiv)
+- Bericht enthält nur aktivierte Sektionen
+- Deaktivierte Sektionen fehlen komplett im Druck
+
+---
+
+### T-EXPORT-CONFIG-02 – Freier Zeitraum
+**Schritte:**
+1. Von-Datum auf 01.01.2025, Bis-Datum auf 31.03.2025 setzen
+2. Bericht erstellen
+
+**Erwartetes Ergebnis:**
+- Nur Einträge aus diesem Zeitraum im Bericht
+- Zeitraum korrekt im Deckblatt und Footer angezeigt
+- Schnellbuttons (30/60/90/180) ändern die Datumseingaben korrekt
+
+---
+
+### T-EXPORT-CONFIG-03 – Reaktionsscore im Bericht
+**Vorbedingung:** Reaktionsscore-Sektion aktiviert, mind. 3 Futtereinträge + Symptome
+
+**Erwartetes Ergebnis:**
+- Sektion „🧪 Zutaten-Reaktionsscore" erscheint im Bericht
+- Tabelle mit Score-Werten, Disclaimer vorhanden

@@ -1,7 +1,7 @@
-# Hund Manager – Projektbeschreibung (v1.8.0)
+# Hund Manager – Projektbeschreibung (v2.0.1)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-04-10 · Status: v1.8.0 – Mehrere Hunde Statistik-Vergleich
+> Letzte Aktualisierung: 2026-04-10 · Status: v2.0.1 – Bugfixes Präzision + Export konfigurierbar + Statistik-Defaults
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -615,6 +615,16 @@ Z Bugfixes
 - **Dokumentations-Fixes:** `verdacht`-Skala korrigiert (0–3), styles.css-Duplikat entfernt, Kochverlust präzisiert (nur B-Vitamine), EPA+DHA-Namenskonvention dokumentiert, VALIDATION.md um T-RECHN-06 erweitert.
 
 
+**v2.0.1:**
+- **Bugfix: Rechnergenauigkeit bei beigemischten Rezepten** (store.js, rechner.js): `rezeptZutaten.gramm` und `rezeptKomp.gramm` nutzen jetzt `_float()` statt `parseFloat()` → Komma-Dezimalzahlen werden korrekt eingelesen. In `resolveRezept()` wird nicht mehr bei Zwischenwerten gerundet (`Math.round(*10)/10` entfernt) – volle Gleitkomma-Präzision bleibt erhalten bis zur Anzeige. `addRezeptMix()` addiert ebenfalls ohne Zwischenrundung.
+- **Statistik: Keine Parameter standardmäßig ausgewählt** (statistik.js): `_selected` startet als leeres Set statt `['temp_band','symptome']`. Nutzer wählt Parameter aktiv aus.
+- **Reaktionsscore: Verbessertes Futter-Text-Parsing** (statistik.js): Neue Funktion `_parseFutterNamen()` filtert Präfixe wie „Futter 1:", „Rezept:", Gewichtsangaben (100g, 1,5kg), Prozentangaben und Klammer-Inhalte heraus. Nur Tokens ≥ 2 Zeichen ohne reine Zahlen werden als Zutatenname gewertet.
+- **Tierarzt-Export komplett neu** (export.js): Frei konfigurierbarer Bericht.
+  - Zeitraum: Von/Bis-Datumseingabe + Schnellauswahl-Buttons (30/60/90/180 Tage).
+  - Sektionen: 9 Toggle-Buttons (wie Statistik-Parameter) – Deckblatt, Symptome, Allergene, Ausschlussdiät, Phasen, Medikamente, Futter, Reaktionsscore, Korrelationsanalyse – einzeln ein-/ausblendbar. Alle/Keine-Buttons.
+  - Reaktionsscore und Korrelationsanalyse werden inline im Export berechnet (kein extra Cache-Call nötig).
+  - State `_activeSections` (Set) merkt sich die letzte Auswahl innerhalb der Session.
+
 **v1.8.0:**
 - **Mehrere Hunde – Statistik-Vergleich** (statistik.js): Zweites Hund-Dropdown „↕ Vergleich mit:" direkt unter dem Haupt-Hund-Select.
   - Auswahl: alle aktiven Hunde außer dem aktuell gewählten Hund 1 (der bereits gewählte Hund wird in der Liste ausgeblendet).
@@ -762,8 +772,9 @@ Bei Umstrukturierung der hinterlegten Spreadsheets bitte informieren.
 - `statistik.js` exportiert zusätzlich: `showPollenPopup`
 - `_renderPhasenTimeline(hundId)` – lädt Ausschluss_Phasen aus Cache und rendert Timeline in `#st-phasen`
 - `statistik.js` exportiert zusätzlich: `onHund2Changed()` – lädt Hund-2-Symptoms, blendet Hund-1 in Select aus, refresht Chart
+- `rechner.js` Präzision: `resolveRezept()` ohne Zwischenrundung; `addRezeptMix()` addiert ohne Round; Anzeige rundet in `renderIngredients()` auf 1 Dezimale
 - `rechner.js` Vergleich: `initVergleich()` füllt Dropdowns; `calcVergleich()` berechnet+rendert; `_calcTotals(rezeptId, gramm, hundId)` → `{totals, totalGrams, kcal, kcalBedarf, mkg, caP, omRatio}`
-- `export.js`: `showExportDialog(hundId)` öffnet Zeitraum-Modal; `exportTierarztPDF(hundId, tage)` baut HTML-Bericht und ruft window.print() auf; kein CSS-Framework, inline styles
+- `export.js` v2: `showExportDialog(hundId)` öffnet konfigurierbaren Dialog; `exportTierarztPDF(hundId)` liest Von/Bis aus Dialog-Inputs; SECTIONS-Array definiert 9 Sektionen; `_activeSections` Set; globale Callbacks `_EXPORT_toggleSec`, `_EXPORT_alleAuswahl`, `_EXPORT_setRange`
 - `tagebuch.js` Phasentracker: `submitPhase`, `deletePhase(id,label)`, `undoDeletePhase`, `renderPhasenBanner`, `loadPhasenListe`, `onPhasTypChanged`, `onPhasStartChanged`
 - PHASEN_DEFAULTS: `{ elimination:42, provokation:14, ergebnis:7 }` Tage
 - `_renderReaktionsscore(fut, sym)` – rendert Zutaten-Reaktionsscore mit Chip-Filter; `_reaktionFilter` (Set<string>|null) hält Auswahl; `window._STAT_toggleReak`, `window._STAT_reaktionAlle`, `window._STAT_reaktionKeine` als globale Callbacks

@@ -1,7 +1,7 @@
 # Hund Manager – Feature-Ideen & Implementierungsprompts (v1.3.1)
 
-> Letzte Aktualisierung: 2026-04-10 (v1.5.0)
-> Status: Ideen – Alle Ideen 1–9 implementiert ✅
+> Letzte Aktualisierung: 2026-04-10 (v2.0.0)
+> Status: Ideen – Alle Ideen 1–9 implementiert ✅ · v2.0.0: Bugfixes + Export überarbeitet
 > Jede Idee ist als eigenständiger Prompt formuliert und kann einzeln beauftragt werden.
 > Vor jeder Implementierung: PROJECT.md als Kontext einfügen + das betreffende Modul mitliefern.
 

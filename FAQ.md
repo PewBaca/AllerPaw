@@ -213,7 +213,7 @@ Der Banner erscheint nur für Phasen mit Ergebnis = „offen" und Enddatum in de
 Aktuell nicht direkt in der App – lösche die Phase (Undo verfügbar) und lege sie neu an, oder bearbeite den Eintrag direkt im Google Sheet `Ausschluss_Phasen`.
 
 ### Wie erstelle ich einen Tierarzt-Bericht?
-Gehe zu Statistik → tippe oben rechts auf „📄 Tierarzt-Export". Wähle den gewünschten Zeitraum (30–180 Tage) und tippe „Bericht erstellen & drucken". Ein neuer Tab öffnet sich – dort kannst du drucken oder als PDF speichern (im Browser-Druckdialog „Als PDF speichern" wählen).
+Gehe zu Statistik → tippe oben rechts auf „📄 Tierarzt-Export". Wähle den Zeitraum (Von/Bis-Datum oder Schnellbutton), aktiviere die gewünschten Sektionen (Alle/Keine möglich) und tippe „Bericht erstellen & drucken". Ein neuer Tab öffnet sich – dort kannst du drucken oder als PDF speichern (im Browser-Druckdialog „Als PDF speichern" wählen).
 
 ### Der Export-Tab öffnet sich nicht?
 Der Browser blockiert vermutlich Popups. Erlaube Popups für diese Seite (Hinweis in der Adresszeile) und versuche es erneut. In Safari: Einstellungen → Websites → Popups.
@@ -241,3 +241,12 @@ Der aktuell als Hund 1 gewählte Hund wird in der Vergleichsliste automatisch au
 
 ### Warum erscheint kein blaues Band für Hund 2?
 Das Band erscheint nur wenn der Parameter „Schweregrad Symptome" im Statistik-Panel aktiviert ist (blauer Toggle-Button oben). Außerdem braucht Hund 2 mindestens einen Symptomeintrag im gewählten Zeitraum.
+
+### Warum liefert das Einmischen eines Rezepts andere Nährstoffwerte als manuell eingegeben?
+Ab v2.0.0 ist das behoben. Ursache waren zwei Fehler: Gramm-Werte mit Komma als Dezimaltrennzeichen wurden als 0 eingelesen, und Zwischenwerte wurden bei der Rezeptauflösung gerundet, was sich über mehrere Zutaten aufsummierte. Beide Fehler sind jetzt behoben.
+
+### Warum werden manche Zutaten im Reaktionsscore nicht erkannt?
+Der Reaktionsscore parst den Freitext des Futter-Felds. Damit er korrekt funktioniert, trenne Zutaten mit Komma und vermeide Präfixe wie „Futter 1:", Gewichtsangaben (100g) direkt im Zutatentext. Ab v2.0.0 werden diese automatisch herausgefiltert.
+
+### Warum sind in der Statistik keine Parameter mehr vorausgewählt?
+Ab v2.0.0 ist die Standardauswahl bewusst leer – so sieht man nur das, was man aktiv auswählt. Tippe einfach die gewünschten Parameter an (z.B. „Schweregrad Symptome").
