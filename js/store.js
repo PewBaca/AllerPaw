@@ -164,7 +164,7 @@ export async function loadAll() {
       rezept_id:  parseInt(r.rezept_id)  || 0,
       zutaten_id: parseInt(r.zutaten_id) || 0,
       zutat_name: r.zutat_name,
-      gramm:      parseFloat(r.gramm)    || 0,
+      gramm:      _float(r.gramm),
       gekocht:    r.gekocht?.toLowerCase() === 'ja',
     }))
     .filter(r => r.rezept_id && r.zutat_name);
@@ -183,7 +183,7 @@ export async function loadAll() {
       rezept_id:       parseInt(r.rezept_id) || 0,
       komponenten_typ: r.komponenten_typ,    // 'zutat' | 'rezept'
       ref_id:          parseInt(r.ref_id)    || 0,
-      gramm:           parseFloat(r.gramm)   || 0,
+      gramm:           _float(r.gramm),
       notizen:         r.notizen || '',
     }))
     .filter(r => r.rezept_id && r.komponenten_typ && r.gramm > 0);
@@ -242,7 +242,14 @@ export function getNutrMap(zutatId, zutatName) {
   }
 
   const map = {};
-  entries.forEach(r => { map[r.naehrstoff_name] = r.wert_pro_100g; });
+  entries.forEach(r => {
+    const orig = r.naehrstoff_name;
+    const wert = r.wert_pro_100g;
+    map[orig] = wert;
+    // Normalisierter Name ohne Klammer, z.B. "Vitamin B1 (Thiamin)" → "Vitamin B1"
+    const norm = orig.replace(/\s*\(.*?\)\s*/g, '').trim();
+    if (norm && norm !== orig) map[norm] = wert;
+  });
   return map;
 }
 

@@ -29,7 +29,7 @@ const C = {
 };
 
 let _chart      = null;
-let _selected   = new Set(['temp_band','symptome']);
+let _selected   = new Set();  // standardmäßig keine Parameter ausgewählt
 let _cachedData = null;
 const POLLEN_COLORS = [C.green,C.amber,C.teal,C.sky,C.orange,C.purple,'#10b981','#6366f1'];
 let _pollenTypes    = [];
@@ -523,9 +523,24 @@ function _renderReaktionsscore(fut, sym) {
   });
 
   // Futtereinträge: alle Zutaten-Namen extrahieren (split by comma)
+  // Futter-Text bereinigen: Präfixe wie "Futter 1:", "Rezept:" und
+  // Gewichtsangaben wie "100g", "1,5kg" herausfiltern
+  function _parseFutterNamen(text) {
+    return text
+      .split(/[,;]+/)
+      .map(t => t
+        .replace(/^(futter|rezept|zutat|komponente|mahlzeit)\s*\d*\s*:/gi, '') // Präfix entfernen
+        .replace(/\b\d+([.,]\d+)?\s*(g|kg|ml|l|gr)\b/gi, '')               // Gewichtsangaben
+        .replace(/\b\d+\s*%/g, '')                                            // Prozentangaben
+        .replace(/\(.*?\)/g, '')                                               // Klammer-Inhalte
+        .trim()
+      )
+      .filter(t => t.length >= 2 && !/^\d+$/.test(t));                        // min 2 Zeichen, keine reinen Zahlen
+  }
+
   const futEntries = fut.map(r => ({
     iso:    _toISO(g(r, 1)),
-    namen:  g(r, 2).split(/[,;]+/).map(s => s.trim()).filter(Boolean),
+    namen:  _parseFutterNamen(g(r, 2)),
   })).filter(e => e.iso && e.namen.length);
 
   // Score pro Zutat berechnen

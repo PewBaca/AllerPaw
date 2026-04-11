@@ -46,7 +46,7 @@ export function switchTopPanel(panel) {
  * @param {'umwelt'|'symptom'|'futter'|'ausschluss'|'allergen'|'tierarzt'|'medikamente'} tab
  */
 export function switchTab(tab) {
-  const tabs = ['umwelt','symptom','futter','ausschluss','allergen','tierarzt','medikamente'];
+  const tabs = ['umwelt','symptom','futter','ausschluss','phasen','allergen','tierarzt','medikamente'];
   const btns = document.querySelectorAll('#eingabe-tabs .tab');
 
   tabs.forEach((t, i) => {
@@ -69,7 +69,7 @@ export function switchTab(tab) {
  * @param {string} tab - z.B. 'v-umwelt'
  */
 export function switchViewTab(tab) {
-  const tabs = ['v-umwelt','v-symptom','v-futter','v-ausschluss','v-allergen','v-tierarzt','v-medikamente'];
+  const tabs = ['v-umwelt','v-symptom','v-futter','v-ausschluss','v-phasen','v-allergen','v-tierarzt','v-medikamente'];
   const btns = document.querySelectorAll('#mode-ansicht-panel .tab');
 
   tabs.forEach((t, i) => {

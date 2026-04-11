@@ -34,7 +34,11 @@ let scaleFactor     = 1.0;
 let currentHundId   = 1;
 
 // B-Vitamine verlieren beim Kochen ~30%
+// Enthält BEIDE Namens-Konventionen (mit und ohne Klammer) für maximale Kompatibilität
 const COOKING_LOSS_NUTR = new Set([
+  // Kurzform (NRC / USDA-Import Standard)
+  'Vitamin B1','Vitamin B2','Vitamin B3','Vitamin B5','Vitamin B6','Vitamin B9','Vitamin B12',
+  // Langform mit Klammer (alternativ gespeichert)
   'Vitamin B1 (Thiamin)','Vitamin B2 (Riboflavin)','Vitamin B6 (Pyridoxin)',
   'Vitamin B12 (Cobalamin)','Vitamin B3 (Niacin)',
   'Vitamin B5 (Pantothensäure)','Vitamin B9 (Folsäure)',
@@ -186,7 +190,7 @@ export async function openRecipe(rezeptId, name) {
         rezept_id:  parseInt(r[0]) || 0,
         zutaten_id: parseInt(r[1]) || 0,
         name:       String(r[2] || '').trim(),
-        grams:      parseFloat(r[3]) || 0,
+        grams:      parseFloat(String(r[3]).replace(',','.')) || 0,
         cooked:     String(r[4] || '').toLowerCase() === 'ja',
       }));
 
@@ -352,7 +356,7 @@ function renderIngredients() {
         ${esc(ing.name)}
         <small>${zutat.kategorie ? `<span class="kat-badge">${esc(zutat.kategorie)}</span>` : ''}</small>
       </div>
-      <input type="number" value="${ing.grams}" min="0" step="0.1" inputmode="decimal"
+      <input type="number" value="${Math.round(ing.grams*10)/10}" min="0" step="0.1" inputmode="decimal"
         onchange="RECHNER.updateGrams(${i},this.value)">
       <div style="display:flex;align-items:center;justify-content:center;gap:4px">
         <button class="cooked-toggle${ing.cooked ? ' on' : ''}"
@@ -522,7 +526,7 @@ export function resolveRezept(rezeptId, scaledG = null, visited = new Set(), dep
       return rows.map(r => ({
         zutaten_id: r.zutaten_id,
         name:       r.zutat_name,
-        grams:      Math.round(r.gramm * factor * 10) / 10,
+        grams:      r.gramm * factor,   // volle Präzision – Rundung nur zur Anzeige
         cooked:     r.gekocht,
       }));
     } catch { return []; }
@@ -536,7 +540,7 @@ export function resolveRezept(rezeptId, scaledG = null, visited = new Set(), dep
   const result = [];
 
   komps.forEach(komp => {
-    const scaled = Math.round(komp.gramm * factor * 10) / 10;
+    const scaled = komp.gramm * factor;  // volle Präzision
 
     if (komp.komponenten_typ === 'zutat') {
       const z = getZutaten().find(z => z.zutaten_id === komp.ref_id);
@@ -556,7 +560,7 @@ export function resolveRezept(rezeptId, scaledG = null, visited = new Set(), dep
   const merged = {};
   result.forEach(r => {
     if (merged[r.zutaten_id]) {
-      merged[r.zutaten_id].grams += r.grams;
+      merged[r.zutaten_id].grams += r.grams;  // Präzision erhalten
     } else {
       merged[r.zutaten_id] = { ...r };
     }
@@ -594,7 +598,7 @@ export function addRezeptMix() {
   resolved.forEach(r => {
     const existing = currentRecipe.ingredients.find(i => i.zutaten_id === r.zutaten_id);
     if (existing) {
-      existing.grams = Math.round((existing.grams + r.grams) * 10) / 10;
+      existing.grams = existing.grams + r.grams;  // Präzision, Anzeige rundet in renderIngredients
     } else {
       currentRecipe.ingredients.push({ ...r });
     }
