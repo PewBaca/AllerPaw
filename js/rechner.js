@@ -748,6 +748,8 @@ function renderNutrTable(totals, mkg) {
     items.forEach(b => {
       const _normName = n => n.replace(/\s*\(.*?\)\s*/g,'').trim();
       const ist          = totals[b.name] ?? totals[_normName(b.name)] ?? 0;
+      // Warnung bei Einheitenfehler: Wert > 500× Bedarf deutet auf mg/g-Verwechslung hin
+      const istOK = safeTagesB <= 0 || ist / safeTagesB <= 50;
       const tagesBedarf  = b.bedarf_pro_mkg * safeMkg;
       const safeTagesB   = (isFinite(tagesBedarf) && tagesBedarf >= 0) ? tagesBedarf : 0;
       const tol          = getTolerance(currentHundId, b.name);
@@ -764,10 +766,12 @@ function renderNutrTable(totals, mkg) {
       }
 
       const fmt = v => {
-        if (v === 0)   return '0';
-        if (v < 0.01)  return v.toExponential(1);
-        if (v < 1)     return v.toFixed(3);
-        if (v < 100)   return v.toFixed(1);
+        if (!v || v === 0) return '0';
+        if (v < 0.0001)  return v.toFixed(6).replace(/\.?0+$/, '');  // z.B. 0.000044
+        if (v < 0.01)    return v.toFixed(4).replace(/0+$/, '');       // z.B. 0.0082
+        if (v < 0.1)     return v.toFixed(3);
+        if (v < 1)       return v.toFixed(3);
+        if (v < 100)     return v.toFixed(1);
         return Math.round(v).toLocaleString('de');
       };
 
@@ -784,7 +788,7 @@ function renderNutrTable(totals, mkg) {
              top:0;height:100%;width:2px;background:var(--c2);opacity:.7;pointer-events:none"></div>`
         : '';
 
-      html += `<div class="fr-nutr-row ${cls}" onclick="UI.showNutrPopup('${esc(b.name)}')" title="${esc(tooltip)}">
+      html += `<div class="fr-nutr-row ${cls}" onclick="UI.showNutrPopup('${esc(b.name)}')" title="${esc(tooltip)}" style="${!istOK?'border-left:3px solid #f59e0b':''}">
         <span class="nr-name">${esc(b.name)}</span>
         <span class="nr-val">${esc(istStr)}</span>
         <span class="nr-bedarf">${esc(bedarfStr)}</span>
@@ -832,9 +836,11 @@ function _showToast(msg) {
 /** Zahlenformat-Helfer (identisch zu renderNutrTable) */
 const _fmt = v => {
   if (!v || v === 0) return '0';
-  if (v < 0.01)  return v.toExponential(1);
-  if (v < 1)     return v.toFixed(3);
-  if (v < 100)   return v.toFixed(1);
+  if (v < 0.0001)  return v.toFixed(6).replace(/\.?0+$/, '');
+  if (v < 0.01)    return v.toFixed(4).replace(/0+$/, '');
+  if (v < 0.1)     return v.toFixed(3);
+  if (v < 1)       return v.toFixed(3);
+  if (v < 100)     return v.toFixed(1);
   return Math.round(v).toLocaleString('de');
 };
 

@@ -397,13 +397,31 @@ export function showZutatModal(zutatId) {
   if (isEdit) {
     import('./store.js').then(({ getNutrMap }) => {
       const map = getNutrMap(zutatId, z.name) || {};
+      let warnings = [];
       Object.entries(map).forEach(([nutrName, wert]) => {
         const n = naehr.find(n => n.name === nutrName);
         if (n) {
           const inp = document.getElementById(`nutr-${n.naehrstoff_id}`);
-          if (inp && wert != null && wert !== '') inp.value = wert;
+          if (inp && wert != null && wert !== '') {
+            inp.value = wert;
+            // Plausibilitätsprüfung: g-Felder sollten < 100 sein
+            const einheit = (n.einheit || '').toLowerCase();
+            if (einheit === 'g' && parseFloat(wert) > 100) {
+              inp.style.borderColor = '#f59e0b';
+              inp.title = `⚠️ Wert ${wert}g/100g ist unrealistisch hoch. Einheitenverwechslung (mg statt g)?`;
+              warnings.push(`${nutrName}: ${wert}g`);
+            }
+          }
         }
       });
+      if (warnings.length) {
+        const warnEl = document.getElementById('status-zutat');
+        if (warnEl) {
+          warnEl.style.display = 'block';
+          warnEl.className = 'status warn';
+          warnEl.textContent = `⚠️ Mögliche Einheitenfehler: ${warnings.join(', ')} – g-Felder sollten Werte < 100 haben.`;
+        }
+      }
     });
   }
 }
