@@ -748,10 +748,9 @@ function renderNutrTable(totals, mkg) {
     items.forEach(b => {
       const _normName = n => n.replace(/\s*\(.*?\)\s*/g,'').trim();
       const ist          = totals[b.name] ?? totals[_normName(b.name)] ?? 0;
-      // Warnung bei Einheitenfehler: Wert > 500× Bedarf deutet auf mg/g-Verwechslung hin
-      const istOK = safeTagesB <= 0 || ist / safeTagesB <= 50;
       const tagesBedarf  = b.bedarf_pro_mkg * safeMkg;
       const safeTagesB   = (isFinite(tagesBedarf) && tagesBedarf >= 0) ? tagesBedarf : 0;
+      const istOK        = safeTagesB <= 0 || ist / safeTagesB <= 50;
       const tol          = getTolerance(currentHundId, b.name);
 
       let pct = 0, barColor = 'var(--bar-zero)', pctStr = '?', cls = 'zero';
