@@ -89,7 +89,7 @@ export async function loadAll() {
   parameter = {};
   parseRows(rParam, ['parameter','wert','einheit','beschreibung'], 2)
     .filter(r => r.parameter)
-    .forEach(r => { parameter[r.parameter] = parseFloat(r.wert) || r.wert; });
+    .forEach(r => { const n = _float(r.wert); parameter[r.parameter] = isFinite(n) ? n : r.wert; });
 
   // ── Nährstoffe ────────────────────────────────────────────────
   naehrstoffe = parseRows(rNaehr,

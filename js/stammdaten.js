@@ -17,7 +17,8 @@ import { get as getCfg }                    from './config.js';
 import { openModal, closeModal, setStatus,
          syncHundSelects, esc }             from './ui.js';
 import { getHunde, getZutaten, addHund,
-         updateHund, addZutat, getNaehrstoffe, addZutatNutr } from './store.js';
+         updateHund, addZutat, getNaehrstoffe, addZutatNutr,
+         getBedarf, getNutrMap } from './store.js';
 
 
 // ── Einheiten-Konvertierung ──────────────────────────────────────
@@ -296,6 +297,8 @@ export function loadZutaten() {
         <td style="white-space:nowrap">
           <button class="edit-btn" style="font-size:11px;padding:4px 8px"
             onclick="STAMMDATEN.showZutatModal(${z.zutaten_id})">✏️</button>
+          <button class="edit-btn" style="font-size:11px;padding:4px 8px;margin-left:4px;background:var(--c4);border-color:var(--c2);color:var(--c2)"
+            onclick="STAMMDATEN.selectZutatForCompare(${z.zutaten_id},'${esc(z.name)}')">⚖️</button>
           <button class="del-small-btn" style="font-size:11px;padding:4px 8px;margin-left:4px"
             onclick="STAMMDATEN.deleteZutat(${z.zutaten_id},'${esc(z.name)}')">🗑</button>
         </td>
@@ -1355,4 +1358,191 @@ export async function saveToleranz(hundId, count) {
 
     setStatus('status-tol', 'ok', '✓ Toleranzen gespeichert! App neu laden um Änderungen zu übernehmen.');
   } catch (e) { setStatus('status-tol', 'err', 'Fehler: ' + e.message); }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  ZUTATEN-NÄHRSTOFFVERGLEICH (v2.2.0)
+// ════════════════════════════════════════════════════════════════
+
+// State: max. 2 ausgewählte Zutaten
+let _cmpSelection = [];  // [{id, name}]
+
+/**
+ * Zutat für Vergleich vormerken. Bei 2 ausgewählten → Vergleich öffnen.
+ * Bei bereits ausgewählter Zutat → abwählen.
+ */
+export function selectZutatForCompare(zutatId, zutatName) {
+  const idx = _cmpSelection.findIndex(z => z.id === zutatId);
+
+  if (idx >= 0) {
+    // Abwählen
+    _cmpSelection.splice(idx, 1);
+    _updateCmpBanner();
+    return;
+  }
+
+  _cmpSelection.push({ id: zutatId, name: zutatName });
+
+  if (_cmpSelection.length === 1) {
+    _updateCmpBanner();
+    return;
+  }
+
+  // 2 ausgewählt → direkt vergleichen
+  showZutatVergleich(_cmpSelection[0], _cmpSelection[1]);
+  _cmpSelection = [];
+  _updateCmpBanner();
+}
+
+/** Banner oberhalb der Liste anzeigen */
+function _updateCmpBanner() {
+  let banner = document.getElementById('zutat-cmp-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'zutat-cmp-banner';
+    const list = document.getElementById('sd-zutaten-list');
+    list?.parentNode?.insertBefore(banner, list);
+  }
+
+  if (!_cmpSelection.length) { banner.innerHTML = ''; return; }
+
+  banner.innerHTML = `
+    <div style="background:var(--c4);border:1px solid var(--c2);border-radius:var(--radius);
+      padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="font-size:13px">
+        ⚖️ <strong>${esc(_cmpSelection[0].name)}</strong>
+        <span style="color:var(--sub)"> ausgewählt – tippe ⚖️ bei einer zweiten Zutat zum Vergleichen</span>
+      </div>
+      <button onclick="STAMMDATEN._clearCmpSelection()"
+        style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--sub)">✕</button>
+    </div>`;
+}
+
+export function _clearCmpSelection() {
+  _cmpSelection = [];
+  _updateCmpBanner();
+}
+
+/**
+ * Vergleichs-Modal öffnen.
+ * Zeigt alle 39 NRC-Nährstoffe für zwei Zutaten nebeneinander.
+ */
+export function showZutatVergleich(zA, zB) {
+  const naehr  = getNaehrstoffe();
+  const bedarf = getBedarf();
+  const mapA   = getNutrMap(zA.id, zA.name);
+  const mapB   = getNutrMap(zB.id, zB.name);
+
+  // Nährstoffe nach Gruppe
+  const gruppenOrder = ['Makronährstoffe','Aminosäuren','Fettsäuren','Mineralstoffe','Vitamine','B-Vitamine','Sonstiges'];
+  const gruppen = {};
+  naehr.forEach(n => {
+    const g = n.gruppe || 'Sonstiges';
+    (gruppen[g] = gruppen[g] || []).push(n);
+  });
+
+  const fmt = v => {
+    if (v == null || isNaN(v) || v === 0) return '–';
+    if (v < 0.001)  return v.toFixed(5).replace(/\.?0+$/, '');
+    if (v < 0.01)   return v.toFixed(4).replace(/0+$/, '');
+    if (v < 1)      return v.toFixed(3);
+    if (v < 100)    return v.toFixed(1);
+    return Math.round(v).toLocaleString('de');
+  };
+
+  const sortedGruppen = [
+    ...gruppenOrder.filter(g => gruppen[g]),
+    ...Object.keys(gruppen).filter(g => !gruppenOrder.includes(g)),
+  ];
+
+  let tableHtml = '';
+  sortedGruppen.forEach(grp => {
+    const items = gruppen[grp]; if (!items?.length) return;
+
+    // Gruppe nur anzeigen wenn mind. 1 Wert in A oder B
+    const hasData = items.some(n => mapA[n.name] || mapA[n.name.replace(/\s*\(.*?\)/g,'')] ||
+                                     mapB[n.name] || mapB[n.name.replace(/\s*\(.*?\)/g,'')]);
+    if (!hasData) return;
+
+    tableHtml += `<tr><td colspan="4" style="background:var(--bg2);font-size:10px;font-weight:700;
+      text-transform:uppercase;letter-spacing:.05em;color:var(--c2);padding:6px 8px">${esc(grp)}</td></tr>`;
+
+    items.forEach(n => {
+      const normName = n.name.replace(/\s*\(.*?\)/g, '').trim();
+      const vA = mapA[n.name] ?? mapA[normName] ?? null;
+      const vB = mapB[n.name] ?? mapB[normName] ?? null;
+
+      if (vA == null && vB == null) return; // beide leer → überspringen
+
+      const numA = vA != null && !isNaN(vA) ? parseFloat(vA) : null;
+      const numB = vB != null && !isNaN(vB) ? parseFloat(vB) : null;
+
+      // Ampelfarbe: Differenz relativ zu A
+      let colorA = '', colorB = '';
+      if (numA != null && numB != null && numA > 0) {
+        const diff = (numB - numA) / numA * 100;
+        if (Math.abs(diff) < 10) {
+          colorA = 'color:var(--bar-ok)'; colorB = 'color:var(--bar-ok)';
+        } else if (numB > numA) {
+          colorA = ''; colorB = 'color:var(--bar-ok);font-weight:700';
+        } else {
+          colorA = 'color:var(--bar-ok);font-weight:700'; colorB = 'color:var(--bar-low)';
+        }
+      }
+
+      // Delta-Pfeil
+      let delta = '–';
+      if (numA != null && numB != null) {
+        const diff = numB - numA;
+        const pct  = numA > 0 ? (diff / numA * 100).toFixed(0) : '–';
+        delta = `<span style="color:${diff > 0 ? 'var(--bar-ok)' : diff < 0 ? 'var(--danger-text)' : 'var(--sub)'}">
+          ${diff > 0 ? '▲' : diff < 0 ? '▼' : '='} ${pct !== '–' ? pct + '%' : ''}
+        </span>`;
+      }
+
+      tableHtml += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="font-size:11px;padding:5px 6px">${esc(n.name)}<br>
+          <span style="font-size:9px;color:var(--sub)">${esc(n.einheit||'')}/100g</span></td>
+        <td style="font-size:12px;font-weight:600;padding:5px 6px;text-align:right;${colorA}">${fmt(numA)}</td>
+        <td style="font-size:12px;font-weight:600;padding:5px 6px;text-align:right;${colorB}">${fmt(numB)}</td>
+        <td style="font-size:10px;padding:5px 6px;text-align:center">${delta}</td>
+      </tr>`;
+    });
+  });
+
+  openModal(`⚖️ Nährstoffvergleich`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px">
+      <div style="padding:8px 10px;background:rgba(59,130,246,.1);border:2px solid var(--c2);
+        border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--c2)">
+        A: ${esc(zA.name)}
+      </div>
+      <div style="padding:8px 10px;background:rgba(245,158,11,.1);border:2px solid #f59e0b;
+        border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:#f59e0b">
+        B: ${esc(zB.name)}
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--sub);margin-bottom:10px;padding:6px 8px;
+      background:var(--bg2);border-radius:var(--radius-sm)">
+      ▲/▼ = B relativ zu A · Grün = höher · Rot = niedriger · Werte pro 100g Frischgewicht
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:280px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="text-align:left;padding:6px 6px;font-size:10px;color:var(--sub)">Nährstoff</th>
+            <th style="text-align:right;padding:6px 6px;font-size:11px;color:var(--c2)">A</th>
+            <th style="text-align:right;padding:6px 6px;font-size:11px;color:#f59e0b">B</th>
+            <th style="text-align:center;padding:6px 6px;font-size:10px;color:var(--sub)">Δ</th>
+          </tr>
+        </thead>
+        <tbody>${tableHtml}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn-primary" style="flex:1" onclick="STAMMDATEN.showZutatVergleich({id:${zA.id},name:'${esc(zA.name)}'},{id:${zB.id},name:'${esc(zB.name)}'})">
+        🔄 Neu laden
+      </button>
+    </div>
+  `);
 }
