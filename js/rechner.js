@@ -859,9 +859,10 @@ function _calcTotals(rezeptId, gramm, hundId) {
     totalGrams += ing.grams;
     const nutrMap = getNutrMap(ing.zutaten_id, ing.name);
     Object.entries(nutrMap).forEach(([name, val100g]) => {
+      if (val100g == null || isNaN(val100g)) return;  // NaN-Guard
       let val = val100g * ing.grams / 100;
       if (ing.cooked && COOKING_LOSS_NUTR.has(name)) val *= cookFactor;
-      totals[name] = (totals[name] || 0) + val;
+      if (!isNaN(val)) totals[name] = (totals[name] || 0) + val;
     });
   });
 
@@ -976,8 +977,9 @@ export function calcVergleich() {
       const tol    = getTolerance(hundId, b.name);
 
       const _nn = n => n.replace(/\s*\(.*?\)\s*/g,'').trim();
-      const istA = A.totals[b.name] ?? A.totals[_nn(b.name)] ?? 0;
-      const istB = B.totals[b.name] ?? B.totals[_nn(b.name)] ?? 0;
+      const _safeVal = (map, name, nn) => { const v = map[name] ?? map[nn]; return (v == null || isNaN(v)) ? 0 : v; };
+      const istA = _safeVal(A.totals, b.name, _nn(b.name));
+      const istB = _safeVal(B.totals, b.name, _nn(b.name));
       const pctA = tagesB > 0 ? istA / tagesB * 100 : 0;
       const pctB = tagesB > 0 ? istB / tagesB * 100 : 0;
       const clsA = tagesB > 0 ? _cls(pctA, tol) : 'ok';
