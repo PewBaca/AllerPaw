@@ -256,3 +256,15 @@ Gehe zu Stammdaten → Zutaten → tippe bei einer Zutat auf ⚖️. Ein Banner 
 
 ### Was bedeuten ▲ und ▼ im Zutaten-Vergleich?
 ▲ (grün) = Zutat B hat mehr von diesem Nährstoff als A. ▼ (rot) = Zutat B hat weniger. Der Prozentwert zeigt die relative Abweichung von A zu B. Fehlende Werte (keine Daten hinterlegt) werden als „–" angezeigt.
+
+### Wie gebe ich ein Supplement als Tablette ein?
+1. Stammdaten → Zutaten → Zutat bearbeiten (✏️)
+2. Feld „Gewicht pro Tablette (g)" ausfüllen (z.B. `0.5` für eine 500mg-Tablette)
+3. Im Nährwert-Bereich: Bezugsmenge auf „/ Tablette" stellen, Wert pro Tablette eintragen (z.B. Zink: 25 mg / Tablette)
+4. App rechnet automatisch auf /100g um und zeigt die Vorschau
+
+### Wie dosiere ich Tabletten im Futterrechner?
+Wenn eine Zutat ein Tablettengewicht hat, erscheint im Futterrechner automatisch eine Tabletten-Eingabe (statt Gramm). Du gibst z.B. `0.5` für eine halbe Tablette ein. Darunter steht der Gramm-Äquivalent. Die Nährstoffberechnung erfolgt intern in Gramm.
+
+### Welche Spalte muss ich in Google Sheets ergänzen?
+In der `Zutaten`-Tabelle (Hund_Stammdaten) Spalte I: `gewicht_pro_tablette`. Header-Zeile 1: „Gewicht pro Tablette (g)", Header-Zeile 2: `gewicht_pro_tablette`. Für bestehende Zutaten: leer lassen oder 0 eintragen.

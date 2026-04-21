@@ -1,7 +1,7 @@
-# Hund Manager – Projektbeschreibung (v2.2.1)
+# Hund Manager – Projektbeschreibung (v2.3.1)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**
-> Letzte Aktualisierung: 2026-04-10 · Status: v2.2.1 – Bugfixes Präzision + Export konfigurierbar + Statistik-Defaults
+> Letzte Aktualisierung: 2026-04-10 · Status: v2.3.1 – Bugfixes Präzision + Export konfigurierbar + Statistik-Defaults
 
 > **Coding-Konvention:** Module werden gezielt angepasst – kein komplettes Neuschreiben ganzer Dateien.
 > Änderungen immer als minimale, chirurgische Eingriffe in die relevanten Funktionen.
@@ -193,6 +193,9 @@ Wichtige Parameter-Keys:
 | F | created_at  | datetime| ISO 8601                                |
 | G | deleted     | boolean | TRUE / FALSE                            |
 | H | deleted_at  | datetime| leer wenn nicht gelöscht                |
+| I | gewicht_pro_tablette | float | Tablettengewicht in Gramm (0 = keine Tablette) |
+
+> **⚠️ Neue Spalte v2.3.1:** `gewicht_pro_tablette` an Spalte I anhängen. Bestehende Zeilen bleiben unverändert.
 
 #### `Zutaten_Naehrstoffe`
 
@@ -615,7 +618,7 @@ Z Bugfixes
 - **Dokumentations-Fixes:** `verdacht`-Skala korrigiert (0–3), styles.css-Duplikat entfernt, Kochverlust präzisiert (nur B-Vitamine), EPA+DHA-Namenskonvention dokumentiert, VALIDATION.md um T-RECHN-06 erweitert.
 
 
-**v2.2.1:**
+**v2.3.1:**
 - **Bugfix: Rechnergenauigkeit bei beigemischten Rezepten** (store.js, rechner.js): `rezeptZutaten.gramm` und `rezeptKomp.gramm` nutzen jetzt `_float()` statt `parseFloat()` → Komma-Dezimalzahlen werden korrekt eingelesen. In `resolveRezept()` wird nicht mehr bei Zwischenwerten gerundet (`Math.round(*10)/10` entfernt) – volle Gleitkomma-Präzision bleibt erhalten bis zur Anzeige. `addRezeptMix()` addiert ebenfalls ohne Zwischenrundung.
 - **Statistik: Keine Parameter standardmäßig ausgewählt** (statistik.js): `_selected` startet als leeres Set statt `['temp_band','symptome']`. Nutzer wählt Parameter aktiv aus.
 - **Reaktionsscore: Verbessertes Futter-Text-Parsing** (statistik.js): Neue Funktion `_parseFutterNamen()` filtert Präfixe wie „Futter 1:", „Rezept:", Gewichtsangaben (100g, 1,5kg), Prozentangaben und Klammer-Inhalte heraus. Nur Tokens ≥ 2 Zeichen ohne reine Zahlen werden als Zutatenname gewertet.
