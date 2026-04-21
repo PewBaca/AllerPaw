@@ -330,10 +330,13 @@ export function addIngredient() {
   sel.value = '';
 }
 
-export function updateGrams(i, val) {
+export function updateGrams(i, val, tabletteGewicht = 0) {
   if (!currentRecipe) return;
-  currentRecipe.ingredients[i].grams = parseFloat(val) || 0;
-  if (baseIngredients[i]) baseIngredients[i] = { ...currentRecipe.ingredients[i], grams: (parseFloat(val) || 0) / scaleFactor };
+  const raw = parseFloat(String(val).replace(',','.')) || 0;
+  // Wenn Tablette: Anzahl × Tablettengewicht = Gramm
+  const grams = tabletteGewicht > 0 ? raw * tabletteGewicht : raw;
+  currentRecipe.ingredients[i].grams = grams;
+  if (baseIngredients[i]) baseIngredients[i] = { ...currentRecipe.ingredients[i], grams: grams / scaleFactor };
   recalc();
 }
 
@@ -360,14 +363,31 @@ function renderIngredients() {
     return;
   }
   list.innerHTML = currentRecipe.ingredients.map((ing, i) => {
-    const zutat = getZutaten().find(z => z.zutaten_id === ing.zutaten_id) || {};
+    const zutat   = getZutaten().find(z => z.zutaten_id === ing.zutaten_id) || {};
+    const tabG    = zutat.gewicht_pro_tablette || 0;
+    const isTabl  = tabG > 0;
+    const anzahl  = isTabl ? Math.round(ing.grams / tabG * 100) / 100 : Math.round(ing.grams * 10) / 10;
+    const stepVal = isTabl ? '0.25' : '0.1';
+    const unitLbl = isTabl
+      ? `<span style="font-size:10px;color:var(--c2);font-weight:700">Tabl.</span>`
+      : '';
+    const subLbl  = isTabl
+      ? `<div style="font-size:9px;color:var(--sub);text-align:center">${(anzahl * tabG).toFixed(2)}g</div>`
+      : '';
     return `<div class="fr-ing-row">
       <div class="ing-name">
         ${esc(ing.name)}
         <small>${zutat.kategorie ? `<span class="kat-badge">${esc(zutat.kategorie)}</span>` : ''}</small>
       </div>
-      <input type="number" value="${Math.round(ing.grams*10)/10}" min="0" step="0.1" inputmode="decimal"
-        onchange="RECHNER.updateGrams(${i},this.value)">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="display:flex;align-items:center;gap:3px">
+          <input type="number" value="${anzahl}" min="0" step="${stepVal}" inputmode="decimal"
+            style="width:70px"
+            onchange="RECHNER.updateGrams(${i}, this.value, ${tabG})">
+          ${unitLbl}
+        </div>
+        ${subLbl}
+      </div>
       <div style="display:flex;align-items:center;justify-content:center;gap:4px">
         <button class="cooked-toggle${ing.cooked ? ' on' : ''}"
           onclick="RECHNER.toggleCooked(${i})" title="${ing.cooked ? 'Gekocht' : 'Roh'}"></button>

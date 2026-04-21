@@ -29,11 +29,19 @@ const UNIT_OPTIONS = ['g','mg','µg','IE','kcal'];
 
 /** Alle wählbaren Bezugsmengen */
 const PER_OPTIONS  = [
-  { label:'/ 100g', factor: 1      },
-  { label:'/ 1kg',  factor: 0.1    },  // ÷10 = pro 100g
-  { label:'/ 1g',   factor: 100    },  // ×100 = pro 100g
-  { label:'/ 1000g',factor: 0.1    },  // gleiches wie /kg
+  { label:'/ 100g',    factor: 1,      tabletteMode: false },
+  { label:'/ 1kg',     factor: 0.1,    tabletteMode: false },
+  { label:'/ 1g',      factor: 100,    tabletteMode: false },
+  { label:'/ 1000g',   factor: 0.1,    tabletteMode: false },
+  { label:'/ Tablette',factor: 'tabl', tabletteMode: true  },
 ];
+
+/** Berechnet perFactor für "pro Tablette" auf Basis des Tablettengewichts */
+function _tablettePerFactor(gewichtProTabl) {
+  // Nährwert pro Tablette → pro 100g: ÷ (gewicht_g / 100)
+  if (!gewichtProTabl || gewichtProTabl <= 0) return 0;
+  return 100 / gewichtProTabl;
+}
 
 /**
  * Konvertiert einen eingegebenen Wert in die App-Standardeinheit pro 100g.
@@ -43,24 +51,73 @@ const PER_OPTIONS  = [
  * @param {number} perFactor  - Faktor aus PER_OPTIONS (z.B. 0.1 für /kg)
  * @returns {number} Konvertierter Wert pro 100g in targetUnit
  */
-function _convertNutr(wert, inputUnit, targetUnit, perFactor) {
+/**
+ * IE-Konversionsfaktoren (WHO/NIH-Standard):
+ * Schlüssel: Nährstoffname (oder Alias) → { mgPerIE, µgPerIE }
+ * mgPerIE:  Wie viele mg entsprechen 1 IE
+ * µgPerIE:  Wie viele µg entsprechen 1 IE
+ */
+const IE_FACTORS = {
+  // Vitamin A (Retinol): 1 IE = 0.3 µg Retinol (WHO)
+  'Vitamin A':    { µgPerIE: 0.3,     mgPerIE: 0.0003   },
+  // Vitamin D3 (Cholecalciferol): 1 IE = 0.025 µg (WHO)
+  'Vitamin D':    { µgPerIE: 0.025,   mgPerIE: 0.000025 },
+  'Vitamin D3':   { µgPerIE: 0.025,   mgPerIE: 0.000025 },
+  'Vitamin D2':   { µgPerIE: 0.025,   mgPerIE: 0.000025 },
+  // Vitamin E (d-alpha-Tocopherol, natürlich): 1 IE = 0.67 mg (WHO)
+  'Vitamin E':    { µgPerIE: 670,     mgPerIE: 0.67     },
+  'Vitamin E (a-Tocopherol)': { µgPerIE: 670, mgPerIE: 0.67 },
+};
+
+/**
+ * Konvertiert einen eingegebenen Wert in die App-Standardeinheit pro 100g.
+ * @param {number} wert        - Eingegebener Wert
+ * @param {string} inputUnit   - Eingegebene Einheit (z.B. "mg")
+ * @param {string} targetUnit  - App-Zieleinheit (z.B. "IE")
+ * @param {number} perFactor   - Bezugsfaktor (pro 100g = 1, pro kg = 0.1, 'tabl' = extern)
+ * @param {string} nutrName    - Nährstoffname (für IE-Konvertierung)
+ */
+function _convertNutr(wert, inputUnit, targetUnit, perFactor, nutrName='') {
   if (!wert || isNaN(wert)) return 0;
+  if (perFactor === 'tabl' || isNaN(perFactor)) return 0;
 
   // Schritt 1: Bezugsmenge auf 100g normieren
   let val = wert * perFactor;
 
-  // Schritt 2: Einheit konvertieren (zu Basiseinheit g)
-  const toBase = { 'g': 1, 'mg': 1e-3, 'µg': 1e-6, 'IE': 1, 'kcal': 1 };
-  const fromBase = { 'g': 1, 'mg': 1e3, 'µg': 1e6, 'IE': 1, 'kcal': 1 };
-
-  const fromFactor = toBase[inputUnit]  ?? 1;
-  const toFactor   = fromBase[targetUnit] ?? 1;
-
-  // IE → IE und kcal → kcal direkt (keine echte Konvertierung möglich)
-  if (inputUnit === 'IE' || targetUnit === 'IE') return val;
+  // kcal: keine Konvertierung nötig
   if (inputUnit === 'kcal' || targetUnit === 'kcal') return val;
 
-  return val * fromFactor * toFactor;
+  // IE-Konvertierung (substanzspezifisch)
+  if (inputUnit === 'IE' || targetUnit === 'IE') {
+    const factors = IE_FACTORS[nutrName] || IE_FACTORS[nutrName.replace(/\s*\(.*?\)/g,'').trim()];
+
+    if (!factors) {
+      // Kein bekannter IE-Faktor → 1:1 (keine Konvertierung, Nutzer trägt direkt IE ein)
+      return val;
+    }
+
+    if (inputUnit === 'IE' && targetUnit === 'IE') return val; // IE→IE: noop
+
+    if (inputUnit !== 'IE' && targetUnit === 'IE') {
+      // mg/µg → IE
+      const mgVal = inputUnit === 'mg' ? val : inputUnit === 'µg' ? val * 1e-3 : val;
+      return mgVal / factors.mgPerIE;
+    }
+
+    if (inputUnit === 'IE' && targetUnit !== 'IE') {
+      // IE → mg/µg
+      if (targetUnit === 'µg') return val * factors.µgPerIE;
+      if (targetUnit === 'mg') return val * factors.mgPerIE;
+      if (targetUnit === 'g')  return val * factors.mgPerIE * 1e-3;
+    }
+
+    return val; // Fallback
+  }
+
+  // Standard mg/µg/g Konvertierung
+  const toBase   = { 'g': 1, 'mg': 1e-3, 'µg': 1e-6 };
+  const fromBase = { 'g': 1, 'mg': 1e3,  'µg': 1e6  };
+  return val * (toBase[inputUnit] ?? 1) * (fromBase[targetUnit] ?? 1);
 }
 
 /** Formatiert einen Wert für die Anzeige im Eingabefeld (max. 6 Dezimalen) */
@@ -400,6 +457,21 @@ export function showZutatModal(zutatId) {
         <option value="ja"   ${(z.aktiv || 'ja') === 'ja'   ? 'selected' : ''}>✅ Aktiv</option>
         <option value="nein" ${z.aktiv === 'nein'            ? 'selected' : ''}>🚫 Inaktiv</option>
       </select></div>
+    <div class="field">
+      <label>💊 Gewicht pro Tablette (g)
+        <span style="font-size:10px;color:var(--sub);font-weight:400"> – leer lassen wenn keine Tablette</span>
+      </label>
+      <input type="number" id="zutat-tabl-gewicht"
+        value="${esc(String(z.gewicht_pro_tablette > 0 ? z.gewicht_pro_tablette : ''))}"
+        placeholder="z.B. 0.5 (= 500mg Tablette)"
+        min="0" step="0.001"
+        style="text-align:center"
+        oninput="document.querySelectorAll('[id^=nutr-per-]').forEach(sel=>{if(sel.value==='tabl'){const id=sel.id.replace('nutr-per-','');STAMMDATEN._updateNutrConverted(parseInt(id));}})">
+      <div style="font-size:11px;color:var(--sub);margin-top:3px">
+        Wenn definiert: Im Futterrechner wird die Menge in Tabletten statt Gramm eingegeben.
+        Nährwert-Eingabe „pro Tablette" wird dann automatisch auf /100g umgerechnet.
+      </div>
+    </div>
 
     <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;
@@ -846,17 +918,21 @@ export async function saveZutat(existingId) {
       const idx  = rows.findIndex(r => String(r[0]).trim() === String(existingId));
       if (idx < 0) throw new Error('Zutat ' + existingId + ' nicht gefunden.');
       // Spalten A–E überschreiben; Spalten F–H (created_at, deleted, deleted_at) bleiben unberührt
+      const tabGram = parseFloat(document.getElementById('zutat-tabl-gewicht')?.value || '0') || 0;
       await writeRange('Zutaten', `A${idx + 1}:E${idx + 1}`,
         [[existingId, name, hersteller, kategorie, aktiv]], sid);
+      // Tablettengewicht in Spalte I
+      await writeRange('Zutaten', `I${idx + 1}`, [[tabGram || '']], sid);
       // Cache aktualisieren
       const z = getZutaten().find(x => x.zutaten_id === existingId);
-      if (z) Object.assign(z, { name, hersteller, kategorie, aktiv });
+      if (z) Object.assign(z, { name, hersteller, kategorie, aktiv, gewicht_pro_tablette: tabGram });
     } else {
       // Neue Zutat anlegen
       const zutaten = getZutaten();
       newId = Math.max(0, ...zutaten.map(z => z.zutaten_id)) + 1;
       const now = new Date().toISOString().slice(0, 19);
-      await appendRow('Zutaten', [newId, name, hersteller, kategorie, aktiv, now, 'FALSE', ''], sid);
+      const tabGramNew = parseFloat(document.getElementById('zutat-tabl-gewicht')?.value || '0') || 0;
+      await appendRow('Zutaten', [newId, name, hersteller, kategorie, aktiv, now, 'FALSE', '', tabGramNew || ''], sid);
       addZutat({ zutaten_id: newId, name, hersteller, kategorie, aktiv });
     }
 
@@ -886,12 +962,30 @@ export function _updateNutrConverted(nutrId) {
 
   const raw        = parseFloat(String(inp.value).replace(',','.'));
   const inputUnit  = unitSel.value;
-  const perFactor  = parseFloat(perSel.value);
+  const perRaw     = perSel.value;
   const targetUnit = inp.dataset.targetUnit || 'g';
+  const zutatId    = parseInt(inp.dataset.zutatId || '0');
 
   if (!raw || isNaN(raw)) { convEl.textContent = ''; return; }
 
-  const converted  = _convertNutr(raw, inputUnit, targetUnit, perFactor);
+  if (perRaw === 'tabl') {
+    // Tablettengewicht aus der aktuell bearbeiteten Zutat lesen
+    const tabGEl = document.getElementById('zutat-tabl-gewicht');
+    const tabG   = parseFloat(tabGEl?.value || '0');
+    if (!tabG || tabG <= 0) {
+      convEl.textContent = '⚠️ Bitte zuerst Tablettengewicht eintragen';
+      convEl.style.color = 'var(--bar-low)';
+      return;
+    }
+    const pf       = _tablettePerFactor(tabG);
+    const converted = _convertNutr(raw, inputUnit, targetUnit, pf, inp.dataset.nutrName || '');
+    convEl.textContent = `→ ${_fmtNutr(converted)} ${targetUnit}/100g (1 Tabl. = ${tabG}g)`;
+    convEl.style.color = 'var(--c2)';
+    return;
+  }
+
+  const perFactor  = parseFloat(perRaw);
+  const converted  = _convertNutr(raw, inputUnit, targetUnit, perFactor, inp.dataset.nutrName || '');
   const fmtConv    = _fmtNutr(converted);
 
   if (inputUnit === targetUnit && perFactor === 1) {
@@ -923,9 +1017,19 @@ async function _saveZutatNaehrstoffe(zutatId, sid) {
     const nutrName   = inp.dataset.nutrName || '';
     const targetUnit = inp.dataset.targetUnit || 'g';
     const inputUnit  = document.getElementById(`nutr-unit-${nutrId}`)?.value || targetUnit;
-    const perFactor  = parseFloat(document.getElementById(`nutr-per-${nutrId}`)?.value || '1');
+    const perRawSave = document.getElementById(`nutr-per-${nutrId}`)?.value || '1';
+
+    // Tabletten-Modus: perFactor aus Tablettengewicht berechnen
+    let perFactorSave;
+    if (perRawSave === 'tabl') {
+      const tabG = parseFloat(document.getElementById('zutat-tabl-gewicht')?.value || '0') || 0;
+      perFactorSave = tabG > 0 ? _tablettePerFactor(tabG) : 0;
+    } else {
+      perFactorSave = parseFloat(perRawSave) || 1;
+    }
+
     // Konvertieren in App-Standardeinheit pro 100g
-    const wert       = _convertNutr(rawVal, inputUnit, targetUnit, perFactor);
+    const wert = _convertNutr(rawVal, inputUnit, targetUnit, perFactorSave, nutrName);
     if (isNaN(wert) || wert < 0) continue;
 
     // Vorhandene Zeile suchen (zutaten_id + naehrstoff_id)
