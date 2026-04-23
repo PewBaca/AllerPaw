@@ -1,117 +1,123 @@
-# CLAUDE.md
+# CLAUDE.md – AllerPaw Android
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guidelines für alle Code-Sessions in diesem Projekt.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+**Tradeoff:** Diese Richtlinien bevorzugen Sorgfalt gegenüber Geschwindigkeit. Bei trivialen Aufgaben nach eigenem Ermessen handeln.
 
-## 1. Think Before Coding
+## 1. Vor dem Coden nachdenken
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+**Nicht raten. Unklarheiten benennen. Tradeoffs aufzeigen.**
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+Vor der Implementierung:
+- Annahmen explizit benennen. Bei Unsicherheit nachfragen.
+- Wenn mehrere Interpretationen möglich sind, alle nennen — nicht still eine wählen.
+- Wenn ein einfacherer Ansatz existiert, diesen nennen und begründen.
+- Wenn etwas unklar ist: stoppen, benennen, fragen.
 
-## 2. Simplicity First
+## 2. Einfachheit zuerst
 
-**Minimum code that solves the problem. Nothing speculative.**
+**Minimaler Code, der das Problem löst. Nichts Spekulatives.**
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+- Keine Features über das Verlangte hinaus.
+- Keine Abstraktionen für einmalig genutzten Code.
+- Keine „Flexibilität", die nicht verlangt wurde.
+- Keine Fehlerbehandlung für unmögliche Szenarien.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+Frage: „Würde ein erfahrener Android-Entwickler das als überkomplex einschätzen?" — Wenn ja: vereinfachen.
 
-## 3. Surgical Changes
+## 3. Chirurgische Änderungen
 
-**Touch only what you must. Clean up only your own mess.**
+**Nur das Notwendige anfassen.**
 
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+- Keinen angrenzenden Code „verbessern".
+- Kein Refactoring nicht-defekter Stellen.
+- Vorhandenen Stil beibehalten.
+- Ungenutzten Code durch eigene Änderungen bereinigen; vorhandenen toten Code nur auf Anfrage entfernen.
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+## 4. Zielorientierte Ausführung
 
-The test: Every changed line should trace directly to the user's request.
+**Erfolgskriterien definieren. Verifizieren.**
 
-## 4. Goal-Driven Execution
+Aufgaben in prüfbare Ziele übersetzen:
+- „Validierung hinzufügen" → „Tests für ungültige Inputs schreiben, dann grün machen"
+- „Bug fixen" → „Test schreiben der den Bug reproduziert, dann grün machen"
 
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
+Bei Mehrschritt-Aufgaben kurzen Plan benennen:
 ```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+1. [Schritt] → verify: [Prüfung]
+2. [Schritt] → verify: [Prüfung]
 ```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-
-## Instruktionen für Claude bei jedem Code-Update
-
-> Diese Regeln gelten für **jede** Session in der Code-Änderungen vorgenommen werden.
-
 ## 5. ✅ Pflicht nach jeder Änderung
 
-1. **App-Info in `index.html` aktualisieren:**
-   - Versionsnummer im HTML-Header-Kommentar (Zeile ~5: `Version X.Y.Z | ES Modules | …`)
-   - Versionsnummer + Feature-Zeilen in der `ℹ️ App-Info`-Box im Einstellungen-Panel
-   - Neue Hauptfeatures knapp in der App-Info-Box ergänzen (max. 5 Zeilen)
+### App-Info aktualisieren
 
-2. **PROJECT.md aktualisieren:**
-   - Versionsnummer erhöhen 
-   - Project.md immer aktualisieren
-   - Datum auf aktuelles Datum setzen
-   - Modul-Beschreibung in der Dateistruktur anpassen
-   - UI-Struktur aktualisieren falls sich Panels/Tabs ändern
-   - Implementierungsstand: neue Version als Block `**vX.X:**` mit Bullet-Points hinzufügen
-   - „Wichtige Hinweise für neue Prompts" aktualisieren
-    
+In `build.gradle.kts`:
+- `versionName` erhöhen
+- `versionCode` inkrementieren
 
-2. **FEATURE.md aktualisieren:**
-   - Neue Features in der passenden Kategorie ergänzen
-   - Feature.md aktualiseren
-   - Geänderte Features anpassen (z.B. Label-Änderungen, Verhalten)
-   - Frage nach bevor Entfernte Features aus der Liste streichen
-   - Versuche immer features zu erhalten wenn diese nicht explizit gestrichen wurden
+In der About-/Einstellungs-Ansicht (Compose):
+- Versionsnummer aktualisieren
+- Neue Hauptfeatures knapp ergänzen (max. 5 Zeilen)
 
-3. **FAQ.md aktualisieren:**
-   - Neue FAQs für neue Features hinzufügen
-   - Antworten auf bestehende Fragen anpassen wenn sich Verhalten ändert
-   - Neue Fehlerfälle oder typische Nutzer-Fragen ergänzen
+### PROJECT.md aktualisieren
 
-4. **Sheet-Änderungen melden:**
-   - Wenn neue Spalten, Sheets oder Spalten-Reihenfolgen geändert werden → explizit im Chat mitteilen mit genauer Anleitung was in Google Sheets manuell geändert werden muss
+- Versionsnummer erhöhen
+- Datum auf aktuelles Datum setzen
+- Modulstruktur anpassen falls neue Dateien hinzukommen
+- Implementierungsstand: neue Version als Block `**vX.X:**` mit Bullet-Points ergänzen
+- „Wichtige Hinweise für neue Prompts" aktualisieren
 
-5. **Änderungsübersicht auf Englisch im Chat:**
-   - Nach jeder Änderungssession eine kompakte Übersicht **auf Englisch** posten:
-   ```
-   ## Changes in vX.X
-   **Modified:** [file] – [what changed]
-   **Added:** [file/feature] – [description]
-   **Removed:** [feature] – [reason]
-   **Sheet changes required:** [yes/no + details]
-   ```
+### FEATURE.md aktualisieren
 
- 6. **Validation.md aktualisieren:**
-  **Alte Validierungen nicht löschen
-  **prüfen ob neue Validierungen und Evaluierungen erforderlich sind
+- Neue Features in der passenden Kategorie ergänzen
+- Geänderte Features anpassen (Label-Änderungen, Verhalten)
+- Vor dem Entfernen eines Features nachfragen
+- Features möglichst erhalten, wenn nicht explizit gestrichen
 
+### FAQ.md aktualisieren
 
+- Neue FAQs für neue Features hinzufügen
+- Bestehende Antworten anpassen wenn sich Verhalten ändert
+- Neue Fehlerfälle oder typische Nutzer-Fragen ergänzen
+
+### Sheet-Änderungen melden
+
+Wenn neue Spalten, Sheets oder Spalten-Reihenfolgen geändert werden → explizit im Chat mitteilen mit genauer Anleitung, was in Google Sheets manuell geändert werden muss.
+
+### MIGRATION.md aktualisieren
+
+- Abgehakte Punkte (`[x]`) bei abgeschlossenen Schritten setzen
+- Neue Risiken oder Erkenntnisse in der Risikotabelle ergänzen
+
+### Änderungsübersicht auf Englisch im Chat
+
+Nach jeder Änderungs-Session eine kompakte Übersicht posten:
+
+```
+## Changes in vX.X
+**Modified:** [file] – [what changed]
+**Added:** [file/feature] – [description]
+**Removed:** [feature] – [reason]
+**Sheet changes required:** [yes/no + details]
+**Migration checklist:** [items checked off]
+```
+
+### VALIDATION.md aktualisieren
+
+- Alte Validierungen nicht löschen
+- Prüfen ob neue Testszenarien erforderlich sind
+
+---
+
+## Android-spezifische Regeln
+
+- **Kein `runBlocking` im Main Thread** — nur `viewModelScope.launch` oder `lifecycleScope`
+- **FloatParser.kt verwenden** für alle Dezimalzahlen aus Sheets (Komma-Dezimaltrenner!)
+- **Soft-Delete immer** — nie Zeilen in Sheets löschen; `deleted = TRUE` setzen
+- **Neue Spalten ans Ende** — Spaltenindex-basiertes Lesen darf nicht brechen
+- **Room-Cache TTL** prüfen bevor API-Call — kein unnötiger Netzwerkverkehr
+- **Compose State heben** — kein lokaler State in tiefen Composables wenn ViewModel-State ausreicht
+- **Hilt für DI** — kein manuelles Service Locator Pattern

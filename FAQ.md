@@ -1,6 +1,6 @@
-# Hund Manager – FAQ (v1.3.1)
+# AllerPaw – FAQ (v0.1)
 
-> Letzte Aktualisierung: 2026-04-04
+> Letzte Aktualisierung: 2026-04-23
 
 ---
 

@@ -1,15 +1,41 @@
-Allergy Diary
+# AllerPaw
 
-This is a small project to track allergy-related data for my dog. It’s basically a simple tool to read from and write to Google Spreadsheets in a more user-friendly way.
+**AllerPaw** is an Android app for managing the nutrition and health of dogs — with a focus on allergy tracking, BARF feeding, and symptom documentation.
 
-It also includes a food calculator. I am not a nutritionist, but it can help you estimate food rations. The calculation approach has been reviewed and approved by a professional nutritionist (for a mostly healthy dog).
+It connects to your Google Spreadsheets as a database and runs entirely without a backend.
 
-Please note: this tool will not warn you about mistakes you make. Nutrition isn’t rocket science, but errors can still happen.
+## What it does
 
-The app tracks pollen and weather data, and you can also monitor indoor temperature and relative humidity (relevant for mites).
+- Track allergy symptoms, food reactions, and environmental factors for your dog
+- Manage ingredients and calculate nutritional values across 39 NRC nutrients
+- Build and analyze BARF recipes with a food calculator
+- Log pollen levels, weather data, and indoor climate (relevant for mite allergies)
+- View statistics, correlations, and symptom patterns over time
+- Export vet reports as PDF
 
-Currently, it is only available in German and lacks many features you would expect from more advanced software.
+## Status
 
-I am not a programmer, so this project was mostly “vibe coding” with the help of AI.
+> Version 0.1 — Android migration in progress  
+> Previously a web app (GitHub Pages + Vanilla JS); now being rebuilt as a native Android app.
 
-So what it does is index.html is a website which connects to your google spreadsheets. These need to be set up. 
+## Tech Stack (Target)
+
+| Area | Technology |
+|------|-----------|
+| Platform | Android (API 26+) |
+| Language | Kotlin |
+| UI | Jetpack Compose |
+| Database backend | Google Sheets API v4 (REST) |
+| Auth | Google OAuth2 |
+| Charts | MPAndroidChart or Vico |
+| Offline storage | Room (local cache) |
+
+## Note
+
+This project started as "vibe coding" with AI assistance — not developed by a professional programmer. The food calculator's approach has been reviewed and approved by a nutritionist (for generally healthy dogs). The app will not warn you about every possible mistake.
+
+Currently German-language only.
+
+## GitHub
+
+Hosted on GitHub. Releases are published as APKs.
