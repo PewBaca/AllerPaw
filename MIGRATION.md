@@ -52,6 +52,13 @@ Der Google-Sheets-basierte Datenspeicher ist **ein bewusster Beibehalt**: Besteh
 - [ ] Verbindungstest-Screen (ersetzt Einstellungs-Verbindungstest)
 - [ ] Einstellungs-Screen: Spreadsheet-IDs, Standort, DWD-Region, USDA-Key
 - [ ] Lokale Persistenz der Einstellungen via DataStore (ersetzt `localStorage`)
+- [ ] Datenbank Es soll eine seperate Datenbank für Futtermittel und Nährwerte geben
+- [ ] Es soll einer weitere Datenbank für Rezepte geben
+- [ ] Ziel der seperaten Datenbanken Nutzer sollen diese Datenbank pflegen und teilen können (import und export Funktion) Weiterhin Kauf von fertigen Datenbanken oder Rezepten.
+- [ ] Prüfe optionen zur Monetarisierung 1. Werbung bei Login optional aktivierbar, 2. Spende
+- [ ] Prüfe ob NRC Daten / Empfehlungen für junge Hund und Senioren vorhanden sind.
+- [ ] Jeder Nährwert, Futtermittel soll mit Hinweisen versehen werden können. Das gleiche gilt für Statistiken, Allergien und andere Funktionen. Diese sollen Mehrsprachig gewechselt werden können.
+- [ ] Beim ersten Login soll die Sprache gewählt werden können.  
 
 **Verify:** Login → Einstellungen → Verbindungstest → erste Sheet-Daten sichtbar
 
@@ -87,6 +94,7 @@ Der Google-Sheets-basierte Datenspeicher ist **ein bewusster Beibehalt**: Besteh
 - [ ] Nährstoff-Detail-Popup (NRC / AAFCO / FEDIAF)
 - [ ] Rezept-Vergleich A vs. B (Delta-Spalte)
 - [ ] Soft-Delete Rezepte + Undo
+- [ ] Standard Werte pro 100g Optiponal auch auswählbar pro Tablette als Einheit 
 
 **Verify:** Rezept erstellen → Nährstoffe korrekt → Mix testen → Vergleich prüfen
 
@@ -172,6 +180,7 @@ Der Google-Sheets-basierte Datenspeicher ist **ein bewusster Beibehalt**: Besteh
 - [ ] GitHub Actions: APK-Build bei Push auf `main`
 - [ ] ProGuard / R8 konfigurieren
 - [ ] Erste öffentliche Beta (GitHub Releases)
+- [ ] Sprachen sollen leicht hinzugefügt werden und leicht zu pflegen sein.
 
 ---
 
@@ -187,7 +196,7 @@ Die Google-Sheets-Struktur bleibt **unverändert**. Alle Konventionen aus der We
 - Spalten werden per Positionsindex gelesen (nicht per Name)
 - Soft-Delete: `deleted = TRUE`, `deleted_at = ISO 8601`
 
-Bestehende Spreadsheets von Web-App-Nutzern sind **ohne Anpassung** kompatibel.
+Bestehende Spreadsheets von Web-App-Nutzern sind **ohne Anpassung** kompatibel. Import Funktion soll vorhanden sein. 
 
 ---
 
