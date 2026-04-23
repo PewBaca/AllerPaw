@@ -132,8 +132,13 @@ export async function loadAll() {
 
   // ── Zutaten ───────────────────────────────────────────────────
   zutaten = parseRows(rZutaten,
-    ['zutaten_id','name','hersteller','kategorie','aktiv'], 2)
-    .map(r => ({ ...r, zutaten_id: parseInt(r.zutaten_id) || 0 }))
+    ['zutaten_id','name','hersteller','kategorie','aktiv',
+     'created_at','deleted','deleted_at','gewicht_pro_tablette'], 2)
+    .map(r => ({
+      ...r,
+      zutaten_id:           parseInt(r.zutaten_id) || 0,
+      gewicht_pro_tablette: _float(r.gewicht_pro_tablette) || 0,
+    }))
     .filter(r => r.name);
 
   // ── Zutaten × Nährstoffe ──────────────────────────────────────
