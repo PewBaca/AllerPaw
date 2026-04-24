@@ -4,6 +4,8 @@ Behavioral guidelines für alle Code-Sessions in diesem Projekt.
 
 **Tradeoff:** Diese Richtlinien bevorzugen Sorgfalt gegenüber Geschwindigkeit. Bei trivialen Aufgaben nach eigenem Ermessen handeln.
 
+### Lies alle md dateien im Info Ordner
+
 ## 1. Vor dem Coden nachdenken
 
 **Nicht raten. Unklarheiten benennen. Tradeoffs aufzeigen.**
