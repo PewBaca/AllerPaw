@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AllerPaw</string>
+    <string name="nav_tagebuch">Journal</string>
+    <string name="nav_rechner">Calculator</string>
+    <string name="nav_stammdaten">Dogs</string>
+    <string name="nav_statistik">Statistics</string>
+    <string name="nav_export">Export</string>
+</resources>
