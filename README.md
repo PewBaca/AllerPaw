@@ -1,41 +1,71 @@
 # AllerPaw
 
-**AllerPaw** is an Android app for managing the nutrition and health of dogs — with a focus on allergy tracking, BARF feeding, and symptom documentation.
+Native Android-App zur Ernährungs- und Allergieverwaltung für Hunde.
 
-It connects to your Google Spreadsheets as a database and runs entirely without a backend.
+> Version: 0.2.0 (Phase 1 abgeschlossen) · Stand: 2026-04-24
 
-## What it does
+---
 
-- Track allergy symptoms, food reactions, and environmental factors for your dog
-- Manage ingredients and calculate nutritional values across 39 NRC nutrients
-- Build and analyze BARF recipes with a food calculator
-- Log pollen levels, weather data, and indoor climate (relevant for mite allergies)
-- View statistics, correlations, and symptom patterns over time
-- Export vet reports as PDF
+## Features
 
-## Status
+- **Futterrechner** – NRC 2006 Nährstoffanalyse für 29+ Nährstoffe, RER/MER-Berechnung, Rezept-Mix
+- **Tagebuch** – 8 Tabs: Umwelt, Symptom, Futter, Ausschluss, Allergen, Tierarzt, Medikament, Phasen
+- **Ausschlussdiät-Phasentracker** – Elimination / Provokation / Ergebnis mit Fortschrittsbalken
+- **Statistik** – Konfigurierbarer Chart, Symptom-Heatmap, Korrelationsanalyse, Reaktionsscore
+- **Wetter & Pollen** – BrightSky (DWD) + Open-Meteo, 18 DWD-Regionen
+- **Export** – PDF-Tierarztbericht, CSV, SQLite-Backup, Google Sheets (optional)
+- **Mehrsprachig** – Deutsch + Englisch
+- **Offline-First** – Alle Kernfunktionen ohne Internet
 
-> Version 0.1 — Android migration in progress  
-> Previously a web app (GitHub Pages + Vanilla JS); now being rebuilt as a native Android app.
+---
 
-## Tech Stack (Target)
+## Tech-Stack
 
-| Area | Technology |
-|------|-----------|
-| Platform | Android (API 26+) |
-| Language | Kotlin |
-| UI | Jetpack Compose |
-| Database backend | Google Sheets API v4 (REST) |
-| Auth | Google OAuth2 |
-| Charts | MPAndroidChart or Vico |
-| Offline storage | Room (local cache) |
+| Bereich | Technologie |
+|---------|-------------|
+| Sprache | Kotlin |
+| UI | Jetpack Compose + Material You |
+| Datenbank | Room (SQLite) |
+| DI | Hilt |
+| Charts | Vico |
+| Async | Coroutines + Flow |
+| Min SDK | API 26 (Android 8.0) |
 
-## Note
+---
 
-This project started as "vibe coding" with AI assistance — not developed by a professional programmer. The food calculator's approach has been reviewed and approved by a nutritionist (for generally healthy dogs). The app will not warn you about every possible mistake.
+## Projekt öffnen
 
-Currently German-language only.
+1. ZIP entpacken
+2. In Android Studio öffnen (`File → Open → AllerPaw/`)
+3. Gradle sync abwarten
+4. Emulator starten oder Gerät verbinden
+5. Run ▶
 
-## GitHub
+---
 
-Hosted on GitHub. Releases are published as APKs.
+## Projektdokumentation
+
+| Datei | Inhalt |
+|-------|--------|
+| `PROJECT.md` | Architektur, Implementierungsstand, Konventionen |
+| `FEATURE.md` | Feature-Liste mit Implementierungsstatus |
+| `MIGRATION.md` | Phasenplan, Modul-Mapping JS → Kotlin |
+| `CODE_ANALYSIS.md` | Abgleich Web-App vs. Android, Korrekturen |
+| `VALIDATION.md` | Testplan je Phase |
+| `FAQ.md` | Häufige Fragen zu Implementierungsdetails |
+
+---
+
+## Implementierungsstand
+
+**Phase 1 ✅** – Projektgerüst, Room-DB (19 Entities), Hilt, Navigation, Hunde-CRUD, RER/MER-Rechner, NRC-Domänenlogik  
+**Phase 2 🔲** – Zutaten, Tagebuch vollständig  
+**Phase 3 🔲** – Rezept-Editor, Statistik  
+**Phase 4 🔲** – Wetter/Pollen, PDF-Export, Backup  
+**Phase 5 🔲** – Auth, i18n, Tests, Store-Release  
+
+---
+
+## Lizenz
+
+Privates Projekt – alle Rechte vorbehalten.
