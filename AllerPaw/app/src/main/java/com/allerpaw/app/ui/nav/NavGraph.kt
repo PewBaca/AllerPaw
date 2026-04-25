@@ -33,3 +33,7 @@ enum class BottomNavItem(
     STATISTIK(Screen.Statistik, com.allerpaw.app.R.string.nav_statistik, "BarChart"),
     EXPORT(Screen.Export, com.allerpaw.app.R.string.nav_export, "PictureAsPdf"),
 }
+
+// Phase 2 – Zutaten
+// Zutaten ist als eigener Screen unter Stammdaten erreichbar
+// Wird in Phase 3 in BottomNav integriert
