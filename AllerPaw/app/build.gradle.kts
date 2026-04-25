@@ -46,6 +46,9 @@ android {
 }
 
 dependencies {
+    // AppCompat (Pflicht für Theme.AppCompat in themes.xml)
+    implementation(libs.appcompat)
+
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

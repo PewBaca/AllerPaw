@@ -1,10 +1,13 @@
 package com.allerpaw.app.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,10 +31,22 @@ import com.allerpaw.app.ui.tagebuch.TagebuchScreen
 
 @Composable
 fun AllerPawApp() {
-    val navController = rememberNavController()
     val loginViewModel: LoginViewModel = hiltViewModel()
-    val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
 
+    // isLoggedIn startet als null (unbekannt) → zeigt Lade-Spinner
+    // verhindert kurzen schwarzen Screen oder falschen Login-Flash
+    val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
+    val isLoading  by loginViewModel.isLoading.collectAsState()
+
+    if (isLoading) {
+        // Splash-Ersatz: weißer Bildschirm während DataStore lädt (~50ms)
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val navController = rememberNavController()
     val startDestination = if (isLoggedIn) Screen.Tagebuch.route else Screen.Login.route
 
     val bottomNavItems = listOf(
@@ -59,7 +74,8 @@ fun AllerPawApp() {
                                 )
                             },
                             label = { Text(stringResource(item.labelRes)) },
-                            selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true,
+                            selected = currentDestination?.hierarchy
+                                ?.any { it.route == item.screen.route } == true,
                             onClick = {
                                 navController.navigate(item.screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -76,13 +92,13 @@ fun AllerPawApp() {
         }
     ) { innerPadding ->
         NavHost(
-            navController = navController,
+            navController    = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding)
+            modifier         = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(
-                    viewModel = loginViewModel,
+                    viewModel    = loginViewModel,
                     onLoginSuccess = {
                         navController.navigate(Screen.Tagebuch.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
@@ -91,32 +107,26 @@ fun AllerPawApp() {
                 )
             }
             composable(Screen.Tagebuch.route) {
-                TagebuchScreen(onNavigateToSettings = { navController.navigate(Screen.Settings.route) })
+                TagebuchScreen(onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
+                })
             }
-            composable(Screen.Rechner.route) {
-                RechnerScreen()
-            }
-            composable(Screen.Stammdaten.route) {
-                StammdatenScreen()
-            }
-            composable(Screen.Statistik.route) {
-                StatistikScreen()
-            }
-            composable(Screen.Export.route) {
-                ExportScreen()
-            }
-            composable(Screen.Settings.route) {
+            composable(Screen.Rechner.route)   { RechnerScreen() }
+            composable(Screen.Stammdaten.route) { StammdatenScreen() }
+            composable(Screen.Statistik.route)  { StatistikScreen() }
+            composable(Screen.Export.route)     { ExportScreen() }
+            composable(Screen.Settings.route)   {
                 SettingsScreen(onNavigateUp = { navController.navigateUp() })
             }
         }
     }
 }
 
-/** Map BottomNavItem to Material icon */
+/** Map BottomNavItem → Material Icon */
 private fun BottomNavItem.icon() = when (this) {
-    BottomNavItem.TAGEBUCH    -> Icons.Default.Book
-    BottomNavItem.RECHNER     -> Icons.Default.Calculate
-    BottomNavItem.STAMMDATEN  -> Icons.Default.Pets
-    BottomNavItem.STATISTIK   -> Icons.Default.BarChart
-    BottomNavItem.EXPORT      -> Icons.Default.PictureAsPdf
+    BottomNavItem.TAGEBUCH   -> Icons.Default.Book
+    BottomNavItem.RECHNER    -> Icons.Default.Calculate
+    BottomNavItem.STAMMDATEN -> Icons.Default.Pets
+    BottomNavItem.STATISTIK  -> Icons.Default.BarChart
+    BottomNavItem.EXPORT     -> Icons.Default.PictureAsPdf
 }

@@ -1,7 +1,7 @@
 [versions]
-agp = "8.5.2"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.27"
+agp = "9.1.1"
+kotlin = "2.2.10"
+ksp = "2.3.2"
 hilt = "2.52"
 compose-bom = "2024.11.00"
 room = "2.6.1"
@@ -14,6 +14,7 @@ vico = "2.0.0-beta.3"
 moshi = "1.15.1"
 
 [libraries]
+appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.7.0" }
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.15.0" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version = "2.8.7" }

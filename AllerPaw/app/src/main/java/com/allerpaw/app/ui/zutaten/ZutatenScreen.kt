@@ -160,7 +160,7 @@ private fun ZutatCard(
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             title  = { Text("Zutat löschen?") },
-            text   = { Text("„${zutat.name}" wird gelöscht. Undo möglich.") },
+            text   = { Text("„${zutat.name}“ wird gelöscht. Undo möglich.") },
             confirmButton = {
                 TextButton(onClick = { showConfirm = false; onDelete() }) { Text("Löschen") }
             },
