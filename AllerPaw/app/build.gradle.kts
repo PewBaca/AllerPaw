@@ -1,7 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    // kotlin-android wird bei AGP 9.x automatisch eingebunden (Built-in Kotlin)
-    // Nur noch für Compose-Compiler-Plugin und Hilt nötig:
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
