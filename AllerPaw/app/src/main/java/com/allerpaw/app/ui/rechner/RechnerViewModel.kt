@@ -52,14 +52,13 @@ class RechnerViewModel @Inject constructor(
     private fun recalculate(hund: HundEntity, faktor: Float) {
         val rer = EnergieBedarf.rer(hund.gewichtKg)
         val mer = EnergieBedarf.mer(hund.gewichtKg, faktor.toDouble())
-        // TODO: Rezepte laden und echte Analyse fahren
         _state.update {
             it.copy(
                 selectedHundId    = hund.id,
                 aktivitaetsFaktor = faktor,
                 rerKcal           = rer,
                 merKcal           = mer,
-                ergebnisse        = emptyList()  // befüllt sobald Rezepte geladen
+                ergebnisse        = emptyList()
             )
         }
     }
