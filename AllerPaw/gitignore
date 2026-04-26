@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────
+# Android / Gradle Build-Artefakte
+# ─────────────────────────────────────────────
+build/
+.gradle/
+local.properties
+
+# ─────────────────────────────────────────────
+# Android Studio / IntelliJ IDE
+# ─────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Profiling / Debug
+*.hprof
+java_pid*.hprof
+
+# ─────────────────────────────────────────────
+# Keystore (NIEMALS committen!)
+# ─────────────────────────────────────────────
+*.jks
+*.keystore
+keystore.properties
+
+# ─────────────────────────────────────────────
+# Generierte KSP/Kotlin Dateien
+# ─────────────────────────────────────────────
+app/build/generated/
+app/build/tmp/
+app/build/intermediates/
+app/build/outputs/
+
+# ─────────────────────────────────────────────
+# Test-Ergebnisse
+# ─────────────────────────────────────────────
+app/build/reports/
+app/build/test-results/
+
+# ─────────────────────────────────────────────
+# Room Schema (einkommentieren wenn gewünscht)
+# ─────────────────────────────────────────────
+# app/schemas/
+
+# ─────────────────────────────────────────────
+# NDK & CMake
+# ─────────────────────────────────────────────
+.externalNativeBuild/
+cmake-build-debug/
+
+# ─────────────────────────────────────────────
+# Windows & macOS Systemdateien
+# ─────────────────────────────────────────────
+Thumbs.db
+Desktop.ini

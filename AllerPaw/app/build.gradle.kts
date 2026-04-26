@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -8,15 +7,14 @@ plugins {
 
 android {
     namespace = "com.allerpaw.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.allerpaw.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
-
+        targetSdk = 36
+        versionCode = 3
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -35,9 +33,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // AGP 9.x: kotlinOptions ist deprecated → kotlin.compilerOptions verwenden
+    // kotlinOptions { jvmTarget = "17" }  ← ENTFERNT
 
     buildFeatures {
         compose = true
@@ -45,7 +42,17 @@ android {
     }
 }
 
+// AGP 9.x: JVM-Target jetzt hier setzen statt in android { kotlinOptions {} }
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 dependencies {
+    // AppCompat (für Theme.AppCompat in themes.xml)
+    implementation(libs.appcompat)
+
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
