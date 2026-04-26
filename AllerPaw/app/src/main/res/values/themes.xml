@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AllerPaw" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Compose benötigt Theme.AppCompat oder MaterialComponents als Basis.
+        android:Theme.Material.Light führt zu schwarzem Bildschirm mit Compose.
+        windowIsTranslucent verhindert, dass die Activity schwarz bleibt
+        während Compose die Surface aufbaut.
+    -->
+    <style name="Theme.AllerPaw" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash-Theme: sofort sichtbar beim App-Start -->
+    <style name="Theme.AllerPaw.Splash" parent="Theme.AllerPaw">
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
 </resources>

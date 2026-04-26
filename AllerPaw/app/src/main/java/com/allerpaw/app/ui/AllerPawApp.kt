@@ -32,6 +32,9 @@ import com.allerpaw.app.ui.zutaten.ZutatenScreen
 @Composable
 fun AllerPawApp() {
     val loginViewModel: LoginViewModel = hiltViewModel()
+
+    // isLoggedIn startet als null (unbekannt) → zeigt Lade-Spinner
+    // verhindert kurzen schwarzen Screen oder falschen Login-Flash
     val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
     val isLoading  by loginViewModel.isLoading.collectAsState()
 
