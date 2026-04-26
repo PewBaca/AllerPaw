@@ -58,7 +58,7 @@ class ZutatenViewModel @Inject constructor(
 
     fun delete(id: Long, name: String) {
         viewModelScope.launch { repo.delete(id) }
-        undoManager.push(id, "„$name“ gelöscht")
+        undoManager.push(id, "„$name" gelöscht")
     }
 
     fun undoDelete(id: Long) = viewModelScope.launch {

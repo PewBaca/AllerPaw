@@ -3,6 +3,7 @@ package com.allerpaw.app.data.repository
 import com.allerpaw.app.data.local.dao.TagebuchDao
 import com.allerpaw.app.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -73,4 +74,20 @@ class TagebuchRepository @Inject constructor(private val dao: TagebuchDao) {
     suspend fun savePhase(e: AusschlussPhasEntity): Long =
         if (e.id == 0L) dao.insertPhase(e) else { dao.updatePhase(e); e.id }
     suspend fun deletePhase(id: Long) = dao.softDeletePhase(id)
+
+    // ── Statistik: Range-Abfragen ─────────────────────────────────────────
+    suspend fun symptomeRange(hundId: Long, von: LocalDate, bis: LocalDate) =
+        dao.getSymptomRange(hundId, von, bis)
+
+    suspend fun umweltRange(hundId: Long, von: LocalDate, bis: LocalDate) =
+        dao.getUmweltRange(hundId, von, bis)
+
+    suspend fun pollenRange(hundId: Long, von: LocalDate, bis: LocalDate) =
+        dao.getPollenRange(hundId, von, bis)
+
+    suspend fun phasenList(hundId: Long): List<AusschlussPhasEntity> =
+        dao.getPhasenForHund(hundId).first()
+
+    suspend fun allergenCount(hundId: Long): Int =
+        dao.getAllergenForHund(hundId).first().size
 }

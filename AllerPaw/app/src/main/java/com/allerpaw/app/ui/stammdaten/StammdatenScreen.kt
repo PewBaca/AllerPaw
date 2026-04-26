@@ -15,13 +15,23 @@ import com.allerpaw.app.data.local.entity.HundEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StammdatenScreen(vm: StammdatenViewModel = hiltViewModel()) {
+fun StammdatenScreen(
+    onNavigateToZutaten: () -> Unit = {},
+    vm: StammdatenViewModel = hiltViewModel()
+) {
     val hunde by vm.hunde.collectAsState()
     val editHund by vm.editHund.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Meine Hunde") })
+            TopAppBar(
+                title = { Text("Meine Hunde") },
+                actions = {
+                    IconButton(onClick = onNavigateToZutaten) {
+                        Icon(Icons.Default.SetMeal, "Zutaten")
+                    }
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = vm::editNew) {

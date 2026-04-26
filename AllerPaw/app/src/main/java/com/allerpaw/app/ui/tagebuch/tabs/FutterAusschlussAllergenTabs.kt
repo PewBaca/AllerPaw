@@ -74,10 +74,10 @@ private fun FutterEditDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Protokoll-Flags", style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FilterChip(erstgabe, { erstgabe = !erstgabe }, label = { Text("Erstgabe") })
-                    FilterChip(zweiWochen, { zweiWochen = !zweiWochen }, label = { Text("2-Wochen") })
-                    FilterChip(provokation, { provokation = !provokation }, label = { Text("Provokation") })
-                    FilterChip(reaktion, { reaktion = !reaktion }, label = { Text("Reaktion") })
+                    FilterChip(erstgabe, { erstgabe = it }, label = { Text("Erstgabe") })
+                    FilterChip(zweiWochen, { zweiWochen = it }, label = { Text("2-Wochen") })
+                    FilterChip(provokation, { provokation = it }, label = { Text("Provokation") })
+                    FilterChip(reaktion, { reaktion = it }, label = { Text("Reaktion") })
                 }
                 OutlinedTextField(freitext, { freitext = it },
                     label = { Text("Ergänzung / Freitext") },
