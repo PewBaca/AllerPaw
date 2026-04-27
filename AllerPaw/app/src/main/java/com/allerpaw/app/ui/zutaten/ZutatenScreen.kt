@@ -178,18 +178,24 @@ private fun ZutatEditDialog(
     onDismiss: () -> Unit,
     onSave: (ZutatEntity) -> Unit
 ) {
-    var name        by remember { mutableStateOf(zutat.name) }
-    var hersteller  by remember { mutableStateOf(zutat.hersteller) }
-    var kategorie   by remember { mutableStateOf(zutat.kategorie) }
-    var typ         by remember { mutableStateOf(zutat.typ) }
-    var perMode     by remember { mutableStateOf(zutat.perMode) }
-    var tabGewicht  by remember { mutableStateOf(
+    var name         by remember { mutableStateOf(zutat.name) }
+    var hersteller   by remember { mutableStateOf(zutat.hersteller) }
+    var kategorie    by remember { mutableStateOf(zutat.kategorie) }
+    var typ          by remember { mutableStateOf(zutat.typ) }
+    var perMode      by remember { mutableStateOf(zutat.perMode) }
+    var tabGewicht   by remember { mutableStateOf(
         if (zutat.tabletteGewichtG > 0) zutat.tabletteGewichtG.toString() else "") }
+    var tropfenG     by remember { mutableStateOf(
+        if (zutat.tropfenGewichtG > 0) zutat.tropfenGewichtG.toString() else "") }
+    var tropfenMl    by remember { mutableStateOf(
+        if (zutat.tropfenVolumenMl > 0) zutat.tropfenVolumenMl.toString() else "") }
     var vitaminEForm by remember { mutableStateOf(zutat.vitaminEForm) }
 
-    val perModes    = listOf("100g", "tablette", "tropfen", "pulver")
-    val vitEForms   = listOf("natuerlich", "synthetisch", "acetat_natuerlich", "acetat_synthetisch")
-    val vitELabels  = listOf("Natürlich", "Synthetisch", "Acetat natürlich", "Acetat synthetisch")
+    val perModes   = listOf("100g", "tablette", "tropfen", "pulver")
+    val perLabels  = listOf("pro 100 g", "Tabletten", "Tropfen", "Pulver (g)")
+    val vitEForms  = listOf("natuerlich", "synthetisch", "acetat_natuerlich", "acetat_synthetisch")
+    val vitELabels = listOf("Natürlich (d-Alpha)", "Synthetisch (dl-Alpha)",
+                            "Acetat natürlich", "Acetat synthetisch")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -214,9 +220,12 @@ private fun ZutatEditDialog(
                 // Per-Mode
                 Text("Eingabemodus", style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    perModes.forEach { m ->
-                        FilterChip(selected = perMode == m, onClick = { perMode = m },
-                            label = { Text(m) })
+                    perModes.forEachIndexed { i, m ->
+                        FilterChip(
+                            selected = perMode == m,
+                            onClick  = { perMode = m },
+                            label    = { Text(perLabels[i]) }
+                        )
                     }
                 }
 
@@ -224,8 +233,27 @@ private fun ZutatEditDialog(
                 if (perMode == "tablette") {
                     OutlinedTextField(
                         tabGewicht, { tabGewicht = it },
-                        label    = { Text("Gewicht je Tablette (g)") },
-                        modifier = Modifier.fillMaxWidth(),
+                        label      = { Text("Gewicht je Tablette (g) *") },
+                        supportingText = { Text("z.B. 0,5 für eine 500mg-Tablette") },
+                        modifier   = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                // Tropfen-Felder
+                if (perMode == "tropfen") {
+                    OutlinedTextField(
+                        tropfenG, { tropfenG = it },
+                        label      = { Text("Gewicht je Tropfen (g) *") },
+                        supportingText = { Text("z.B. 0,05 g pro Tropfen") },
+                        modifier   = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        tropfenMl, { tropfenMl = it },
+                        label      = { Text("Volumen je Tropfen (ml)") },
+                        supportingText = { Text("Optional, z.B. 0,05 ml") },
+                        modifier   = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                 }
@@ -251,13 +279,15 @@ private fun ZutatEditDialog(
                 enabled = name.isNotBlank(),
                 onClick = {
                     onSave(zutat.copy(
-                        name              = name.trim(),
-                        hersteller        = hersteller.trim(),
-                        kategorie         = kategorie.trim(),
-                        typ               = typ,
-                        perMode           = perMode,
-                        tabletteGewichtG  = tabGewicht.toDoubleOrNull() ?: 0.0,
-                        vitaminEForm      = vitaminEForm
+                        name               = name.trim(),
+                        hersteller         = hersteller.trim(),
+                        kategorie          = kategorie.trim(),
+                        typ                = typ,
+                        perMode            = perMode,
+                        tabletteGewichtG   = tabGewicht.toDoubleOrNull() ?: 0.0,
+                        tropfenGewichtG    = tropfenG.toDoubleOrNull() ?: 0.0,
+                        tropfenVolumenMl   = tropfenMl.toDoubleOrNull() ?: 0.0,
+                        vitaminEForm       = vitaminEForm
                     ))
                 }
             ) { Text("Speichern") }

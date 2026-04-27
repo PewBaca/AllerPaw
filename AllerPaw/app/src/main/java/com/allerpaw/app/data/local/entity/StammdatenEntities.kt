@@ -54,7 +54,7 @@ data class HundGewichtEntity(
 // ─────────────────────────────────────────────
 
 /**
- * perMode: "100g" | "1g" | "1kg" | "1000g" | "tablette" | "tropfen" | "pulver"
+ * perMode: "100g" | "1g" | "tablette" | "tropfen" | "pulver"
  * Alle Nährstoffe werden INTERN als Äquivalent pro 100g gespeichert.
  * vitaminEForm: "natuerlich" | "synthetisch" | "acetat_natuerlich" | "acetat_synthetisch"
  */
@@ -64,9 +64,14 @@ data class ZutatEntity(
     val name: String,
     val hersteller: String = "",
     val kategorie: String = "",
-    val typ: String = "lebensmittel",   // "lebensmittel" | "supplement"
+    val typ: String = "lebensmittel",       // "lebensmittel" | "supplement"
     val perMode: String = "100g",
-    val tabletteGewichtG: Double = 0.0, // Nur relevant wenn perMode == "tablette"
+    // Tablette
+    val tabletteGewichtG: Double = 0.0,     // Gewicht je Tablette in Gramm
+    // Tropfen
+    val tropfenGewichtG: Double = 0.0,      // Gewicht je Tropfen in Gramm (z.B. 0.05g)
+    val tropfenVolumenMl: Double = 0.0,     // Volumen je Tropfen in ml (z.B. 0.05ml)
+    // Pulver: Eingabe immer pro 100g → kein Extra-Feld nötig
     val vitaminEForm: String = "natuerlich",
     val aktiv: Boolean = true,
     val createdAt: Instant = Instant.now(),
@@ -149,10 +154,11 @@ data class RezeptEntity(
 data class RezeptZutatEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val rezeptId: Long,
-    val zutatId: Long? = null,       // null wenn subRezeptId gesetzt
-    val subRezeptId: Long? = null,   // null wenn zutatId gesetzt
-    val mengeG: Double,              // Bei Tabletten: Anzahl × tabletteGewicht
-    val anzahlTabletten: Double? = null, // Anzeige-Stückzahl
+    val zutatId: Long? = null,           // null wenn subRezeptId gesetzt
+    val subRezeptId: Long? = null,       // null wenn zutatId gesetzt
+    val mengeG: Double,                  // Immer in Gramm (Anzahl × Gewicht umgerechnet)
+    val anzahlTabletten: Double? = null, // Anzeige: Stückzahl Tabletten
+    val anzahlTropfen: Double? = null,   // Anzeige: Anzahl Tropfen
     val reihenfolge: Int = 0
 )
 

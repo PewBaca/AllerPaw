@@ -28,7 +28,7 @@ import com.allerpaw.app.data.local.entity.*
         AusschlussPhasEntity::class,
         EigenePollenartEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

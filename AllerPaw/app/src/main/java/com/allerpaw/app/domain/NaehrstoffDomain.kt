@@ -20,6 +20,9 @@ data class Naehrstoff(
 object NaehrstoffKatalog {
 
     val alle: List<Naehrstoff> = listOf(
+        // ── Energie ──────────────────────────────────────────────────────────
+        Naehrstoff("kcal",          "Energie",            "kcal","Energie",   0.0),  // Ist-Wert, kein Bedarf
+
         // ── Makronährstoffe ──────────────────────────────────────────────────
         Naehrstoff("protein",       "Protein",            "g",  "Makro",   45.0),
         Naehrstoff("fett",          "Fett",               "g",  "Makro",   13.75),

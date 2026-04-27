@@ -15,11 +15,23 @@ data class RezeptZutatDraft(
     val id: Long = 0,
     val zutatId: Long? = null,
     val zutatName: String = "",
+    val zutatPerMode: String = "100g",       // perMode der Zutat
+    val zutatTabGewichtG: Double = 0.0,      // Tablettengewicht in g
+    val zutatTropfenGewichtG: Double = 0.0,  // Tropfengewicht in g
     val subRezeptId: Long? = null,
     val subRezeptName: String = "",
-    val mengeG: Double = 0.0,
-    val anzahlTabletten: Double? = null
-)
+    val mengeG: Double = 0.0,                // Immer in Gramm intern
+    val anzahlTabletten: Double? = null,
+    val anzahlTropfen: Double? = null
+) {
+    /** Anzeige-String je nach perMode */
+    fun anzeigeText(): String = when (zutatPerMode) {
+        "tablette" -> "${anzahlTabletten ?: 0.0} Tbl. (${String.format("%.1f", mengeG)} g)"
+        "tropfen"  -> "${anzahlTropfen ?: 0.0} Tr. (${String.format("%.2f", mengeG)} g)"
+        "pulver"   -> "${String.format("%.1f", mengeG)} g"
+        else       -> "${String.format("%.1f", mengeG)} g"
+    }
+}
 
 data class RezeptEditorState(
     val hunde: List<HundEntity> = emptyList(),

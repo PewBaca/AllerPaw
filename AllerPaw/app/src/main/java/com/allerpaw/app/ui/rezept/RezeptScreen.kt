@@ -403,11 +403,39 @@ private fun ZutatPickerDialog(
     onAdd: (com.allerpaw.app.data.local.entity.ZutatEntity, Double) -> Unit
 ) {
     var selected by remember { mutableStateOf<com.allerpaw.app.data.local.entity.ZutatEntity?>(null) }
-    var menge    by remember { mutableStateOf("") }
+    var eingabe  by remember { mutableStateOf("") }
     var suche    by remember { mutableStateOf("") }
 
     val gefiltert = alleZutaten.filter {
         suche.isBlank() || it.name.contains(suche, ignoreCase = true)
+    }
+
+    // Label und Hinweistext je nach perMode der gewählten Zutat
+    val (eingabeLabel, eingabeHinweis, berechneG) = remember(selected) {
+        when (selected?.perMode) {
+            "tablette" -> Triple(
+                "Anzahl Tabletten",
+                "z.B. 0,5 = halbe Tablette · " +
+                "1 Tbl. = ${selected?.tabletteGewichtG ?: 0.0} g",
+                { anzahl: Double -> anzahl * (selected?.tabletteGewichtG ?: 0.0) }
+            )
+            "tropfen" -> Triple(
+                "Anzahl Tropfen",
+                "z.B. 5 Tropfen · " +
+                "1 Tropfen = ${selected?.tropfenGewichtG ?: 0.0} g",
+                { anzahl: Double -> anzahl * (selected?.tropfenGewichtG ?: 0.0) }
+            )
+            "pulver" -> Triple(
+                "Menge (g)",
+                "Pulver – Eingabe in Gramm",
+                { g: Double -> g }
+            )
+            else -> Triple(
+                "Menge (g)",
+                "Frischgewicht in Gramm",
+                { g: Double -> g }
+            )
+        }
     }
 
     AlertDialog(
@@ -415,8 +443,11 @@ private fun ZutatPickerDialog(
         title = { Text("Zutat wählen") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(suche, { suche = it }, label = { Text("Suchen…") },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(
+                    value = suche, onValueChange = { suche = it },
+                    label = { Text("Suchen…") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
+                )
                 LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
                     items(gefiltert, key = { it.id }) { zutat ->
                         Row(
@@ -427,29 +458,57 @@ private fun ZutatPickerDialog(
                         ) {
                             RadioButton(
                                 selected = selected?.id == zutat.id,
-                                onClick  = { selected = zutat }
+                                onClick  = { selected = zutat; eingabe = "" }
                             )
-                            Text(zutat.name, style = MaterialTheme.typography.bodyMedium)
+                            Column {
+                                Text(zutat.name, style = MaterialTheme.typography.bodyMedium)
+                                // Modus-Badge
+                                val modusLabel = when (zutat.perMode) {
+                                    "tablette" -> "Tablette · ${zutat.tabletteGewichtG} g/Stk"
+                                    "tropfen"  -> "Tropfen · ${zutat.tropfenGewichtG} g/Tr"
+                                    "pulver"   -> "Pulver"
+                                    else       -> "Lebensmittel"
+                                }
+                                Text(modusLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline)
+                            }
                         }
                     }
                 }
+
                 if (selected != null) {
                     OutlinedTextField(
-                        menge, { menge = it },
-                        label    = { Text("Menge (g)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        value         = eingabe,
+                        onValueChange = { eingabe = it },
+                        label         = { Text(eingabeLabel) },
+                        supportingText = { Text(eingabeHinweis) },
+                        modifier      = Modifier.fillMaxWidth(),
+                        singleLine    = true
                     )
+
+                    // Vorschau: berechnete Gramm
+                    val anzahl = com.allerpaw.app.util.FloatParser.parse(eingabe) ?: 0.0
+                    val gramm  = berechneG(anzahl)
+                    if (gramm > 0) {
+                        Text(
+                            "= ${String.format("%.2f", gramm)} g",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                enabled = selected != null && menge.toDoubleOrNull() != null,
+                enabled = selected != null &&
+                    (com.allerpaw.app.util.FloatParser.parse(eingabe) ?: 0.0) > 0,
                 onClick = {
-                    val z = selected ?: return@TextButton
-                    val g = menge.toDoubleOrNull() ?: return@TextButton
-                    onAdd(z, g)
+                    val z     = selected ?: return@TextButton
+                    val anzahl = com.allerpaw.app.util.FloatParser.parse(eingabe) ?: return@TextButton
+                    val gramm  = berechneG(anzahl)
+                    onAdd(z, gramm)
                 }
             ) { Text("Hinzufügen") }
         },
