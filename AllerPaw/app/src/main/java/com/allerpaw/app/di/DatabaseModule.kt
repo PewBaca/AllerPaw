@@ -27,4 +27,6 @@ object DatabaseModule {
     @Provides fun provideRezeptDao(db: AppDatabase): RezeptDao = db.rezeptDao()
     @Provides fun provideTagebuchDao(db: AppDatabase): TagebuchDao = db.tagebuchDao()
     @Provides fun provideParameterDao(db: AppDatabase): ParameterDao = db.parameterDao()
+    @Provides fun provideHundZustandDao(db: AppDatabase): HundZustandDao = db.hundZustandDao()
+    @Provides fun provideTaskDao(db: AppDatabase): TaskDao = db.taskDao()
 }

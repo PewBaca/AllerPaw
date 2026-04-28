@@ -159,6 +159,7 @@ data class RezeptZutatEntity(
     val mengeG: Double,                  // Immer in Gramm (Anzahl × Gewicht umgerechnet)
     val anzahlTabletten: Double? = null, // Anzeige: Stückzahl Tabletten
     val anzahlTropfen: Double? = null,   // Anzeige: Anzahl Tropfen
+    val inhaltsstoffeFreitext: String = "", // Freie Beschreibung der Inhaltsstoffe/Zusammensetzung
     val reihenfolge: Int = 0
 )
 

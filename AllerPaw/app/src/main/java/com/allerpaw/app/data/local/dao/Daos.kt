@@ -240,3 +240,60 @@ interface ParameterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(params: List<ParameterEntity>)
 }
+
+// ─────────────────────────────────────────────
+// HundZustandDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface HundZustandDao {
+    @Query("SELECT * FROM tagebuch_hund_zustand WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getForHund(hundId: Long): Flow<List<TagebuchHundZustandEntity>>
+
+    @Query("SELECT * FROM tagebuch_hund_zustand WHERE hundId = :hundId AND datum = :datum AND deleted = 0 LIMIT 1")
+    suspend fun getForDate(hundId: Long, datum: LocalDate): TagebuchHundZustandEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(e: TagebuchHundZustandEntity): Long
+
+    @Update
+    suspend fun update(e: TagebuchHundZustandEntity)
+
+    @Query("UPDATE tagebuch_hund_zustand SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+}
+
+// ─────────────────────────────────────────────
+// TaskDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks WHERE hundId = :hundId AND deleted = 0 AND aktiv = 1 ORDER BY titel ASC")
+    fun getActiveForHund(hundId: Long): Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM tasks WHERE deleted = 0 AND aktiv = 1 AND pushAktiv = 1")
+    suspend fun getAllWithPush(): List<TaskEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(task: TaskEntity): Long
+
+    @Update
+    suspend fun update(task: TaskEntity)
+
+    @Query("UPDATE tasks SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+
+    // Erledigungen
+    @Query("SELECT * FROM task_erledigungen WHERE taskId = :taskId ORDER BY datum DESC LIMIT 30")
+    suspend fun getErledigungenForTask(taskId: Long): List<TaskErledigung>
+
+    @Query("SELECT * FROM task_erledigungen WHERE taskId = :taskId AND datum = :datum LIMIT 1")
+    suspend fun getErledigung(taskId: Long, datum: LocalDate): TaskErledigung?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertErledigung(e: TaskErledigung): Long
+
+    @Query("SELECT * FROM task_erledigungen WHERE datum BETWEEN :von AND :bis ORDER BY datum DESC")
+    suspend fun getErledigungenRange(von: LocalDate, bis: LocalDate): List<TaskErledigung>
+}

@@ -27,6 +27,7 @@ import com.allerpaw.app.ui.settings.SettingsScreen
 import com.allerpaw.app.ui.stammdaten.StammdatenScreen
 import com.allerpaw.app.ui.statistik.StatistikScreen
 import com.allerpaw.app.ui.tagebuch.TagebuchScreen
+import com.allerpaw.app.ui.tasks.TaskScreen
 import com.allerpaw.app.ui.zutaten.ZutatenScreen
 
 @Composable
@@ -42,13 +43,13 @@ fun AllerPawApp() {
         return
     }
 
-    val navController   = rememberNavController()
+    val navController    = rememberNavController()
     val startDestination = if (isLoggedIn) Screen.Tagebuch.route else Screen.Login.route
-    val bottomNavItems  = BottomNavItem.entries
+    val bottomNavItems   = BottomNavItem.entries
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val navBackStackEntry  by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = bottomNavItems.any { it.screen.route == currentDestination?.route }
+    val showBottomBar      = bottomNavItems.any { it.screen.route == currentDestination?.route }
 
     Scaffold(
         bottomBar = {
@@ -56,11 +57,11 @@ fun AllerPawApp() {
                 NavigationBar {
                     bottomNavItems.forEach { item ->
                         NavigationBarItem(
-                            icon    = { Icon(item.icon(), stringResource(item.labelRes)) },
-                            label   = { Text(stringResource(item.labelRes)) },
+                            icon     = { Icon(item.icon(), stringResource(item.labelRes)) },
+                            label    = { Text(stringResource(item.labelRes)) },
                             selected = currentDestination?.hierarchy
                                 ?.any { it.route == item.screen.route } == true,
-                            onClick = {
+                            onClick  = {
                                 navController.navigate(item.screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -92,17 +93,17 @@ fun AllerPawApp() {
                     navController.navigate(Screen.Settings.route)
                 })
             }
-            // Rechner-Tab zeigt jetzt den vollen RezeptScreen
-            composable(Screen.Rechner.route) { RezeptScreen() }
+            composable(Screen.Rechner.route)    { RezeptScreen() }
             composable(Screen.Stammdaten.route) {
                 StammdatenScreen(onNavigateToZutaten = {
                     navController.navigate(Screen.Zutaten.route)
                 })
             }
-            composable(Screen.Zutaten.route)   { ZutatenScreen() }
-            composable(Screen.Statistik.route) { StatistikScreen() }
-            composable(Screen.Export.route)    { ExportScreen() }
-            composable(Screen.Settings.route)  {
+            composable(Screen.Zutaten.route)    { ZutatenScreen() }
+            composable(Screen.Statistik.route)  { StatistikScreen() }
+            composable(Screen.Tasks.route)      { TaskScreen() }
+            composable(Screen.Export.route)     { ExportScreen() }
+            composable(Screen.Settings.route)   {
                 SettingsScreen(onNavigateUp = { navController.navigateUp() })
             }
         }
@@ -114,5 +115,6 @@ private fun BottomNavItem.icon() = when (this) {
     BottomNavItem.RECHNER    -> Icons.Default.Calculate
     BottomNavItem.STAMMDATEN -> Icons.Default.Pets
     BottomNavItem.STATISTIK  -> Icons.Default.BarChart
+    BottomNavItem.TASKS      -> Icons.Default.Checklist
     BottomNavItem.EXPORT     -> Icons.Default.PictureAsPdf
 }

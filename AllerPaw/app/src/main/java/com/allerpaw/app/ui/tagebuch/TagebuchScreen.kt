@@ -46,36 +46,44 @@ fun TagebuchScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                when (state.aktuellerTab) {
-                    TagebuchTab.UMWELT      -> vm.newUmwelt()
-                    TagebuchTab.SYMPTOM     -> vm.newSymptom()
-                    TagebuchTab.FUTTER      -> vm.newFutter()
-                    TagebuchTab.AUSSCHLUSS  -> vm.newAusschluss()
-                    TagebuchTab.ALLERGEN    -> vm.newAllergen()
-                    TagebuchTab.TIERARZT    -> vm.newTierarzt()
-                    TagebuchTab.MEDIKAMENT  -> vm.newMedikament()
-                    TagebuchTab.PHASEN      -> vm.newPhase()
-                }
-            }) {
-                Icon(Icons.Default.Add, "Neuer Eintrag")
+            // Kein FAB auf Zustand-Tab (Smiley hat eigene Buttons)
+            if (state.aktuellerTab != TagebuchTab.ZUSTAND) {
+                FloatingActionButton(onClick = {
+                    when (state.aktuellerTab) {
+                        TagebuchTab.UMWELT      -> vm.newUmwelt()
+                        TagebuchTab.SYMPTOM     -> vm.newSymptom()
+                        TagebuchTab.FUTTER      -> vm.newFutter()
+                        TagebuchTab.AUSSCHLUSS  -> vm.newAusschluss()
+                        TagebuchTab.ALLERGEN    -> vm.newAllergen()
+                        TagebuchTab.TIERARZT    -> vm.newTierarzt()
+                        TagebuchTab.MEDIKAMENT  -> vm.newMedikament()
+                        TagebuchTab.PHASEN      -> vm.newPhase()
+                        else                    -> {}
+                    }
+                }) { Icon(Icons.Default.Add, "Neuer Eintrag") }
             }
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+
+            // Hund-Auswahl (nur wenn mehrere Hunde)
             if (state.hunde.size > 1) {
                 ScrollableTabRow(
-                    selectedTabIndex = state.hunde.indexOfFirst { it.id == state.selectedHundId }.coerceAtLeast(0),
+                    selectedTabIndex = state.hunde
+                        .indexOfFirst { it.id == state.selectedHundId }.coerceAtLeast(0),
                     edgePadding = 12.dp
                 ) {
                     state.hunde.forEach { hund ->
-                        Tab(selected = hund.id == state.selectedHundId,
+                        Tab(
+                            selected = hund.id == state.selectedHundId,
                             onClick  = { vm.selectHund(hund.id) },
-                            text     = { Text(hund.name) })
+                            text     = { Text(hund.name) }
+                        )
                     }
                 }
             }
 
+            // Tab-Navigation (9 Tabs inkl. Zustand)
             ScrollableTabRow(
                 selectedTabIndex = TagebuchTab.entries.indexOf(state.aktuellerTab),
                 edgePadding      = 0.dp
@@ -84,12 +92,19 @@ fun TagebuchScreen(
                     Tab(
                         selected = tab == state.aktuellerTab,
                         onClick  = { vm.selectTab(tab) },
-                        text     = { Text(tab.label, style = MaterialTheme.typography.labelMedium) }
+                        text     = {
+                            Text(
+                                tab.label,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     )
                 }
             }
 
+            // Tab-Inhalt
             when (state.aktuellerTab) {
+                TagebuchTab.ZUSTAND    -> ZustandTab(state, vm)
                 TagebuchTab.UMWELT     -> UmweltTab(state, vm)
                 TagebuchTab.SYMPTOM    -> SymptomTab(state, vm)
                 TagebuchTab.FUTTER     -> FutterTab(state, vm)

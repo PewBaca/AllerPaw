@@ -27,8 +27,11 @@ import com.allerpaw.app.data.local.entity.*
         TagebuchPollenLogEntity::class,
         AusschlussPhasEntity::class,
         EigenePollenartEntity::class,
+        TagebuchHundZustandEntity::class,
+        TaskEntity::class,
+        TaskErledigung::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,4 +41,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rezeptDao(): RezeptDao
     abstract fun tagebuchDao(): TagebuchDao
     abstract fun parameterDao(): ParameterDao
+    abstract fun hundZustandDao(): HundZustandDao
+    abstract fun taskDao(): TaskDao
 }

@@ -6,6 +6,9 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.Instant
 import java.time.LocalDate
+import androidx.room.PrimaryKey
+import java.time.Instant
+import java.time.LocalDate
 
 // ─────────────────────────────────────────────
 // Umwelt
@@ -232,4 +235,93 @@ data class AusschlussPhasEntity(
     val createdAt: Instant = Instant.now(),
     val deleted: Boolean = false,
     val deletedAt: Instant? = null
+)
+
+// ─────────────────────────────────────────────
+// Allgemeiner Hundezustand (Smiley)
+// ─────────────────────────────────────────────
+
+/**
+ * Täglicher Gesamtzustand des Hundes.
+ * zustand: 1 = sehr gut 😄 · 2 = gut 🙂 · 3 = neutral 😐 · 4 = schlecht 😟 · 5 = sehr schlecht 😢
+ */
+@Entity(
+    tableName = "tagebuch_hund_zustand",
+    foreignKeys = [ForeignKey(
+        entity = HundEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["hundId"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index("hundId"), Index(value = ["hundId", "datum"], unique = true)]
+)
+data class TagebuchHundZustandEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val hundId: Long,
+    val datum: LocalDate,
+    val zustand: Int,               // 1–5
+    val notizen: String = "",
+    val createdAt: Instant = Instant.now(),
+    val deleted: Boolean = false,
+    val deletedAt: Instant? = null
+)
+
+// ─────────────────────────────────────────────
+// Task-System
+// ─────────────────────────────────────────────
+
+/**
+ * wiederholung: "taeglich" | "woechentlich" | "intervall" | "einmalig"
+ * wochentage: Komma-getrennte Zahlen 1–7 (1=Mo) für wöchentlich
+ * intervallTage: Anzahl Tage für Intervall-Wiederholung
+ * kategorie: "medikament" | "pflege" | "tierarzt" | "sonstiges"
+ */
+@Entity(
+    tableName = "tasks",
+    foreignKeys = [ForeignKey(
+        entity = HundEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["hundId"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index("hundId")]
+)
+data class TaskEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val hundId: Long,
+    val titel: String,
+    val beschreibung: String = "",
+    val kategorie: String = "sonstiges",
+    val wiederholung: String = "taeglich",  // "taeglich"|"woechentlich"|"intervall"|"einmalig"
+    val wochentage: String = "",            // "1,3,5" für Mo/Mi/Fr
+    val intervallTage: Int = 1,
+    val uhrzeit: String = "",               // "08:00" für Push-Notification
+    val pushAktiv: Boolean = false,
+    val aktiv: Boolean = true,
+    val createdAt: Instant = Instant.now(),
+    val deleted: Boolean = false,
+    val deletedAt: Instant? = null
+)
+
+/**
+ * Erledigungs-Protokoll je Task.
+ * Jede Bestätigung wird als eigene Zeile gespeichert.
+ */
+@Entity(
+    tableName = "task_erledigungen",
+    foreignKeys = [ForeignKey(
+        entity = TaskEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["taskId"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index("taskId")]
+)
+data class TaskErledigung(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val taskId: Long,
+    val datum: LocalDate,
+    val erledigt: Boolean = true,
+    val notizen: String = "",
+    val createdAt: Instant = Instant.now()
 )

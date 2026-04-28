@@ -6,4 +6,5 @@
     <string name="nav_stammdaten">Dogs</string>
     <string name="nav_statistik">Statistics</string>
     <string name="nav_export">Export</string>
+    <string name="nav_tasks">Tasks</string>
 </resources>

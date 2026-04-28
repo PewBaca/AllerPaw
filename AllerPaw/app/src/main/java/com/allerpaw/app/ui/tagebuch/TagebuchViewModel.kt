@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.allerpaw.app.data.local.entity.*
 import com.allerpaw.app.data.repository.HundRepository
+import com.allerpaw.app.data.repository.HundZustandRepository
 import com.allerpaw.app.data.repository.TagebuchRepository
 import com.allerpaw.app.util.UndoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 enum class TagebuchTab(val label: String) {
+    ZUSTAND("Zustand"),
     UMWELT("Umwelt"),
     SYMPTOM("Symptom"),
     FUTTER("Futter"),
@@ -27,9 +29,12 @@ enum class TagebuchTab(val label: String) {
 data class TagebuchUiState(
     val hunde: List<HundEntity> = emptyList(),
     val selectedHundId: Long? = null,
-    val aktuellerTab: TagebuchTab = TagebuchTab.UMWELT,
+    val aktuellerTab: TagebuchTab = TagebuchTab.ZUSTAND,
 
-    // Umwelt
+    // Zustand (Smiley)
+    val heutigerZustand: Int = 0,        // 0 = noch nicht gesetzt heute
+    val zustandNotiz: String = "",
+    val zustandVerlauf: List<TagebuchHundZustandEntity> = emptyList(),
     val umweltEintraege: List<TagebuchUmweltEntity> = emptyList(),
     val eigenePollenarten: List<EigenePollenartEntity> = emptyList(),
 
@@ -69,7 +74,8 @@ data class TagebuchUiState(
 @HiltViewModel
 class TagebuchViewModel @Inject constructor(
     private val hundRepo: HundRepository,
-    private val repo: TagebuchRepository
+    private val repo: TagebuchRepository,
+    private val zustandRepo: HundZustandRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TagebuchUiState())
@@ -138,8 +144,34 @@ class TagebuchViewModel @Inject constructor(
         }
     }
 
-    fun selectHund(id: Long)    = _state.update { it.copy(selectedHundId = id) }
+    fun selectHund(id: Long) {
+        _state.update { it.copy(selectedHundId = id) }
+        ladeZustand(id)
+    }
     fun selectTab(tab: TagebuchTab) = _state.update { it.copy(aktuellerTab = tab) }
+
+    // ── Zustand (Smiley) ─────────────────────────────────────────────────
+    private fun ladeZustand(hundId: Long) = viewModelScope.launch {
+        val heute = zustandRepo.getHeute(hundId)
+        _state.update { it.copy(
+            heutigerZustand = heute?.zustand ?: 0,
+            zustandNotiz    = heute?.notizen ?: ""
+        ) }
+        zustandRepo.verlauf(hundId).collect { verlauf ->
+            _state.update { it.copy(zustandVerlauf = verlauf) }
+        }
+    }
+
+    fun setZustand(wert: Int)        = _state.update { it.copy(heutigerZustand = wert) }
+    fun setZustandNotiz(notiz: String) = _state.update { it.copy(zustandNotiz = notiz) }
+
+    fun saveZustand() = viewModelScope.launch {
+        val hundId  = _state.value.selectedHundId ?: return@launch
+        val zustand = _state.value.heutigerZustand
+        if (zustand > 0) {
+            zustandRepo.speichern(hundId, zustand, _state.value.zustandNotiz)
+        }
+    }
 
     // ── Umwelt ───────────────────────────────────────────────────────────
     fun newUmwelt()  = _state.update { it.copy(editUmwelt = emptyUmwelt(it.selectedHundId)) }

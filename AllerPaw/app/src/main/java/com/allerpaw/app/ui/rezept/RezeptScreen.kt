@@ -85,6 +85,14 @@ fun RezeptScreen(vm: RezeptViewModel = hiltViewModel()) {
                         onSelectVergleich     = vm::setVergleichsRezept
                     )
                 }
+
+                // ── Futterumstellungsrechner ───────────────────────────────
+                item {
+                    FutterUmstellungsCard(
+                        alleRezepte         = state.alleRezepte,
+                        tagesrationGramm    = state.gesamtGramm
+                    )
+                }
             }
 
             // ── NRC-Analyse ───────────────────────────────────────────────
