@@ -1,165 +1,130 @@
-# AllerPaw – Android Migration Plan (Web → Android)
+# AllerPaw – Migration & Entwicklungsplan (v0.10.0)
 
-> Version: 0.2  
-> Stand: 2026-04-24  
-> Ausgangsbasis: Web-App v2.3.1 (Vanilla HTML + ES Modules)  
-> Ziel: Native Android App (Kotlin + Jetpack Compose + Room)
+> Stand: 2026-05-07 · Ausgangsbasis: Web-App v2.3.1 (Vanilla HTML + ES Modules)
+> Aktuelle Version: **0.10.0** · API Level 36 Migration abgeschlossen
 
 ---
 
-## Architektur-Entscheidung (geändert gegenüber v0.1)
+## Architektur-Entscheidung
 
 ```
-Vorher (v0.1-Plan):  Android  →  Kotlin / Compose  →  Google Sheets API (Primär-DB)
-Jetzt  (v0.2-Ist):   Android  →  Kotlin / Compose  →  Room SQLite (Primär-DB)
-                                                    →  Google Sheets (nur Export/Backup)
+Android  →  Kotlin / Compose  →  Room SQLite v3 (Primär-DB)
+                               →  BrightSky + Open-Meteo (Wetter/Pollen)
+                               →  Google Sheets / CSV / PDF (Export)
 ```
 
-**Begründung:** 100 % Offline-Betrieb, Datensouveränität, keine API-Rate-Limits, deutlich bessere Performance. Google Sheets bleibt als optionaler Export-Kanal für Nutzer, die ihre Daten in Sheets weiterführen möchten.
+**Begründung Room als Primär-DB:** 100% Offline, keine Rate-Limits, volle Datensouveränität.
 
 ---
 
-## Tech-Stack
+## Tech-Stack (vollständig implementiert)
 
 | Bereich | Technologie | Status |
 |---------|-------------|--------|
-| Sprache | Kotlin | ✅ |
+| Sprache | Kotlin 2.2.10 | ✅ |
 | UI | Jetpack Compose + Material You | ✅ |
-| Lokale DB | Room (SQLite) – Primärspeicher | ✅ |
-| DI | Hilt | ✅ |
-| Async | Kotlin Coroutines + Flow | ✅ |
-| HTTP | Retrofit 2 + OkHttp | ✅ (konfiguriert, noch nicht genutzt) |
-| Auth | Google Credential Manager | 🔲 Platzhalter |
-| Charts | Vico (Compose-nativ) | 🔲 konfiguriert, noch nicht genutzt |
+| Datenbank | Room 2.7.1 (Version 3, 22 Entities) | ✅ |
+| DI | Hilt 2.56 | ✅ |
+| Async | Coroutines + Flow | ✅ |
+| HTTP | Retrofit 2 + OkHttp | ✅ |
+| Auth | Google Credential Manager | ✅ |
+| Push | WorkManager 2.10.0 + HiltWorkerFactory | ✅ |
 | DataStore | Preferences DataStore | ✅ |
-| Build | Gradle Kotlin DSL + Version Catalog | ✅ |
-| Min SDK | API 26 (Android 8.0) | ✅ |
-| Target SDK | API 35 | ✅ |
+| Build | AGP 9.1.1 + Gradle KDS + Version Catalog | ✅ |
+| CI | GitHub Actions (Debug + Release APK) | ✅ |
+| ProGuard | R8 konfiguriert | ✅ |
 
 ---
 
-## Phasen
-
-### Phase 1 – Projektaufbau & Datenschicht (v0.1–0.2) ✅ ABGESCHLOSSEN
-
-- [x] Android-Projekt anlegen (Kotlin, Compose, Hilt)
-- [x] Gradle Version Catalog (libs.versions.toml)
-- [x] Room-Datenbank mit 19 Entities (Stammdaten + Tagebuch)
-- [x] Alle 5 DAOs mit Soft-Delete-Unterstützung
-- [x] HundRepository, SessionRepository
-- [x] NRC-Nährstoff-Katalog (29 Nährstoffe), RER/MER-Rechner
-- [x] RezeptAnalyseUseCase (Ampelstatus)
-- [x] Navigation (Bottom Nav, NavHost, 5 Tabs)
-- [x] Material You Theme + Dark Mode
-- [x] LoginScreen (Platzhalter mit DataStore-Session)
-- [x] StammdatenScreen (Hund-Liste + Edit-Dialog)
-- [x] RechnerScreen (RER/MER-Anzeige, NRC-Tabelle Grundgerüst)
-- [x] strings.xml DE + EN
-
-**Verify:** App startet → Login → Bottom Nav → Hund anlegen → Gewicht erscheint im Rechner ✅
-
----
-
-### Phase 2 – Stammdaten vollständig + Tagebuch (v0.3)
-
-- [ ] ZutatenScreen: Liste, Anlegen, Bearbeiten, Soft-Delete + Undo
-- [ ] NaehrstoffDialog: 29+ NRC-Nährstoffe, gruppiert, einklappbar
-- [ ] IE-Eingabe: Vitamin A, D, E mit Formauswahl (natürlich / synthetisch / Acetat)
-- [ ] Supplement-Modus: Tablette / Tropfen / Pulver
-- [ ] USDA + Open Food Facts paralleler Import
-- [ ] ToleranzenScreen: Min/Max/Empfehlung je Nährstoff und Hund
-- [ ] ParameterScreen: Kochverlust, Portionen/Tag, RER-Faktor
-- [ ] TagebuchScreen: Tab-Navigation (8 Tabs)
-- [ ] UmweltTab: alle Felder inkl. Pollen-Toggle
-- [ ] SymptomTab: Kategorie, Schweregrad 0–5, Körperstelle
-- [ ] FutterTab: Multi-Rezept mit Gramm + Kcal
-- [ ] AusschlussTab, AllergenTab, TierarztTab, MedikamentTab
-- [ ] PhasenTab: Phasentracker + Fortschrittsbalken
-- [ ] Eintrag-Cards mit Edit-Dialog + Soft-Delete + Undo-Banner (8 Sek.)
-- [ ] FloatParser.kt: Komma/Punkt-Dezimaltrenner
-
-**Verify:** Alle 8 Tagebuch-Tabs → Eintrag anlegen → bearbeiten → löschen → Undo
-
----
-
-### Phase 3 – Futterrechner vollständig + Statistik (v0.4)
-
-- [ ] RezeptEditor: Zutaten + Gramm, Tabletten-Stückzahl
-- [ ] resolveRezept(): rekursiv, max. 5 Ebenen, Zykluserkennung, ohne Zwischenrundung
-- [ ] Nährstoffbalken: Compose Canvas, Ampelfarben, Toleranzbalken
-- [ ] Gekocht-Flag: Kochverlust nur B-Vitamine (Faktor 0.70, konfigurierbar)
-- [ ] Skalierungsfaktor: ×0.25 / ×0.5 / ×1 / ×2 + freies Eingabefeld
-- [ ] Ca:P-Verhältnis + Omega 6:3 als Badge
-- [ ] Rezept-Vergleich A vs. B (Delta-Spalte)
-- [ ] Zutat-zu-Zutat-Vergleich (⚖️-Button, alle 39 Nährstoffe, Delta-Pfeil)
-- [ ] StatistikScreen: KPI-Kacheln, konfigurierbarer Chart (Vico)
-- [ ] Symptom-Heatmap (ab 14 Einträgen)
-- [ ] Korrelationsanalyse (min. 3 Datenpunkte)
-- [ ] Reaktionsscore (48-h-Fenster, min. 3 Beobachtungen)
-- [ ] Phasen-Timeline
-- [ ] Hund-Vergleich (zweites Hund-Dropdown)
-
----
-
-### Phase 4 – Wetter, Export, Backup (v0.5)
-
-- [ ] BrightSky API (DWD): Außentemp, Feuchte, Niederschlag
-- [ ] Pollen DWD OpenData + Open-Meteo
-- [ ] Eigene Pollenarten (Room-Tabelle bereits vorhanden)
-- [ ] ExportScreen: PDF-Export via Android PrintManager / PdfDocument
-- [ ] 9 Toggle-Sektionen (Deckblatt, Symptome, Allergene, Phasen …)
-- [ ] CSV-Export je DB-Tabelle (ZIP)
-- [ ] Google Sheets Export (Sheets API v4)
-- [ ] SQLite-Backup (lokal oder Google Drive)
-
----
-
-### Phase 5 – Finalisierung & Store (v0.6+)
-
-- [ ] Google OAuth2 (Credential Manager) – echte Implementierung
-- [ ] Sprachschalter in Einstellungen (sofort ohne Neustart)
-- [ ] NRC-Werte für Welpen und Senioren (NRC 2006 Tabellen)
-- [ ] Monetarisierung: optionale Werbung bei Login + Spendenoption
-- [ ] Geteilte Zutaten-/Rezept-Datenbanken (Import/Export)
-- [ ] Hinweise/Notizen pro Nährstoff, Futtermittel, Statistik (mehrsprachig)
-- [ ] Erststart-Wizard: Sprachauswahl
-- [ ] Unit-Tests: resolveRezept, Nährstoffberechnung, Kcal
-- [ ] UI-Tests: Login, Eintrag anlegen, Soft-Delete + Undo
-- [ ] GitHub Actions: APK-Build bei Push auf main
-- [ ] ProGuard / R8
-- [ ] Erste öffentliche Beta (GitHub Releases)
-
----
-
-## Modul-Mapping: JS → Kotlin
+## Modul-Mapping: JS → Kotlin (vollständig)
 
 | Web-App Modul | Android-Äquivalent | Status |
 |---------------|-------------------|--------|
-| `auth.js` | `AuthRepository.kt` + Credential Manager | 🔲 Platzhalter |
-| `sheets.js` | `SheetsApiService.kt` + `SheetsRepository.kt` | 🔲 geplant Phase 4 |
-| `config.js` | `SettingsRepository.kt` + DataStore | 🔲 Phase 2 |
-| `store.js` | `StammdatenRepository.kt` + Room | 🔲 Phase 2 |
-| `cache.js` | `TagebuchRepository.kt` + Room | 🔲 Phase 2 |
-| `rechner.js` | `RechnerViewModel.kt` + `NaehrstoffDomain.kt` | 🟡 Teilweise (RER/MER) |
-| `tagebuch.js` | `TagebuchViewModel.kt` je Tab | 🔲 Phase 2 |
-| `ansicht.js` | `TagebuchListScreen.kt` + `EditDialog.kt` | 🔲 Phase 2 |
-| `stammdaten.js` | `StammdatenViewModel.kt` + `ImportRepository.kt` | 🟡 Teilweise (Hund) |
-| `wetter.js` | `WetterRepository.kt` + `PollenRepository.kt` | 🔲 Phase 4 |
-| `statistik.js` | `StatistikViewModel.kt` + Chart-Composables | 🔲 Phase 3 |
-| `export.js` | `ExportViewModel.kt` + `PdfExporter.kt` | 🔲 Phase 4 |
-| `i18n.js` | `strings.xml` (DE/EN) + `LocaleHelper.kt` | 🟡 Grundstruktur |
+| `auth.js` | `AuthRepository` + Credential Manager | ✅ |
+| `config.js` | `SettingsRepository` + DataStore | ✅ |
+| `store.js` | `HundRepository` + `ZutatenRepository` | ✅ |
+| `cache.js` | `TagebuchRepository` | ✅ |
+| `rechner.js` | `RezeptViewModel` + `NaehrstoffDomain` + `RezeptResolver` | ✅ |
+| `tagebuch.js` | `TagebuchViewModel` + 9 Tab-Composables | ✅ |
+| `stammdaten.js` | `StammdatenViewModel` + `ZutatenViewModel` | ✅ |
+| `wetter.js` | `WetterRepository` (BrightSky + OpenMeteo) | ✅ |
+| `statistik.js` | `StatistikViewModel` + Composables | ✅ |
+| `export.js` | `ExportViewModel` + `PdfExporter` | ✅ |
+| `i18n.js` | `strings.xml` (DE/EN) + `LocaleHelper` | ✅ |
+| `sheets.js` | `SheetsRepository` | 🔲 optional |
 
 ---
 
-## Risiken & Offene Punkte
+## Phasen-Übersicht
 
-| Risiko | Einschätzung | Maßnahme |
-|--------|-------------|---------|
-| Google OAuth2 auf Android | Mittel | SHA-1 in Cloud Console registrieren; Credential Manager |
-| Vico Chart-Parität zu Chart.js | Mittel | Vico als erste Wahl; Fallback MPAndroidChart |
-| PDF-Generierung | Mittel | Android PrintManager oder PdfDocument |
-| NRC-Werte Welpen/Senioren | Niedrig | NRC 2006 Tabellen liegen vor |
-| Performance bei vielen Einträgen | Niedrig | Room + Flow + Paging falls nötig |
+### Phase 1 ✅ – Projektaufbau & Datenschicht
+Room-DB, 19 Entities, 5 DAOs, Repositories, NRC-Katalog, RER/MER, Navigation, Login, Stammdaten-Grundgerüst
+
+### Phase 2 ✅ – Stammdaten + Tagebuch
+FloatParser, UndoManager, ZutatenScreen + NaehrstoffDialog, TagebuchScreen mit allen 8 Tabs, UmweltTab inkl. Pollen, SymptomTab, FutterTab, PhasenTab mit Fortschrittsbalken
+
+### Phase 3 ✅ – Futterrechner + Statistik
+RezeptResolver (rekursiv, Zykluserkennung), Kochverlust, NaehrstoffBalken (Canvas), Ca:P + Omega 6:3 Badges, Rezept-Vergleich, StatistikScreen mit Heatmap + Korrelation
+
+### Phase 4 ✅ – Wetter/Pollen + Export + App-Icon
+BrightSkyApi, OpenMeteoApi, WetterRepository, PdfExporter (8 Sektionen), ExportScreen, FileProvider, App-Icon in allen Dichten
+
+### Phase 5 ✅ – Auth + Einstellungen + Tests + CI
+AuthRepository (Google Credential Manager), LocaleHelper, NrcLebensphasen, SettingsScreen vollständig, 10 Unit-Tests, GitHub Actions CI, ProGuard
+
+### Phase 6 ✅ – Tabletten/Tropfen + Smiley + Tasks + Umstellungsrechner
+- Tabletten: Stückzahl × Gewicht = g (Entity + DAO + UI vollständig)
+- Tropfen: Anzahl × Gewicht = g (Entity + DAO + UI vollständig)
+- `ZutatEntity`: `tropfenGewichtG` + `tropfenVolumenMl`
+- `RezeptZutatEntity`: `anzahlTropfen` + `inhaltsstoffeFreitext`
+- `ZutatPickerDialog`: perMode-Erkennung, Live-Gramm-Vorschau
+- Zustand-Tab (9. Tagebuch-Tab): Smiley 1–5, Verlauf
+- `TagebuchHundZustandEntity`: unique Index je Hund+Datum
+- Task-System: `TaskEntity` + `TaskErledigung` + `TaskRepository`
+- `TaskScreen`: Abhaken, Fortschrittsbalken, Kategorien-Emojis
+- `TaskNotificationWorker`: Intervall-basierte Push-Notifications
+- `AllerPawApplication`: HiltWorkerFactory + Notification Channel
+- `MainActivity`: POST_NOTIFICATIONS Permission (Android 13+)
+- `FutterUmstellungsRechner`: 4 Geschwindigkeiten + eigene Tageanzahl
+- Room DB: Version 1 → 2 → 3
+- 7 Bugs gefixt (Sub-Rezept Skalierung, Memory Leak, IE-Anzeige etc.)
+- MD-Dateien: CODE_ANALYSIS.md gelöscht, VALIDATION in MIGRATION integriert
+
+---
+
+## Offene Punkte (Post-v0.7)
+
+| Punkt | Priorität |
+|-------|-----------|
+| Gewichtsverlauf-Chart (Vico) in Statistik | Mittel |
+| Reaktionsscore (48h-Fenster) | Mittel |
+| Wetter-API Auto-Befüllung Umwelt-Tab | Mittel |
+| USDA / Open Food Facts Import | Niedrig |
+| Google Sheets Export | Niedrig |
+| Backup wiederherstellen | Niedrig |
+| Zutat-zu-Zutat-Vergleich (⚖️) | Niedrig |
+| NRC Lebensphasen UI-Auswahl | Niedrig |
+| Rezept-Positionen im Futter-Tab | Niedrig |
+| Toleranzbalken UI | Niedrig |
+| Hund-Vergleich in Statistik | Niedrig |
+| Play Store Release | — |
+
+---
+
+## Validierungsregeln (immer gültig)
+
+- Soft-Delete: `deleted=1` + `deletedAt` — nie echtes Löschen
+- Undo: max. 5 Stack · Banner 8 Sekunden
+- Kochverlust: **nur** B1,B2,B3,B5,B6,B9,B12 — Faktor 0.70
+- Sub-Rezept: `mengeG / subRaw.gesamtGrammRoh` (kein `/ 1.0` Bug)
+- IE: beim Speichern sofort in µg/mg konvertieren — nie als IE in DB
+- Nährstoffe: intern immer als Wert per 100 g gespeichert
+- Heatmap: erst ab 14 Symptomeinträgen anzeigen
+- Korrelation: erst ab 3 Datenpunkten
+- Phasen-Defaults: Elimination 42T · Provokation 14T · Ergebnis 7T
+- Room DB Version: 3 · 22 Entities
+- WorkManager: HiltWorkerFactory in AllerPawApplication Pflicht
+- Notification Permission: POST_NOTIFICATIONS ab Android API 33
 
 ---
 
@@ -167,6 +132,382 @@ Jetzt  (v0.2-Ist):   Android  →  Kotlin / Compose  →  Room SQLite (Primär-D
 
 - App-Name: **AllerPaw**
 - Package: `com.allerpaw.app`
-- Versionierung: Semantic Versioning
-- Aktuelle Version: **0.2.0** (Phase 1 abgeschlossen)
-- `versionCode` inkrementell; `versionName` = 0.2.0
+- versionCode: `10` · versionName: `"0.10.0"`
+- compileSdk / targetSdk: `36` · minSdk: `26`
+
+---
+
+## Phase 7 ✅ – v0.8 Datenimport, Backup, Wetter
+
+### Room Migrations (Store-ready)
+- `DatabaseMigrations.kt` mit echten SQL-Migrations erstellt
+- `MIGRATION_1_2`: `zutaten.tropfenGewichtG/Ml`, `rezept_zutaten.anzahlTropfen/freitext`
+- `MIGRATION_2_3`: `tagebuch_hund_zustand`, `tasks`, `task_erledigungen` Tabellen
+- `DatabaseModule`: `fallbackToDestructiveMigration()` → `addMigrations(*ALL)`
+
+### Backup & Wiederherstellung
+- `BackupRepository`: `exportBackup()` (WAL-Checkpoint + Share-Intent)
+- `BackupRepository`: `importBackup(uri)` inkl. SQLite user_version Prüfung (Offset 60)
+- `BackupScreen` + `BackupViewModel`: Filepicker, Versionscheck, Bestätigungs-Dialog, App-Neustart
+- Navigation: Settings → Backup eigene Route
+
+### Google Sheets Export + Import
+- `SheetsApiClient`: OkHttp-basiert, Sheets v4 REST (create/read/write/append)
+- `SheetsColumnMapper`: Auto-Mapping Kopfzeilen → Felder (exact + fuzzy match)
+  - Felder für SYMPTOM, FUTTER, UMWELT, ALLERGEN
+  - Sheet-Struktur: Zeile 1 = DE-Header, Zeile 2 = API-Keys, Daten ab Zeile 3
+- `SheetsRepository`: exportToSheets() + previewImport() + importFromSheets()
+- `SheetsImportScreen`: 3-Schritt-Wizard: Quelle → Mapping → Import
+  - Auto-gemappte Spalten grün angezeigt
+  - Unmapped Felder → Dropdown-Auswahl je Feld
+- `SheetsViewModel`: kombiniert auto + user-Override Mapping
+- Navigation: Settings → SheetsImport eigene Route
+
+### Wetter Auto-Befüllung
+- `StandortPicker`: 3 Modi (Stadtname via Geocoder, Koordinaten manuell, GPS)
+- `WetterViewModel`: lädt Wetter + Pollen, Standort aus SettingsRepository
+- `UmweltTab`: Wetter-Banner mit Auto-Befüllung via `LaunchedEffect`
+  - Standort wechseln direkt im Dialog (einklappbarer StandortPicker)
+  - Pollen-Stärken auto-befüllt aus Open-Meteo API
+
+### versionCode 8 · versionName "0.8.0"
+
+---
+
+## Phase 8 ✅ – v0.10.0 API Level 36 Migration
+
+### Android 16 (API 36) Compliance
+- `compileSdk` + `targetSdk`: 35 → **36**
+- `versionCode`: 9 → **10** · `versionName`: 0.9.0 → **0.10.0**
+- **Edge-to-Edge**: `enableEdgeToEdge()` war bereits korrekt in `MainActivity`. `windowOptOutEdgeToEdgeEnforcement` nie verwendet → keine Aktion nötig.
+- **Predictive Back Gesture**: `android:enableOnBackInvokedCallback="true"` in `<application>` gesetzt. Navigation Compose verwaltet Back-Stack über `NavController` korrekt → vollständig kompatibel.
+- **Local Network Protection (LNP)**: `NEARBY_WIFI_DEVICES` im Manifest deklariert (noch kein Laufzeit-Request nötig). Wetter-APIs laufen über Internet, kein LAN-Zugriff. Erzwingung erwartet in Android 17.
+- **elegantTextHeight**: nie auf `false` gesetzt → API 36-Standardverhalten aktiv, keine Layout-Anpassungen nötig (Compose-basiert).
+- **scheduleAtFixedRate** / **MediaStore#getVersion()** / **Safer Intents**: nicht verwendet → keine Aktion nötig.
+- **Adaptive Layouts (sw600dp)**: kein `screenOrientation`/`resizableActivity`/Aspect-Ratio-Lock in Manifest → automatisch compliant.
+
+### Dependency-Updates
+| Paket | Alt | Neu |
+|-------|-----|-----|
+| AGP | 8.5.2 | 8.9.1 |
+| Kotlin | 2.0.21 | 2.1.21 |
+| KSP | 2.0.21-1.0.27 | 2.1.21-1.0.32 |
+| compose-bom | 2024.11.00 | 2025.05.00 |
+| Room | 2.6.1 | 2.7.1 |
+| androidx.core-ktx | 1.15.0 | 1.16.0 |
+| lifecycle-* | 2.8.7 | 2.9.0 |
+| activity-compose | 1.9.3 | 1.10.1 |
+| navigation-compose | 2.8.4 | 2.9.0 |
+| credentials | 1.3.0 | 1.5.0 |
+| datastore | 1.1.1 | 1.1.4 |
+| Coil | 2.6.0 | 2.7.0 |
+
+### versionCode 10 · versionName "0.10.0"
+
+---
+
+## Phase 9 ✅ – v0.10.0 Toleranzbalken UI
+
+### ToleranzDao + ToleranzRepository
+- `ToleranzDao`: `beobachteToleranzFuerHund`, `upsert`, `loescheAlleForHund`
+- `ToleranzRepository`: Flow mit NRC-Fallback für fehlende DB-Einträge
+- `DatabaseModule` + `AppDatabase`: `toleranzDao()` registriert
+
+### NaehrstoffBalken (komplett neu)
+- Individuelle Min/Ziel/Max-Marker per Hund (statt hardcoded 80%/100%)
+- Dynamische Skalierung (0–133% des Max-Werts)
+- Long-Press öffnet Tooltip mit Ist/Bedarf/UL/Toleranzwerten
+- Edit-Button (🖊) pro Balken öffnet `ToleranzEditDialog`
+- Canvas-Überarbeitung: drei farbige Marker (blau/grün/rot)
+
+### ToleranzEditDialog (neu)
+- Drei Slider: Min (0–100%), Ziel (0–200%), Max (100–300%)
+- Live-Vorschau-Balken mit aktuellen Markern
+- Validierung: Min ≤ Ziel ≤ Max
+- Zurücksetzen-Button setzt auf NRC-Standard (80/100/150%)
+- NRC-UL-Hinweis wenn `maxPro1000kcal` vorhanden
+
+### RezeptViewModel
+- `ToleranzRepository` injiziert
+- `toleranzMap: Map<String, ToleranzEntity>` im State
+- `editToleranz`, `dismissToleranz`, `saveToleranz`, `toleranzZuruecksetzen`, `alleToleranzZuruecksetzen`
+- Flow-Subscription wechselt bei `selectHund`
+
+### Strings (7 neu)
+- DE + EN: `toleranz_title`, `toleranz_min`, `toleranz_ziel`, `toleranz_max`, `toleranz_vorschau`, `toleranz_fehler`, `toleranz_ul_hinweis`
+
+---
+
+## Phase 10 ✅ – v0.10.0 Google Sheets Export
+
+### SheetsRepository – Export komplett überarbeitet
+- `exportToSheets` Bug gefixt (Flow-collect Abbruch entfernt)
+- 6 Export-Tabs: Symptome, Umwelt, Allergene, Phasen, Futter, Medikamente
+- Vollständige Header-Definitionen DE + API-Keys für alle Tabs
+- Alle Row-Builder implementiert (`buildAllergenRows`, `buildPhasenRows`, `buildFutterRows`, `buildMedikamentRows`)
+- `ExportTab`-Enum ergänzt
+- `SheetsApiClient`-Import ergänzt
+
+### TagebuchRepository – Export-Methoden ergänzt
+- `allergenList(hundId)`, `medikamentList(hundId)`, `ausschlussList(hundId)`
+- `tierarztList(hundId)`, `futterRange(hundId, von, bis)`
+
+### SheetsViewModel – Export-State + Aktionen
+- `exportSpreadsheetId`, `exportVon/Bis`, `exportTabs`, `exportResult`, `exportedSheetUrl`
+- `starteExport()`, `toggleExportTab()`, `selectAllTabs()`, `clearAllTabs()`
+- `setExportVon/Bis/SpreadsheetId()`
+- Import-State auf neue `vorschauZeilen`/`mappings`/`autoMappings`-Struktur migriert
+
+### SheetsExportScreen (neu)
+- Hund-Auswahl (Multi-Hund)
+- Zeitraum-Picker (30T/90T/6M/1J)
+- Tab-Auswahl mit Checkbox + Alle/Keine-Buttons + Beschreibung + Emoji
+- Optionale Ziel-Spreadsheet-ID
+- Export-Button mit Loading-State
+- Ergebnis-Card: direkt-Link zum Sheet (Intent → Browser), URL
+- Fehler-Card mit Dismiss
+- Hinweis-Card
+
+### Navigation
+- `Screen.SheetsExport` in `NavGraph` ergänzt
+- Route in `AllerPawApp` registriert
+- `SettingsScreen`: neuer "Google Sheets Export"-ListItem
+- `SettingsScreen` + `AllerPawApp`: `onNavigateSheetsExport` Parameter ergänzt
+
+---
+
+## Phase 11 ✅ – v0.10.0 Gewichtsverlauf UI + Chart
+
+### HundDao
+- `updateHundGewicht(hundId, kg)` — aktualisiert Gewicht im Hund-Profil
+
+### HundRepository
+- `updateGewicht(hundId, kg)` — Wrapper für DAO
+
+### StatistikUiState
+- `gewichtVerlauf: List<HundGewichtEntity>` (letzte 15, neuste zuerst)
+- `gewichtNeuDatum`, `gewichtNeuKg`, `showGewichtDialog`
+
+### StatistikViewModel
+- `gewichtVerlauf` wird in `ladeStatistik()` geladen
+- `openGewichtDialog()`, `dismissGewichtDialog()`, `setGewichtKg()`, `setGewichtDatum()`
+- `saveGewicht()`: FloatParser + addGewicht + updateGewicht + State-Refresh
+- `deleteGewicht(id)`: Soft-Delete + State-Refresh
+
+### GewichtVerlaufCard (neu)
+- Vico `CartesianChartHost` LineChart (chronologisch, scrollbar)
+- KPI-Zeile: Aktuell / Trend (↑↓→) / Min-Max-Spanne
+- `LazyRow` mit `InputChip` je Eintrag (Tap → Löschen-X anzeigen)
+- Leer-Zustand mit Hinweistext
+- `FilledTonalIconButton` für neuen Eintrag
+
+### GewichtEingabeDialog (neu)
+- `OutlinedTextField` für kg (FloatParser: Komma + Punkt)
+- `OutlinedTextField` für Datum (ISO-Format, Validierung via runCatching)
+- Validierung: Zahl > 0 erforderlich
+
+### StatistikScreen
+- `GewichtVerlaufCard` als letzter Abschnitt in `LazyColumn`
+- `GewichtEingabeDialog` außerhalb Scaffold
+
+---
+
+## Phase 12 ✅ – v0.10.0 NRC Lebensphasen UI
+
+### RezeptAnalyseUseCase
+- `analyse(zutaten, kcalME, lebensphase)` — Lebensphase-Parameter ergänzt
+- Bedarf wird per `NrcLebensphasen.bedarfPro1000kcal(naehrstoff, lebensphase)` skaliert
+- Default: `ADULT` (Faktor 1,0 überall) → kein Breaking Change
+
+### RezeptEditorState
+- `lebensphase: NrcLebensphasen.Lebensphase = ADULT`
+
+### RezeptViewModel
+- `NrcLebensphasen`-Import ergänzt
+- Beide `analyseUseCase.analyse()`-Aufrufe übergeben `_state.value.lebensphase`
+- `setLebensphase(phase)`: State-Update + Neuberechnung des aktiven Rezepts
+
+### LebensphasePicker (neu)
+- Eingeklappt: aktive Phase als Badge + Expand-Pfeil
+- Ausgeklappt: `FilterChip` je Phase mit Emoji + Bedarfs-Hinweis (DE)
+- Inline-Dokumentation der NRC-Faktoren im Hinweistext
+- NRC-Quellen-Info am Ende
+- Schließt sich nach Auswahl automatisch
+
+### RezeptScreen
+- `LebensphasePicker` als eigener `item {}` vor der NRC-Analyse-Sektion
+- Aktive Lebensphase (wenn ≠ ADULT) als Badge neben "NRC 2006 Analyse"-Titel
+- Import `NrcLebensphasen` ergänzt
+
+---
+
+## Phase 13 ✅ – v0.10.0 Manueller Kcal-Bedarf UI
+
+### HundDao
+- `updateKcalBedarfManuell(hundId, kcal: Double?)` — setzt oder löscht den manuellen Wert
+
+### HundRepository
+- `updateKcalBedarfManuell(hundId, kcal)` — Wrapper
+
+### RechnerViewModel (komplett überarbeitet)
+- `RechnerUiState`: `kcalManuellInput`, `kcalManuellAktiv`, `effektiverKcal`, `rerKcal`, `merKcal`
+- `selectHund()`: lädt `kcalBedarfManuell` aus Entity in State
+- `setAktivitaetsFaktor()`: Neuberechnung mit aktuellem Manuell-Wert
+- `setKcalManuellInput()`: Eingabe-Puffer
+- `aktiviereKcalManuell()`: FloatParser-Validierung + persistiert in DB + Neuberechnung
+- `resetKcalManuell()`: DB-Update auf null + RER/MER reaktivieren
+- Hilfsfunktionen `aktuellerHund()`, `aktiverKcalManuell()`, `recalculate()`
+
+### RezeptViewModel
+- Beide `analyseRezept()`-Aufrufe: `hund.kcalBedarfManuell ?: EnergieBedarf.mer(...)`
+- `selectHund()`: `kcalBedarfManuellAktiv` + `effektiverKcal` im State setzen
+- `RezeptEditorState`: `kcalBedarfManuellAktiv`, `effektiverKcal` Felder
+
+### KcalBedarfCard (neu)
+- RER/MER/Manuell KPI-Chips
+- Aktivitätsfaktor-Slider (1,0–3,0) mit 4 Vorauswahl-Chips
+- Slider deaktiviert wenn Manuell aktiv
+- Manuell-Eingabe: ausgeklappt/eingeklappt, FloatParser, Delta vs. MER
+- Persistenz-Hinweis + Zurücksetzen-Button
+- Warnfarbe wenn Manuell >20% von MER abweicht
+
+### Energiebedarf.kt (neu)
+- Energiebedarf-Tab im Rechner mit `KcalBedarfCard` + NRC-Erklärungskarte
+
+### RezeptScreen
+- Manuell-Badge unter SkalierungsCard wenn `kcalBedarfManuellAktiv`
+
+### Strings (6 neu, DE + EN)
+- `kcal_manuell_title/aktivieren/aktualisieren/aktiv/hinweis/ueberschreibt`
+
+---
+
+## Phase 14 ✅ – v0.10.0 Kreuzallergie-Analyse
+
+### KreuzallergenMatrix (neu, Domain)
+- 8 Protein-Gruppen: Geflügel, Rind/Milch, Schwein/Wild, Fisch, Schalentiere/Milben, Gluten-Getreide, Hülsenfrüchte, Gräser/Pollen
+- Je Gruppe: Name, Protein, Beschreibung, Mitglieder-Liste (lowercase Keywords), Quellen
+- `findeGruppe(allergenName)`: Teilstring-Match (lowercase)
+- `kreuzreaktionsKandidaten(allergenName)`: Mitglieder ohne das Allergen selbst
+- Keyword-Index als lazy Map für O(n) Lookup
+
+### KreuzallergenAnalyse (neu, Domain UseCase)
+- `analysiere(allergene)` → `AnalyseErgebnis`
+- `AllergenMitGruppe`, `Risikogruppe`, `AnalyseErgebnis` Data-Classes
+- Risikogruppen sortiert nach max. Reaktionsstärke
+- Kandidaten: Gruppen-Mitglieder die noch nicht als Allergen erfasst
+
+### KreuzallergenViewModel (neu)
+- Hunde-Flow + Allergen-Flow via `flatMapLatest`
+- Analyse wird bei Allergen-Änderung automatisch neu berechnet
+
+### KreuzallergenScreen (neu)
+- Hund-Auswahl (Multi-Hund)
+- Leer-Zustand mit Hinweis
+- Ergebnis-Header (Anzahl Gruppen + nicht zugeordnete Allergene)
+- `RisikoGruppeCard`: eingeklappt/ausgeklappt, bestätigte Allergene, Kandidaten als `SuggestionChip`
+- Ampelfarbe nach max. Reaktionsstärke (Hoch/Mittel/Niedrig)
+- Wissenschaftliche Grundlage + Quellen je Gruppe
+- Disclaimer-Karte (kein Diagnoseersatz)
+
+### FlowRow (neu, ui/common)
+- Thin wrapper um `androidx.compose.foundation.layout.FlowRow`
+
+### Navigation
+- `Screen.Kreuzallergen` in `NavGraph` ergänzt
+- Route in `AllerPawApp` registriert
+- `TagebuchScreen`: `onNavigateToKreuzallergen` Parameter + BubbleChart-Icon im TopAppBar (nur im Allergen-Tab sichtbar)
+
+---
+
+## Phase 15 ✅ – v0.10.0 Rezept-Positionen Phase 3 vollständig
+
+### RezeptZutatDraft
+- `inhaltsstoffeFreitext: String = ""` ergänzt
+
+### RezeptViewModel
+- Draft-Mapping: `inhaltsstoffeFreitext = pos.inhaltsstoffeFreitext`
+- `saveRezept()`: `inhaltsstoffeFreitext = d.inhaltsstoffeFreitext` (statt leer)
+
+### RezeptEditDialog (überarbeitet)
+- Positionen-Liste als `ElevatedCard` je Position mit:
+  - Emoji-Icon (🍖 Zutat / 📋 Sub-Rezept)
+  - Name + `anzeigeText()` + optionaler Freitext (1 Zeile)
+  - Bearbeiten-Button → `PositionEditDialog`
+  - Hoch/Runter-Pfeile für Reihenfolge
+  - Entfernen-Button (rot)
+  - Gesamtgewicht-Summe im Header
+- Zwei Hinzufügen-Buttons: Zutat + Rezept-Mix (nur wenn alleRezepte nicht leer)
+- `alleRezepte` Parameter ergänzt
+
+### PositionEditDialog (neu)
+- Nachträgliche Gramm-Änderung (FloatParser, Direkteingabe)
+- Tabletten/Tropfen-Rückrechnung zur Anzeige
+- Freitext-Feld (Charge, Hersteller, Hinweis)
+
+### SubRezeptPickerDialog (neu)
+- Auswahl aus bestehenden Rezepten (außer dem aktuellen)
+- Gesamtmenge-Eingabe → interne Zutaten werden anteilig skaliert (via RezeptResolver)
+- Kategorien zur Orientierung angezeigt
+
+### ZutatPickerDialog (überarbeitet)
+- Freitext-Feld ergänzt
+- Suche mit Leading-Icon
+- Emoji-Icons je perMode (💊 💧 🧂 🍖)
+- Callback um `freitext: String` erweitert
+
+---
+
+## Phase 16 ✅ – v0.10.0 Reaktionsscore (48h-Fenster)
+
+### ReaktionsScoreAnalyse (neu, Domain)
+- `analysiere(futterEintraege, symptome, minBeobachtungen)` → `List<ScoreEintrag>`
+- 48h-Fenster: Symptome in 0–2 Tagen nach Erstgabe/Provokation
+- Score = `durchschnittSchweregrad × haeufigkeit` (0–5)
+- Häufigkeit = Anteil Erstgaben mit mind. 1 Symptom im Fenster
+- Sortierung: höchster Score zuerst
+- `risikoLabel(score)`: Sehr hoch / Hoch / Mittel / Niedrig / Kein Signal
+
+### StatistikViewModel
+- `ReaktionsScore` Data-Class: +`durchschnittSchweregrad`, `haeufigkeit`, `istSignifikant`, `beispielDaten`
+- `StatistikUiState`: `reaktionsScoreVerfuegbar` Boolean
+- `ladeStatistik()`: `futterRange` + `ReaktionsScoreAnalyse.analysiere()` → State
+- Import `ReaktionsScoreAnalyse` ergänzt
+
+### ReaktionsScoreCard (neu)
+- Header mit Gesamtzahl
+- `ScoreZeile` je Produkt: Score-Balken (LinearProgressIndicator), Risiko-Badge
+- Farbe nach Score: Rot ≥3,5 / Orange ≥2,5 / Gelb ≥1,5 / Grün <1,5
+- Klickbar → ausgeklappt: Einführungsdaten, Score-Erläuterung, Signifikanz-Warnung
+- Meta-Chips: Anzahl Erstgaben, Ø Schweregrad, Häufigkeit %
+- Methodik-Hinweis am Ende
+
+### StatistikScreen
+- `ReaktionsScoreCard` vor Gewichtsverlauf (nur wenn `reaktionsScoreVerfuegbar`)
+
+---
+
+## Phase 17 ✅ – v0.10.0 Hund-Vergleich (Statistik)
+
+### StatistikUiState
+- `vergleichsHundId: Long?` — null = kein Vergleich
+- `vergleichsKpi: KpiState?` — KPIs des Vergleichshunds
+- `vergleichsSymptomVerlauf: List<Pair<LocalDate, Double>>` — für zukünftigen Chart-Overlay
+
+### StatistikViewModel
+- `selectVergleichsHund(id?)`: State-Update + `ladeStatistik()` neu
+- `ladeStatistik()`: nach Haupt-Update Vergleichshund-Daten parallel laden
+  (symptomeRange, pollenRange, allergenCount)
+- Nur wenn `vergleichsId != null && vergleichsId != hundId`
+
+### HundVergleichCard (neu)
+- Picker: eingeklappt/ausgeklappt, RadioButtons, X-Button zum Beenden
+- KPI-Tabelle: Haupthund vs. Vergleichshund nebeneinander
+  - Symptomtage, Ø Schweregrad, Pollentage, Allergene
+  - Δ-Spalte mit Farb-Kodierung (grün = besser, rot = schlechter)
+  - ✓-Icon beim besseren Wert
+  - `lowerIsBetter`-Flag je KPI
+
+### StatistikScreen
+- `HundVergleichCard` nach Zeitraum-Filter, vor Lade-Indikator
+- Nur sichtbar wenn `state.hunde.size > 1`

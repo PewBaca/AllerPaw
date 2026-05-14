@@ -1,129 +1,193 @@
-# AllerPaw – FAQ (v0.2)
+# AllerPaw – FAQ (v0.10.0)
 
-> Letzte Aktualisierung: 2026-04-24
+> Stand: 2026-05-07
 
 ---
 
 ## Architektur & Datenspeicherung
 
-**Warum Room statt Google Sheets als Primärdatenbank?**  
-Google Sheets hat Rate-Limits, benötigt Internet und ist langsam. Room läuft komplett lokal, ist offline-fähig und deutlich performanter. Sheets bleibt als optionaler Export/Backup-Kanal erhalten.
+**Warum Room statt Google Sheets als Primärdatenbank?**
+Google Sheets hat API Rate-Limits, benötigt Internet und ist langsam. Room läuft vollständig lokal, ist offline-fähig und deutlich performanter. Sheets bleibt als optionaler Export-Kanal.
 
-**Werden bestehende Google-Sheets-Daten unterstützt?**  
-Als Import: ja (geplant Phase 4). Als Primärspeicher: nein. Die neue App speichert alles in SQLite.
+**Welche Datenbank-Version ist aktuell?**
+Room v3 mit 22 Entities. Version 1→2: Tabletten/Tropfen-Felder. Version 2→3: HundZustand, Task, TaskErledigung.
 
-**Wie sind die Daten gesichert?**  
-Automatisches SQLite-Backup optional via Google Drive (Phase 4). Manueller Export als SQLite-Datei oder CSV jederzeit möglich.
+**Warum `fallbackToDestructiveMigration()` statt echten Migrations?**
+Das Projekt ist noch nicht im Store — während der Entwicklung ist destructive Migration akzeptabel. Vor dem ersten öffentlichen Release müssen echte Room-Migrations geschrieben werden.
 
----
-
-## Nährstoffberechnung
-
-**Welchen Kochverlustfaktor verwendet der Rechner?**  
-Standard: **30 % Verlust**, d.h. angewendeter Faktor **0.70**. Gilt **ausschließlich für B-Vitamine** (B1, B2, B3, B5, B6, B9, B12). Der Wert ist konfigurierbar unter Stammdaten → Parameter (`kochverlust_b_vitamine`).
-
-**Wie wird der Energiebedarf berechnet?**  
-- RER (Resting Energy Requirement) = 70 × Gewicht(kg)^0.75 [kcal/Tag]  
-- MER (Maintenance Energy Requirement) = RER × Aktivitätsfaktor  
-- Aktivitätsfaktor: 1.0 (inaktiv/Kastrat) bis 3.0 (Arbeitshund); Standard 1.6  
-- Manueller Kcal-Bedarf überschreibt die RER-Berechnung (im Hund-Profil)
-
-**Wie werden IE-Werte konvertiert?**  
-- Vitamin A: 1 IE = 0,3 µg Retinol  
-- Vitamin D3: 1 IE = 0,025 µg Cholecalciferol  
-- Vitamin E (natürlich, d-Alpha-Tocopherol): 1 IE = 0,67 mg  
-- Vitamin E (synthetisch, dl-Alpha-Tocopherol): 1 IE = 0,45 mg  
-- Vitamin E (Acetat natürlich): 1 IE = 0,74 mg  
-- Vitamin E (Acetat synthetisch): 1 IE = 0,67 mg  
-
-Die Vitamin-E-Form wird je Zutat gespeichert. Intern immer µg/mg — nie IE.
-
-**Wie viele NRC-Nährstoffe sind implementiert?**  
-Aktuell 29 Kern-Nährstoffe (Makros, Mineralstoffe, Vitamine, Fettsäuren). Ausbau auf 39 (inkl. Aminosäuren) in Phase 2/3. NRC 2006 Bedarfswerte für adulte Hunde.
-
-**Gibt es NRC-Werte für Welpen und Senioren?**  
-Geplant für Phase 5. Die Tabellenstruktur erlaubt es, mehrere Bedarfsprofile je Nährstoff zu speichern.
-
-**Was bedeuten die Ampelfarben im Rechner?**  
-- OK: 80–150 % des Bedarfs  
-- MANGEL: unter 80 %  
-- UEBERSCHUSS: über 150 %  
-- UEBERSCHRITTEN: über dem definierten UL (Maximaler sicherer Wert)
+**Wie sind die Daten gesichert?**
+SQLite-Backup via Share-Intent (Export-Tab). CSV-Export für Symptome. Google Drive Sync ist geplant, aber noch nicht implementiert.
 
 ---
 
-## Futterrechner
+## Futterkalkulation
 
-**Was ist der Skalierungsfaktor?**  
-Schnell-Buttons ×0.25 / ×0.5 / ×1 / ×2 plus freies Eingabefeld. Skaliert alle Grammwerte des Rezepts proportional.
+**Wie wird der Energiebedarf berechnet?**
+- RER (Ruheenergiebedarf) = 70 × Gewicht(kg)^0.75 [kcal/Tag]
+- MER (Erhaltungsbedarf) = RER × Aktivitätsfaktor (1.0–3.0, Standard 1.6)
+- Manueller Kcal-Bedarf im Hund-Profil überschreibt RER
 
-**Wie werden Portionen angezeigt?**  
-Die Tagesration wird durch `portionen_pro_tag` (Standard: 2, konfigurierbar) geteilt und als „g je Portion" angezeigt.
+**Welchen Kochverlustfaktor verwendet der Rechner?**
+Standard: **30% Verlust → Faktor 0.70**. Gilt **ausschließlich** für B-Vitamine (B1, B2, B3, B5, B6, B9, B12). Konfigurierbar via `ParameterEntity` (Schlüssel: `kochverlust_b_vitamine`). Alle anderen Nährstoffe: kein Kochverlust.
 
-**Was ist ein Rezept-Mix?**  
-Rezepte können andere Rezepte als Zutat enthalten (verschachtelt). Maximum 5 Ebenen. Zykluserkennung verhindert Endlosschleifen. Keine Zwischenrundung bis zur finalen Anzeige.
+**Wie werden IE-Werte konvertiert?**
+Konvertierung passiert beim Speichern — in der DB stehen immer metrische Werte (µg/mg):
+- Vitamin A: 1 IE = 0.3 µg Retinol
+- Vitamin D3: 1 IE = 0.025 µg Cholecalciferol
+- Vitamin E natürlich (d-Alpha): 1 IE = 0.67 mg
+- Vitamin E synthetisch (dl-Alpha): 1 IE = 0.45 mg
+- Vitamin E Acetat natürlich: 1 IE = 0.74 mg
+- Vitamin E Acetat synthetisch: 1 IE = 0.67 mg
 
-**Wie werden Tabletten im Rechner eingegeben?**  
-Stückzahl als Dezimalzahl (z.B. 0,5 Tabletten). Das Grammäquivalent wird automatisch angezeigt (Basis: hinterlegtes Tablettengewicht je Zutat).
+Öffnet man eine Zutat erneut, sieht man den bereits metrisch gespeicherten Wert — kein IE-Wert.
+
+**Was bedeuten die Ampelfarben?**
+- 🟢 OK: 80–150% des NRC-Bedarfs
+- 🔴 MANGEL: unter 80%
+- 🟠 ÜBERSCHUSS: über 150%
+- 🔴 ÜBERSCHRITTEN: über dem UL (maximaler sicherer Wert laut NRC 2006)
+
+**Wie funktioniert das Ca:P-Verhältnis?**
+Ca:P = Calcium(g) / Phosphor(g) — Ziel: 1.2–1.5:1. Wird grün angezeigt wenn im Zielbereich, sonst rot.
+
+**Wie werden Sub-Rezepte (Rezept-Mix) skaliert?**
+`skalierung = mengeG / subRaw.gesamtGrammRoh` — das Sub-Rezept wird mit Faktor 1.0 aufgelöst, dann anteilig auf die gewünschte Menge skaliert. Max. 5 Ebenen. Zykluserkennung verhindert Endlosschleifen.
+
+**Was ist der Unterschied zwischen Tabletten und Tropfen im Rezept?**
+- **Tabletten**: Eingabe = Stückzahl (z.B. 0.5) × hinterlegtes Tablettengewicht (g) = Gramm intern
+- **Tropfen**: Eingabe = Anzahl Tropfen × hinterlegtes Tropfengewicht (g) = Gramm intern
+- Immer live-Vorschau der berechneten Gramm im Picker
+- Intern wird immer mit Gramm gerechnet (Nährstoffe per 100g)
+
+**Gibt es NRC-Werte für Welpen und Senioren?**
+Ja — `NrcLebensphasen.kt` implementiert Faktoren für Welpe, Senior, Trächtig, Laktierend basierend auf NRC 2006. Die UI-Auswahl (Dropdown je Hund) ist noch nicht implementiert.
+
+---
+
+## Futterumstellungsrechner
+
+**Wie funktioniert der Umstellungsrechner?**
+Linearer Übergang von Rezept A (100%) zu Rezept B (0%) über den gewählten Zeitraum. Tag 1 = 100% A + 0% B, letzter Tag = 0% A + 100% B. Gramm-Angaben basieren auf der Tagesration des aktiven Hundes.
+
+**Welche Geschwindigkeiten gibt es?**
+- 🐕 Schnell: 5 Tage (gesunder Magen)
+- 🐶 Normal: 7 Tage (Standard)
+- 🐩 Sanft: 10 Tage (empfindlicher Magen)
+- 🐾 Sehr sanft: 14 Tage (Allergiker, Welpen)
+- Eigene Tageanzahl: 5–14 frei einstellbar
+
+**Was tun bei Durchfall während der Umstellung?**
+Tempo reduzieren (längerer Zeitraum wählen) oder 2 Tage Pause einlegen und aktuelles Verhältnis beibehalten. Im Tagebuch dokumentieren.
 
 ---
 
 ## Tagebuch
 
-**Wie funktioniert der Soft-Delete?**  
-Einträge werden nicht gelöscht, sondern als `deleted=TRUE` markiert. Nach dem Löschen erscheint ein Undo-Banner für 8 Sekunden. Bis zu 5 Einträge können rückgängig gemacht werden.
+**Wie funktioniert der Zustand-Tab (Smiley)?**
+Täglich einen Gesamtzustand eingeben: 😄(1) bis 😢(5). Wird pro Hund und Datum gespeichert (unique Index). Überschreibt den bestehenden Wert bei erneutem Speichern am selben Tag.
 
-**Was sind die Standard-Phasendauern?**  
-- Elimination: 42 Tage  
-- Provokation: 14 Tage  
-- Ergebnis: 7 Tage  
+**Wie funktioniert der Soft-Delete?**
+Einträge werden als `deleted=1` markiert, nicht gelöscht. Undo-Banner erscheint für 8 Sekunden. Max. 5 Einträge im Undo-Stack. Ältester Eintrag verfällt automatisch wenn der Stack voll ist.
 
-Das Enddatum wird automatisch vorgeschlagen, ist aber manuell überschreibbar.
+**Was sind die Standarddauern für Ausschlussdiät-Phasen?**
+- Elimination: 42 Tage
+- Provokation: 14 Tage
+- Ergebnis: 7 Tage
+Enddatum wird automatisch vorgeschlagen, ist manuell überschreibbar.
 
-**Wie wird der Pollen-Log gespeichert?**  
-Jede Pollenart bekommt eine eigene DB-Zeile in `TagebuchPollenLogEntity`. Keine Komma-getrennte Liste.
+**Wie wird der Pollen-Log gespeichert?**
+Jede Pollenart = eigene DB-Zeile in `TagebuchPollenLogEntity`. Keine Komma-getrennte Liste.
+
+---
+
+## Task-System
+
+**Welche Wiederholungstypen gibt es?**
+- **Täglich**: jeden Tag
+- **Wöchentlich**: an gewählten Wochentagen (Mo–So, Mehrfachauswahl)
+- **Intervall**: alle N Tage (berechnet ab Erstellungsdatum des Tasks)
+- **Einmalig**: kein Push, manuell abhaken
+
+**Wie funktionieren Push-Notifications?**
+WorkManager prüft täglich um Mitternacht welche Tasks fällig sind. Intervall-Berechnung: `(heute - Erstellungsdatum) % intervallTage == 0`. Nur wenn Task noch nicht erledigt. Notification Permission (POST_NOTIFICATIONS) wird beim App-Start angefragt (Android 13+).
+
+**Werden Tasks pro Hund gespeichert?**
+Ja — jeder Task ist einem Hund zugeordnet. Erledigungs-Protokoll wird je Task und Datum gespeichert.
 
 ---
 
 ## Statistik
 
-**Ab wann wird die Symptom-Heatmap angezeigt?**  
-Ab 14 Symptomeinträgen. Darunter keine Anzeige.
+**Ab wann wird die Symptom-Heatmap angezeigt?**
+Ab 14 Symptomeinträgen im gewählten Zeitraum. Darunter erscheint ein Hinweis.
 
-**Was sind die Mindestanforderungen für Korrelationsanalyse und Reaktionsscore?**  
-- Korrelationsanalyse: min. 3 Datenpunkte pro Gruppe  
-- Reaktionsscore: min. 3 Beobachtungen pro Zutat; 48-h-Fenster nach Futtereintrag  
-- Gruppen mit Ø-Schweregrad > 2.0 werden orange hervorgehoben
+**Was ist die Pollen-Korrelationsanalyse?**
+Für jede Pollenart wird geprüft: Wie viele Symptome traten in einem 48h-Fenster nach Pollen-Belastung (Stärke > 1) auf? Mindestens 3 Datenpunkte erforderlich. Gruppen mit Ø-Schweregrad > 2.0 werden orange markiert.
 
-**Startet die Statistik mit vorausgewählten Parametern?**  
-Nein. Der Nutzer wählt aktiv aus, welche Parameter im Chart angezeigt werden.
+**Startet die Statistik mit vorausgewählten Parametern?**
+Nein — Zeitraum und Hund werden beim ersten Laden gesetzt, aber keine Parameter im Chart vorausgewählt.
 
 ---
 
 ## Technisch
 
-**Wie wird mit dem Komma als Dezimaltrenner umgegangen?**  
-`FloatParser.kt` (TODO Phase 2) ersetzt das JS-Äquivalent `_float()` aus der Web-App. Komma (DE) und Punkt (EN) werden gleichermaßen korrekt verarbeitet.
+**Warum AGP 9.1.1 und nicht 8.x?**
+Android Studio hat automatisch AGP 9.1.1 eingetragen. AGP 9.x bringt Built-in Kotlin (2.2.10), neues `kotlin { compilerOptions }` DSL (statt `kotlinOptions`), und `compileSdk 36`. Alle Breaking Changes wurden migriert.
 
-**Warum Hilt als DI-Framework?**  
-Standard für Android; gut mit ViewModel, Repository und Room integriert; gut testbar.
+**Was ist `android.disallowKotlinSourceSets=false` in gradle.properties?**
+KSP registriert generierte Quellen noch via `kotlin.sourceSets` DSL — das ist mit AGP 9.x Built-in Kotlin nicht erlaubt. Diese Flag ist der offizielle Workaround bis KSP vollständig AGP 9.x kompatibel ist.
 
-**Warum Vico für Charts?**  
-Compose-nativ, aktiv maintained, unterstützt gefüllte Flächen und mehrere Serien — entspricht den Anforderungen aus statistik.js.
+**Warum HiltWorkerFactory in AllerPawApplication?**
+WorkManager mit `@HiltWorker`-annotierten Workern benötigt eine custom `WorkerFactory`. Ohne diese Factory wirft WorkManager zur Laufzeit eine Exception. Die Factory wird via `Configuration.Provider` registriert, was die automatische WorkManager-Initialisierung in `InitializationProvider` deaktiviert (via `tools:node="remove"` im Manifest).
 
-**Kann die App ohne Google-Login genutzt werden?**  
-Ja. Google-Login ist nur für optionalen Drive-Backup / Sheets-Export nötig. Alle Kernfunktionen laufen vollständig offline ohne Account.
+**Wie wird FloatParser verwendet?**
+```kotlin
+FloatParser.parse("3,14")  // → 3.14
+FloatParser.parse("3.14")  // → 3.14
+FloatParser.format(3.14)   // → "3,14" (DE)
+```
+Ersetzt `_float()` aus der Web-App. Komma (DE) und Punkt (EN) werden gleichermaßen akzeptiert.
+
+**Warum `fallbackToDestructiveMigration()` in DatabaseModule?**
+Während der Entwicklung akzeptabel. Vor erstem Store-Release: echte Room-Migrations schreiben (ALTER TABLE für neue Felder, keine `fallback`-Strategie).
+
+**Was muss vor dem Play Store Release noch gemacht werden?**
+1. Echte Room-Migrations (v1→2, v2→3) implementieren
+2. SHA-1 in Google Cloud Console für Google Sign-In registrieren
+3. `WEB_CLIENT_ID` in `AuthRepository` eintragen
+4. ProGuard auf Release-Build testen
+5. `android.disallowKotlinSourceSets` auf KSP-Update warten
+6. `HttpLoggingInterceptor.Level.BODY` auf `BASIC` oder `NONE` für Release
 
 ---
 
 ## Monetarisierung
 
-**Wie soll die App monetarisiert werden?**  
-Zwei Optionen geplant für Phase 5:  
-1. Optionale Werbeanzeigen beim Login (vom Nutzer aktivierbar)  
-2. Spendenoption innerhalb der App  
+**Wie soll die App monetarisiert werden?**
+Zwei Optionen (geplant):
+1. Optionale Werbung beim Login (vom Nutzer aktivierbar)
+2. Spendenoption innerhalb der App
 
-Keine Pflicht-Werbung, kein Abo-Modell.
+Kein Abo-Modell, keine Pflicht-Werbung.
 
-**Was ist mit geteilten Datenbanken gemeint?**  
-Nutzer sollen Zutaten- und Rezept-Datenbanken importieren, exportieren und teilen können. Geplant ist auch ein Marktplatz für fertige Datenbanken (Phase 5).
+**Was sind geteilte Datenbanken?**
+Geplant: Nutzer können Zutaten- und Rezept-Datenbanken importieren, exportieren und teilen. Marktplatz für fertige BARF-Datenbanken als optionales Feature.
+
+---
+
+## Android 16 / API Level 36
+
+**Warum wurde auf targetSdk 36 angehoben?**
+Ab 31. August 2025 müssen neue Google Play Apps auf API 35+ ausgerichtet sein. API 36 (Android 16) ist die aktuelle Plattformversion mit wichtigen Verhaltensänderungen.
+
+**Was ändert sich durch die Edge-to-Edge-Pflicht in Android 16?**
+`windowOptOutEdgeToEdgeEnforcement` ist ab API 36 deaktiviert. AllerPaw verwendet bereits `enableEdgeToEdge()` in `MainActivity` und `Scaffold` mit `innerPadding` → kein Breaking Change.
+
+**Was ist die Predictive Back Gesture und was wurde geändert?**
+Ab API 36 sind System-Animationen für die Zurück-Geste standardmäßig aktiv. `onBackPressed()` wird nicht mehr aufgerufen. AllerPaw setzt `android:enableOnBackInvokedCallback="true"` im Manifest. Navigation Compose verwaltet den Back-Stack über `NavController` korrekt → vollständig kompatibel.
+
+**Was bedeutet Local Network Protection (LNP)?**
+Ab Android 16 schützt Android den Zugriff aufs lokale Netzwerk. AllerPaw kommuniziert ausschließlich über Internet (BrightSky, Open-Meteo, Google Sheets) — kein LAN-Zugriff. `NEARBY_WIFI_DEVICES` wurde vorsorglich deklariert; Laufzeit-Request kommt in v0.11.0 wenn LNP erzwungen wird.
+
+**Muss ich wegen `scheduleAtFixedRate`-Änderungen etwas tun?**
+Nein. AllerPaw verwendet `scheduleAtFixedRate` nicht direkt. WorkManager ist davon nicht betroffen.

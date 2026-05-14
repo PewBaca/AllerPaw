@@ -1,126 +1,159 @@
-# AllerPaw – Projektbeschreibung (v0.2)
+# AllerPaw – Projektbeschreibung (v0.10.0)
 
-> **Dieses Dokument als Kontext in jeden Prompt einfügen, wenn nur einzelne Module geteilt werden.**  
-> Letzte Aktualisierung: 2026-04-24 · Status: v0.2 – Phase 1 implementiert (lokale Room-DB)
+> **Dieses Dokument als Kontext in jeden Prompt einfügen.**
+> Letzte Aktualisierung: 2026-05-07 · Status: v0.10.0 – API Level 36 Migration
 
 ---
 
 ## Überblick
 
-**AllerPaw** ist eine native Android-App zur Ernährungs- und Gesundheitsverwaltung für Hunde. Sie richtet sich an Hundebesitzer, die BARF-Ernährung betreiben und Symptome sowie Allergien systematisch dokumentieren wollen.
+**AllerPaw** ist eine native Android-App zur Ernährungs- und Gesundheitsverwaltung für Hunde. Zielgruppe: BARF-Hundebesitzer mit Allergieverdacht oder aktiver Ausschlussdiät.
 
-Die App nutzt **SQLite (Room) als primäre Datenbank** — vollständig lokal auf dem Gerät, kein Backend-Zwang. Google Sheets dient ausschließlich als optionaler Export/Backup-Kanal.
+**Primärspeicher: SQLite (Room) — vollständig lokal, kein Backend-Zwang.**
+Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 
 ---
 
 ## Tech-Stack
 
-| Bereich | Technologie |
-|---------|-------------|
-| Plattform | Android (API 26+) |
-| Sprache | Kotlin |
-| UI | Jetpack Compose + Material You |
-| HTTP / API | Retrofit 2 + OkHttp |
-| Auth | Google Sign-In / Credential Manager (optional, nur für Backup) |
-| Lokale DB | Room (SQLite) – Primärspeicher |
-| Settings | DataStore Preferences |
-| Charts | Vico (Compose-nativ) |
-| DI | Hilt |
-| Async | Kotlin Coroutines + Flow |
-| Build | Gradle (Kotlin DSL + Version Catalog) |
-| CI | GitHub Actions (APK-Build) |
-| Wetter | BrightSky API (DWD-Daten) |
-| Pollen | DWD OpenData + Open-Meteo Air Quality API |
-| Nährstoffberechnung | NRC 2006 (29 Kern-Nährstoffe implementiert) |
+| Bereich | Technologie | Version |
+|---------|-------------|---------|
+| Plattform | Android | API 26+ (Target 36) |
+| Sprache | Kotlin | 2.2.10 |
+| UI | Jetpack Compose + Material You | BOM 2025.05.00 |
+| Datenbank | Room (SQLite) | 2.7.1 |
+| DI | Hilt | 2.56 |
+| Async | Coroutines + Flow | — |
+| HTTP | Retrofit 2 + OkHttp | 2.11.0 |
+| Auth | Google Credential Manager | 1.5.0 |
+| Charts | Vico | 2.0.0-beta.3 |
+| DataStore | Preferences DataStore | 1.1.4 |
+| Build | Gradle KDS + Version Catalog | AGP 8.9.1 |
+| CI | GitHub Actions | — |
+| Push | WorkManager + HiltWorkerFactory | 2.10.0 |
+| Wetter | BrightSky API (DWD) | kein Key |
+| Pollen | Open-Meteo Air Quality | kein Key |
+| PDF | Android PdfDocument | — |
 
 ---
 
-## Implementierungsstand (v0.2 – Stand 2026-04-24)
+## Implementierungsstand (v0.7)
 
-### Fertig implementiert
+### Datenschicht (Room DB Version 3 — 22 Entities)
 
-| Bereich | Dateien | Details |
-|---------|---------|---------|
-| Projektstruktur | build.gradle.kts, settings.gradle.kts, libs.versions.toml | AGP 8.5, Kotlin 2.0, KSP |
-| Hilt DI | DatabaseModule, NetworkModule, DomainModule | Alle Provider konfiguriert |
-| Room DB | AppDatabase (Version 1) | 19 Entities, TypeConverters |
-| Stammdaten-Entities | StammdatenEntities.kt | Hund, HundGewicht, Zutat, ZutatNaehrstoff, Rezept, RezeptZutat, Parameter, Toleranz |
-| Tagebuch-Entities | TagebuchEntities.kt | Umwelt, PollenLog, EigenePollenart, Symptom, Futter, FutterItem, Ausschluss, Allergen, Tierarzt, Medikament, AusschlussPhase |
-| DAOs | Daos.kt | HundDao, ZutatenDao, RezeptDao, TagebuchDao, ParameterDao – alle mit Soft-Delete |
-| Repositories | HundRepository, SessionRepository | Flow-basiert |
-| Domain-Logik | NaehrstoffDomain.kt | 29 NRC-Nährstoffe, RER/MER, RezeptAnalyseUseCase |
-| Navigation | NavGraph.kt, AllerPawApp.kt | Bottom Nav, 5 Tabs + Settings |
-| Theme | Theme.kt, Typography.kt | Material You, Dynamic Color, Dark Mode |
-| Auth | LoginScreen, LoginViewModel | DataStore-basiert; Google-Token-Platzhalter |
-| Stammdaten UI | StammdatenScreen, StammdatenViewModel | Hund-Liste, Edit-Dialog |
-| Rechner UI | RechnerScreen, RechnerViewModel | Energie-Banner, Aktivitätsfaktor-Slider, NRC-Tabelle |
-| Strings | values/strings.xml, values-en/strings.xml | DE + EN |
+| Gruppe | Entities |
+|--------|---------|
+| Stammdaten | HundEntity, HundGewichtEntity, ZutatEntity, ZutatNaehrstoffEntity, RezeptEntity, RezeptZutatEntity, ParameterEntity, ToleranzEntity |
+| Tagebuch | TagebuchUmweltEntity, TagebuchPollenLogEntity, EigenePollenartEntity, TagebuchSymptomEntity, TagebuchFutterEntity, TagebuchFutterItemEntity, TagebuchAusschlussEntity, TagebuchAllergenEntity, TagebuchTierarztEntity, TagebuchMedikamentEntity, AusschlussPhasEntity |
+| Neu v0.7 | TagebuchHundZustandEntity (Smiley), TaskEntity, TaskErledigung |
 
-### Placeholder (nächste Phasen)
-
-| Screen | Phase |
-|--------|-------|
-| TagebuchScreen vollständig | Phase 2 |
-| ZutatenScreen + NaehrstoffDialog | Phase 2 |
-| RezeptEditor | Phase 3 |
-| StatistikScreen | Phase 3 |
-| ExportScreen (PDF) | Phase 4 |
+**DAOs:** HundDao, ZutatenDao, RezeptDao, TagebuchDao, ParameterDao, HundZustandDao, TaskDao
 
 ---
 
-## Architektur
-
-```
-ui  →  domain  ←  data
-```
-
-Drei Schichten, unidirektionale Abhängigkeit. `domain` kennt weder Android noch Room.
-
-### Ordnerstruktur
+## Ordnerstruktur
 
 ```
 app/src/main/java/com/allerpaw/app/
-├── AllerPawApplication.kt
-├── MainActivity.kt
+├── AllerPawApplication.kt       ← @HiltAndroidApp + HiltWorkerFactory
+├── MainActivity.kt              ← Notification Permission + WorkManager
 ├── di/
-│   ├── DatabaseModule.kt
-│   ├── NetworkModule.kt
-│   └── DomainModule.kt
+│   ├── DatabaseModule.kt        ← Room DB + 7 DAOs
+│   ├── NetworkModule.kt         ← BrightSky + OpenMeteo Retrofit
+│   └── DomainModule.kt          ← RezeptAnalyseUseCase
 ├── data/
 │   ├── local/
-│   │   ├── AppDatabase.kt
-│   │   ├── Converters.kt
+│   │   ├── AppDatabase.kt       ← Room v3, 22 Entities
+│   │   ├── Converters.kt        ← Instant ↔ Long, LocalDate ↔ String
 │   │   ├── entity/
 │   │   │   ├── StammdatenEntities.kt
-│   │   │   └── TagebuchEntities.kt
+│   │   │   └── TagebuchEntities.kt  ← inkl. HundZustand, Task, TaskErledigung
 │   │   └── dao/Daos.kt
+│   ├── remote/
+│   │   ├── api/BrightSkyApi.kt
+│   │   ├── api/OpenMeteoApi.kt
+│   │   └── dto/ApiDtos.kt
 │   └── repository/
 │       ├── HundRepository.kt
-│       └── SessionRepository.kt
+│       ├── ZutatenRepository.kt
+│       ├── TagebuchRepository.kt    ← inkl. Range-Methoden für Statistik
+│       ├── RezeptRepository.kt
+│       ├── SessionRepository.kt
+│       ├── AuthRepository.kt        ← Google Credential Manager
+│       ├── SettingsRepository.kt    ← Standort, Sprache, IE-Modus
+│       ├── WetterRepository.kt      ← BrightSky + OpenMeteo kombiniert
+│       ├── HundZustandRepository.kt
+│       └── TaskRepository.kt
 ├── domain/
-│   └── NaehrstoffDomain.kt
+│   ├── NaehrstoffDomain.kt      ← 30 NRC-Einträge (inkl. kcal), RER/MER, Analyse
+│   ├── RezeptResolver.kt        ← rekursiv, max. 5 Ebenen, Zykluserkennung
+│   └── NrcLebensphasen.kt       ← Welpe, Senior, Trächtig, Laktierend
+├── util/
+│   ├── FloatParser.kt           ← DE/EN Dezimaltrenner
+│   ├── UndoManager.kt           ← Soft-Delete Stack, 8 Sek., max. 5
+│   ├── PdfExporter.kt           ← 8 Sektionen, A4, Android PdfDocument
+│   ├── LocaleHelper.kt          ← Sprachschalter ohne Neustart
+│   └── TaskNotificationService.kt ← WorkManager, Intervall-Push
 └── ui/
-    ├── AllerPawApp.kt
-    ├── nav/NavGraph.kt
+    ├── AllerPawApp.kt           ← Root, 6 Bottom-Nav-Tabs
+    ├── nav/NavGraph.kt          ← Screens + BottomNavItem
     ├── theme/
-    ├── auth/
-    ├── stammdaten/
-    ├── rechner/
-    ├── tagebuch/      ← Placeholder
-    ├── statistik/     ← Placeholder
-    ├── export/        ← Placeholder
-    └── settings/
+    ├── auth/                    ← LoginScreen, LoginViewModel
+    ├── stammdaten/              ← StammdatenScreen + ViewModel
+    ├── zutaten/                 ← ZutatenScreen, NaehrstoffDialog, ViewModel
+    ├── rezept/                  ← RezeptScreen, NaehrstoffBalken,
+    │                               FutterUmstellungsRechner, ViewModel
+    ├── tagebuch/
+    │   ├── TagebuchScreen.kt    ← 9 Tabs inkl. Zustand
+    │   ├── TagebuchViewModel.kt ← inkl. HundZustandRepository
+    │   └── tabs/                ← ZustandTab, UmweltTab, SymptomTab,
+    │                               FutterTab, AusschlussTab, AllergenTab,
+    │                               TierarztTab, MedikamentTab, PhasenTab
+    ├── statistik/               ← StatistikScreen + ViewModel
+    ├── tasks/                   ← TaskScreen + TaskViewModel
+    ├── export/                  ← ExportScreen + ExportViewModel
+    └── settings/                ← SettingsScreen + SettingsViewModel
 ```
+
+---
+
+## Navigation
+
+**Bottom Navigation (6 Tabs):**
+Tagebuch · Rechner · Hunde · Statistik · Aufgaben · Export
+
+**Tagebuch-Tabs (9):**
+Zustand · Umwelt · Symptom · Futter · Ausschluss · Allergen · Tierarzt · Medikament · Phasen
 
 ---
 
 ## Wichtige Implementierungsregeln
 
-- Kochverlustfaktor: **0.30** (30 % Verlust → Faktor 0.70); nur B-Vitamine; konfigurierbar
-- RezeptAnalyse: Ohne Zwischenrundung; max. 5 Ebenen; Zykluserkennung
-- Pollen_Log: jede Pollenart = eigene DB-Zeile
-- Soft-Delete: max. 5 Undo-Stack; Banner 8 Sekunden
-- PHASEN_DEFAULTS: Elimination 42 Tage, Provokation 14 Tage, Ergebnis 7 Tage
-- Symptom-Heatmap: ab 14 Einträgen
-- Reaktionsscore: min. 3 Beobachtungen; 48-h-Fenster
-- Statistik: startet ohne vorausgewählte Parameter
+| Regel | Wert |
+|-------|------|
+| Kochverlust | 0.30 (Faktor 0.70) — nur B1,B2,B3,B5,B6,B9,B12 |
+| Sub-Rezept Skalierung | `mengeG / subRaw.gesamtGrammRoh` |
+| Soft-Delete | `deleted=1` + `deletedAt` — max. 5 Undo, 8 Sek. Banner |
+| IE-Konvertierung | Vit.A: 1IE=0.3µg · Vit.D: 1IE=0.025µg · Vit.E: je Form |
+| Pollen-Log | Jede Pollenart = eigene DB-Zeile |
+| Heatmap | Ab 14 Symptomeinträgen |
+| Korrelation | Ab 3 Datenpunkten · Ø>2.0 = orange |
+| Reaktionsscore | 48h-Fenster · min. 3 Beobachtungen |
+| NRC | 30 Einträge (inkl. kcal) · Bedarfswerte je 1000 kcal ME |
+| Room DB | Version 3 · 22 Entities · Wildcard-Import `entity.*` |
+| WorkManager | HiltWorkerFactory in AllerPawApplication pflichtmäßig |
+| Notification | POST_NOTIFICATIONS Permission ab Android 13 |
+| Phasen-Defaults | Elimination 42T · Provokation 14T · Ergebnis 7T |
+| Umstellung | 5–14 Tage · linear · Gramm = Anteil% × Tagesration |
+
+---
+
+## Typischer Prompt bei Einzelmodul-Arbeit
+
+```
+Kontext: AllerPaw v0.7 – Android, Kotlin + Compose, Room v3, AGP 9.1.1.
+[PROJECT.md als Kontext einfügen]
+
+Aufgabe: [Beschreibung]
+Betroffene Dateien: [z.B. RezeptScreen, RezeptViewModel]
+```
