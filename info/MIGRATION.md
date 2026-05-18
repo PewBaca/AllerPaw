@@ -511,3 +511,155 @@ AuthRepository (Google Credential Manager), LocaleHelper, NrcLebensphasen, Setti
 ### StatistikScreen
 - `HundVergleichCard` nach Zeitraum-Filter, vor Lade-Indikator
 - Nur sichtbar wenn `state.hunde.size > 1`
+
+---
+
+## Phase 18 ✅ – v0.10.0 Zutat-zu-Zutat-Vergleich
+
+### ZutatVergleichViewModel (neu)
+- `NaehrstoffZeile`: key, label, gruppe, einheit, wertA, wertB, delta, deltaProzent
+- `ZutatVergleichUiState`: zutatA/B, naehrstoffeA/B, vergleichsZeilen, suchA/B, Filter
+- `selectZutatA/B()`: lädt Nährstoffe via `ZutatenRepository.getNaehrstoffe()`
+- `tausche()`: A ↔ B wechseln
+- `clearZutatA/B()`: Auswahl zurücksetzen
+- `toggleNurUnterschiede/NurMitWerten()`: Live-Filter
+- `berechne()`: privat, NaehrstoffKatalog-basiert, alle Gruppen, Filter angewandt
+
+### ZutatVergleichScreen (neu)
+- Zwei `ZutatPickerBox`-Komponenten nebeneinander mit ⇄-Tausch-Button
+- `ZutatPickerBox`: Suchfeld → Dropdown (max. 5 Treffer), gewählte Zutat als Card mit ×
+- Filter-Chips: "Nur mit Werten" / "Nur Unterschiede" + Zeilen-Anzahl
+- Tabellen-Header: Nährstoff | A-Name | B-Name | Δ B–A
+- `VergleichsZeile`: farbiger Hintergrund je Delta-Richtung, Δ % wenn ≥1%
+- `fmtWert()`: adaptives Format (0–4 Dezimalstellen je Größe)
+- Hinweis-Karte (per 100g, Farb-Erklärung)
+- Leer-Zustand wenn noch keine zwei Zutaten gewählt
+
+### Navigation
+- `Screen.ZutatVergleich` in NavGraph
+- Route in AllerPawApp + Import
+- `ZutatenScreen`: Balance-Icon ⚖️ in TopAppBar → ZutatVergleich
+- `ZutatenScreen`: `onNavigateToVergleich` Parameter ergänzt
+
+---
+
+## Phase 19 ✅ – v0.10.0 Food-API Import (USDA + Open Food Facts + Edamam)
+
+### Neue Felder
+- `ZutatEntity`: `quelle: String = "manuell"`, `quelleId: String = ""`
+- `SettingsRepository`: `usdaApiKey`, `edamamAppId/Key` Flows + `getString/setString`
+- DB-Version: 4 → 5 (MIGRATION_4_5: ALTER TABLE zutaten + 2 Spalten)
+
+### FoodApiClient (neu)
+- **USDA FoodData Central**: Suche + Detail (Nährstoff-ID-Map, 30+ Nährstoffe)
+- **Open Food Facts**: Textsuche + Barcode (kein Key, User-Agent gesetzt)
+- **Edamam**: Textsuche (App-ID + App-Key, Edamam-Kürzel-Map)
+- Einheitliches `FoodApiResult` (40+ Felder, alle per 100g)
+- `FoodApiResponse` Sealed Class
+
+### FoodApiRepository (neu)
+- `sucheAlle()`: alle aktiven Quellen parallel, dedupliziert
+- `sucheBarcode()`: nur OFF
+- `detailUsda()`: Detail-Abruf für mehr Nährstoffe
+- `importiereAlsZutat()`: → `ZutatEntity` + `ZutatNaehrstoffEntity` speichern
+- Kategorie-Mapping (englisch/deutsch → DE-Kategorie)
+- NRC-Key-Mapping (40 Felder)
+
+### FoodImportViewModel (neu)
+- Lädt API-Keys aus DataStore bei Init
+- `suche()`, `sucheBarcode()`, `selectErgebnis()` (USDA Detail nachladen)
+- `importiere()`, Filter-Toggle
+
+### FoodImportScreen (neu)
+- Quellen-Chips (gesperrt wenn kein Key)
+- Suchleiste + Button, Ergebnis-Liste (`FoodErgebnisCard`)
+- Detail-Ansicht (`FoodDetailCard`): Makros, Mineralien, Vitamine in Rasterform
+- Import-Button → direkter DB-Import
+- Erfolgs/Fehler-Cards
+
+### ApiKeysViewModel + ApiKeysScreen (neu)
+- USDA Key, Edamam App-ID + App-Key
+- PasswordVisualTransformation + Toggle-Sichtbarkeit
+- Registrierungs-Link per `LocalUriHandler`
+- 3s-Auto-Dismiss Erfolgs-Meldung
+
+### Navigation
+- `Screen.FoodImport`, `Screen.ApiKeys` in NavGraph
+- `ZutatenScreen`: CloudDownload-Icon → FoodImport
+- `SettingsScreen`: "API-Keys (USDA, Edamam)" ListItem → ApiKeys
+- Alle Routen in AllerPawApp registriert
+
+---
+
+## Phase 20 ✅ – v0.10.0 UI-Integration Auto-Befüllung Umwelt-Tab
+
+### WetterBanner (neu, in TagebuchViewModel.kt)
+- `WetterBanner(stadtName, tempMin, tempMax, feuchte, regenMm, pollenMap, autoBefuellt)`
+- Repräsentiert den heutigen Wetter-Snapshot für den UmweltTab-Header
+
+### TagebuchUiState
+- `wetterBanner: WetterBanner?`
+- `wetterFehler: String?`
+- `wetterLaedt: Boolean`
+
+### TagebuchViewModel
+- `WetterRepository` + `SettingsRepository` injiziert
+- `ladeWetter()`:
+  - Standort aus `settingsRepo.standortLat/Lon`
+  - `wetterRepo.getWetter()` (BrightSky/DWD)
+  - `wetterRepo.getPollen()` (Open-Meteo)
+  - Pollen: Tages-Stärke 0–5 je Art, nur > 0 anzeigen
+  - Stadtname aus `settingsRepo.getString("standort_name")`
+  - Kein Reload wenn Banner bereits da
+- `befuelleAktuelleUmweltAusWetter()`:
+  - Bestehenden Umwelt-Eintrag heute finden oder neu anlegen
+  - `repo.saveUmwelt()` mit Wetter-Feldern (`tempMinC/MaxC`, `luftfeuchte`, `niederschlagMm`)
+  - `repo.savePollenLog()` für alle Pollen-Arten
+  - `autoBefuellt = true` im Banner setzen
+
+### SettingsRepository
+- `setStandort(lat, lon, name)` — `name`-Parameter ergänzt
+- Setzt `standort_name` via `setString()`
+
+### UmweltTab
+- `LaunchedEffect(state.selectedHundId)` → `vm.ladeWetter()` (bereits vorhanden)
+- `LinearProgressIndicator` wenn `state.wetterLaedt`
+- Fehler-Card wenn `state.wetterFehler` gesetzt
+- `WetterBanner`-Card: Temp/Feuchte/Niederschlag + Pollen-Stärken + Befüllen-Button
+- Nach Befüllung: ✅-Badge statt Button
+- Manueller Laden-Button wenn kein Banner
+
+### FEATURE.md
+- UI-Integration Auto-Befüllung Umwelt-Tab: 🔲 → ✅
+
+---
+
+## Phase 21 ✅ – v0.10.0 Backup Wiederherstellen (Bugfix + Abschluss)
+
+### BackupRepository
+- `CURRENT_DB_VERSION`: 3 → **5** (DB wurde in Phase 19 auf v5 angehoben)
+- Versionscheck prüft jetzt korrekt ob Backup mit aktueller DB kompatibel ist
+
+### Status
+- `BackupViewModel` war bereits vollständig: `exportBackup()`, `onRestoreFileSelected()`,
+  `confirmRestore()`, `dismissRestoreConfirm()`, `dismissVersionMismatch()`, `clearMessages()`
+- `BackupScreen` war bereits vollständig: Filepicker (`OpenDocument`), Bestätigungs-Dialog,
+  Versions-Mismatch-Dialog, App-Neustart nach Erfolg
+
+### 🎉 Alle Features vollständig
+Sämtliche geplanten Features aus FEATURE.md sind implementiert:
+- API Level 36 (v0.10.0)
+- i18n (228 Strings, DE + EN, erweiterbar)
+- Toleranzbalken UI
+- Google Sheets Import + Export
+- Gewichtsverlauf + Vico Chart
+- NRC Lebensphasen UI
+- Manueller Kcal-Bedarf
+- Kreuzallergie-Analyse (Protein-Matrix)
+- Reaktionsscore (48h-Fenster)
+- Hund-Vergleich (Statistik)
+- Zutat-zu-Zutat-Vergleich
+- Rezept-Positionen Phase 3 (Gramm, Sub-Rezept, Freitext, Reihenfolge)
+- USDA + Open Food Facts + Edamam Import
+- UI-Integration Auto-Befüllung Umwelt-Tab
+- Backup erstellen + wiederherstellen

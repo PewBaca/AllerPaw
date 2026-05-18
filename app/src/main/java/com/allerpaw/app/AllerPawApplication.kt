@@ -1,0 +1,26 @@
+package com.allerpaw.app
+
+import android.app.Application
+import androidx.work.Configuration
+import androidx.hilt.work.HiltWorkerFactory
+import com.allerpaw.app.util.TaskNotificationWorker
+import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
+
+@HiltAndroidApp
+class AllerPawApplication : Application(), Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
+    override fun onCreate() {
+        super.onCreate()
+        // Notification Channel beim App-Start erstellen
+        TaskNotificationWorker.createChannel(this)
+    }
+}

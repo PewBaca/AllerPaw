@@ -55,8 +55,8 @@
 | Vitamin-E-Formauswahl (natürlich/synthetisch/Acetat) | ✅ |
 | Suche + Filter | ✅ |
 | Soft-Delete + Undo-Banner | ✅ |
-| USDA / Open Food Facts Import | 🔲 |
-| Zutat-zu-Zutat-Vergleich (⚖️) | 🔲 |
+| USDA / Open Food Facts Import | ✅ (+ Edamam) |
+| Zutat-zu-Zutat-Vergleich (⚖️) | ✅ |
 
 ---
 
@@ -162,7 +162,7 @@
 | Open-Meteo: 6 Pollenarten, Tagesmittel | ✅ Repository |
 | Pollen → 0–5 Skala Konverter | ✅ |
 | Standort via DataStore | ✅ |
-| UI-Integration (Auto-Befüllung Umwelt-Tab) | 🔲 |
+| UI-Integration (Auto-Befüllung Umwelt-Tab) | ✅ |
 
 ---
 
@@ -226,7 +226,7 @@
 | Standort (Lat/Lon) für Wetter-APIs | ✅ |
 | Vitaminanzeige: metrisch (µg/mg) oder IE | ✅ |
 | Datenbank-Backup erstellen | ✅ |
-| Backup wiederherstellen | 🔲 |
+| Backup wiederherstellen | ✅ |
 
 ---
 

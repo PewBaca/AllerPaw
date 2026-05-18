@@ -1,7 +1,7 @@
 # AllerPaw – Projektbeschreibung (v0.10.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen.**
-> Letzte Aktualisierung: 2026-05-07 · Status: v0.10.0 – API Level 36 Migration
+> Letzte Aktualisierung: 2026-05-17 · Status: v0.10.0 – **alle Features vollständig implementiert** 🎉
 
 ---
 

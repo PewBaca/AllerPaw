@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ═══════════════════════════════════════════════
+         APP
+         ═══════════════════════════════════════════════ -->
+    <string name="app_name">AllerPaw</string>
+    <string name="app_tagline">Allergiemanagement für deinen Hund</string>
+
+    <!-- ═══════════════════════════════════════════════
+         NAVIGATION (Bottom Bar)
+         ═══════════════════════════════════════════════ -->
+    <string name="nav_tagebuch">Tagebuch</string>
+    <string name="nav_rechner">Rechner</string>
+    <string name="nav_stammdaten">Hunde</string>
+    <string name="nav_statistik">Statistik</string>
+    <string name="nav_export">Export</string>
+    <string name="nav_tasks">Aufgaben</string>
+
+    <!-- ═══════════════════════════════════════════════
+         GEMEINSAME BUTTONS
+         ═══════════════════════════════════════════════ -->
+    <string name="btn_speichern">Speichern</string>
+    <string name="btn_abbrechen">Abbrechen</string>
+    <string name="btn_loeschen">Löschen</string>
+    <string name="btn_bearbeiten">Bearbeiten</string>
+    <string name="btn_hinzufuegen">Hinzufügen</string>
+    <string name="btn_zuruecksetzen">Zurücksetzen</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_neu">Neu</string>
+    <string name="btn_filter">Filter</string>
+    <string name="btn_filter_zuruecksetzen">Filter zurücksetzen</string>
+    <string name="btn_vorschau_laden">Vorschau laden</string>
+    <string name="btn_import_starten">Import starten</string>
+    <string name="btn_wiederherstellen">Wiederherstellen</string>
+    <string name="btn_neu_starten">Neu starten</string>
+    <string name="btn_jetzt_hinzufuegen">Jetzt hinzufügen</string>
+    <string name="btn_koordinaten_uebernehmen">Koordinaten übernehmen</string>
+    <string name="btn_standort_aktuell">Aktuellen Standort verwenden</string>
+    <string name="btn_wetter_laden">Wetter auto-befüllen</string>
+
+    <!-- ═══════════════════════════════════════════════
+         ACCESSIBILITY (contentDescriptions)
+         ═══════════════════════════════════════════════ -->
+    <string name="cd_bearbeiten">Bearbeiten</string>
+    <string name="cd_loeschen">Löschen</string>
+    <string name="cd_hinzufuegen">Hinzufügen</string>
+    <string name="cd_schliessen">Schließen</string>
+    <string name="cd_zurueck">Zurück</string>
+    <string name="cd_suchen">Suchen</string>
+    <string name="cd_laden">Laden</string>
+    <string name="cd_entfernen">Entfernen</string>
+    <string name="cd_kamera">Kamera</string>
+    <string name="cd_video">Video</string>
+    <string name="cd_aus_galerie">Aus Galerie</string>
+    <string name="cd_standort">Standort</string>
+    <string name="cd_einstellungen">Einstellungen</string>
+    <string name="cd_hund_hinzufuegen">Hund hinzufügen</string>
+    <string name="cd_neuer_eintrag">Neuer Eintrag</string>
+    <string name="cd_neues_rezept">Neues Rezept</string>
+    <string name="cd_neue_aufgabe">Neue Aufgabe</string>
+    <string name="cd_neue_zutat">Neue Zutat</string>
+    <string name="cd_zutat_hinzufuegen">Zutat hinzufügen</string>
+    <string name="cd_naehrstoffe">Nährstoffe</string>
+    <string name="cd_zutaten">Zutaten</string>
+
+    <!-- ═══════════════════════════════════════════════
+         GEMEINSAME LABELS / FELDER
+         ═══════════════════════════════════════════════ -->
+    <string name="label_name">Name *</string>
+    <string name="label_beschreibung">Beschreibung</string>
+    <string name="label_notiz">Notiz (optional)</string>
+    <string name="label_notizen">Notizen</string>
+    <string name="label_notizen_freitext">Notizen / Freitext</string>
+    <string name="label_typ">Typ</string>
+    <string name="label_kategorie">Kategorie</string>
+    <string name="label_datum_von">Von (JJJJ-MM-TT)</string>
+    <string name="label_datum_bis">Bis (JJJJ-MM-TT)</string>
+    <string name="label_datum_start">Start (JJJJ-MM-TT)</string>
+    <string name="label_datum_ende">Ende (JJJJ-MM-TT)</string>
+    <string name="label_anlass">Anlass</string>
+    <string name="label_grund">Grund</string>
+    <string name="label_hund">Hund</string>
+    <string name="label_alle">Alle</string>
+    <string name="label_kein">Kein</string>
+    <string name="label_keine">Keine</string>
+    <string name="label_zeitraum">Zeitraum</string>
+    <string name="label_ergebnis">Ergebnis</string>
+    <string name="label_hinweise">Hinweise</string>
+    <string name="label_aktiv">Aktiv</string>
+    <string name="label_inaktiv">Inaktiv</string>
+    <string name="label_tab_name">Tab-Name</string>
+
+    <!-- ═══════════════════════════════════════════════
+         LEER-ZUSTÄNDE
+         ═══════════════════════════════════════════════ -->
+    <string name="empty_hunde">Noch kein Hund angelegt</string>
+    <string name="empty_hunde_detail">Noch kein Hund angelegt.</string>
+    <string name="empty_rezepte">Keine Rezepte vorhanden</string>
+    <string name="empty_rezept_hund">Noch kein Rezept für diesen Hund.</string>
+    <string name="empty_aufgaben">Noch keine Aufgaben</string>
+    <string name="empty_statistik">Erst einen Hund anlegen um Statistiken zu sehen.</string>
+    <string name="empty_kein_hund">Kein Hund ausgewählt.</string>
+
+    <!-- ═══════════════════════════════════════════════
+         AUTH / LOGIN
+         ═══════════════════════════════════════════════ -->
+    <string name="auth_mit_google">Mit Google anmelden</string>
+    <string name="auth_demo_modus">Demo-Modus (ohne Konto)</string>
+    <string name="auth_angemeldet">Angemeldet</string>
+    <string name="auth_abmelden">Abmelden</string>
+
+    <!-- ═══════════════════════════════════════════════
+         STAMMDATEN (Hunde)
+         ═══════════════════════════════════════════════ -->
+    <string name="stammdaten_title">Meine Hunde</string>
+    <string name="stammdaten_hund_erstellen">Erstellen oder Backup importieren</string>
+    <string name="stammdaten_erste_aufgabe">Erste Aufgabe erstellen</string>
+    <string name="label_rasse">Rasse</string>
+    <string name="label_gewicht_kg">Gewicht (kg)</string>
+    <string name="label_geschlecht">Geschlecht: </string>
+    <string name="label_ruede">Rüde</string>
+    <string name="label_huendin">Hündin</string>
+    <string name="label_kastriert">Kastriert / sterilisiert</string>
+    <string name="label_bett">Bett: </string>
+    <string name="label_aktivitaetsfaktor">Aktivitätsfaktor</string>
+    <string name="label_arbeitshund">Arbeitshund (3.0)</string>
+    <string name="label_inaktiv_faktor">Inaktiv (1.0)</string>
+    <string name="dialog_hund_loeschen_title">Hund löschen?</string>
+    <!-- Dynamisch: %1$s = Hundename -->
+    <string name="dialog_hund_loeschen_text">%1$s und alle zugehörigen Daten werden gelöscht.</string>
+    <string name="hund_auswahl">Hund auswählen</string>
+
+    <!-- ═══════════════════════════════════════════════
+         TAGEBUCH
+         ═══════════════════════════════════════════════ -->
+    <string name="tagebuch_title">Tagebuch</string>
+    <string name="tagebuch_futter_eintrag">Futter-Eintrag</string>
+    <string name="tagebuch_wie_geht_es">Wie geht es heute?</string>
+    <string name="tagebuch_zustand_speichern">Zustand speichern</string>
+    <string name="tagebuch_symptome_beobachtet">Beobachtete Symptome</string>
+    <string name="tagebuch_fotos_videos">Fotos / Videos</string>
+    <string name="tagebuch_video_wiedergabe">Video-Wiedergabe\nnoch nicht implementiert</string>
+    <string name="tagebuch_video_label">▶ Video</string>
+    <!-- Dynamisch: %1$d = vergangene Tage, %2$d = Gesamttage, %3$d = verbleibend -->
+    <string name="tagebuch_phase_fortschritt">Tag %1$d von %2$d · %3$d verbleibend</string>
+    <string name="tagebuch_phasentyp">Phasentyp</string>
+    <string name="tagebuch_ausschluss">Ausschluss</string>
+    <string name="tagebuch_provokation">Provokation</string>
+    <string name="tagebuch_reaktion">Reaktion</string>
+
+    <!-- Symptom -->
+    <string name="label_koerperstelle">Körperstelle</string>
+    <string name="label_koerperstelle_freitext">Körperstelle (Freitext)</string>
+    <string name="label_schweregrad">Schweregrad</string>
+    <!-- Dynamisch: %1$d = Schweregrad 1–5 -->
+    <string name="label_schweregrad_wert">%1$d/5</string>
+    <string name="label_auffaellig">Auffällig</string>
+
+    <!-- Allergen -->
+    <string name="label_allergen">Allergen</string>
+    <string name="label_allergen_stoff">Allergen / Stoff *</string>
+
+    <!-- ═══════════════════════════════════════════════
+         REZEPT / FUTTERRECHNER
+         ═══════════════════════════════════════════════ -->
+    <string name="rezept_title">Rezept</string>
+    <string name="rezept_neu">Neues Rezept</string>
+    <string name="rezept_anlegen">Rezept anlegen</string>
+    <string name="rezept_waehlen">Rezept wählen</string>
+    <string name="rezept_aktuelles">Aktuelles Futter (Rezept A)</string>
+    <string name="rezept_neues">Neues Futter (Rezept B)</string>
+    <string name="rezept_vergleich">Vergleich mit Rezept B</string>
+    <string name="rezept_kein_vergleich">Kein Vergleich</string>
+    <string name="placeholder_rezept_suche">Rezept suchen…</string>
+    <string name="label_portionen_tag">Portionen/Tag</string>
+    <string name="label_gekocht">Gekocht (B-Vitamine -30%)</string>
+    <string name="label_vitamin_e_form">Vitamin-E-Form</string>
+    <string name="label_eingabe_ie">Eingabe in IE möglich</string>
+    <string name="label_eingabemodus">Eingabemodus</string>
+    <string name="label_skalierung_energie">Skalierung &amp; Energie</string>
+    <string name="label_empfehlung">Empfehlung</string>
+    <string name="label_naehrstoffe_pro100g">Nährstoffe (pro 100 g)</string>
+
+    <!-- Zutat -->
+    <string name="label_zutat_stoff">Zutat / Stoff *</string>
+    <string name="label_zutat_hinzufuegen">Zutat hinzufügen</string>
+    <string name="label_zutaten">Zutaten</string>
+    <string name="dialog_zutat_loeschen">Zutat löschen?</string>
+    <string name="label_hersteller">Hersteller</string>
+    <string name="label_dosierung">Dosierung</string>
+    <string name="label_erstgabe">Erstgabe</string>
+    <string name="label_volumen_tropfen">Volumen je Tropfen (ml)</string>
+    <string name="label_gewicht_tablette">Gewicht je Tablette (g) *</string>
+    <string name="label_gewicht_tropfen">Gewicht je Tropfen (g) *</string>
+    <string name="placeholder_tropfen_gewicht">z.B. 0,05 g pro Tropfen</string>
+    <string name="placeholder_tablette_gewicht">z.B. 0,5 für eine 500mg-Tablette</string>
+    <string name="placeholder_tropfen_volumen">Optional, z.B. 0,05 ml</string>
+
+    <!-- Futterumstellung -->
+    <string name="umstellung_title">Futterumstellungsrechner</string>
+    <string name="umstellung_plan">Umstellungsplan</string>
+    <string name="umstellung_geschwindigkeit">Umstellungsgeschwindigkeit</string>
+    <string name="umstellung_sanft">Sanfter Wechsel von Rezept A → B</string>
+    <string name="umstellung_tipps">💡 Tipps zur Umstellung</string>
+    <!-- Dynamisch: %1$d = Gesamttage -->
+    <string name="umstellung_plan_erstellen">%1$d-Tage-Plan erstellen</string>
+    <string name="label_tage">Tage</string>
+    <string name="label_alle_n_tage">Alle N Tage</string>
+    <string name="label_eigene_tageanzahl">Eigene Tageanzahl (5–14)</string>
+
+    <!-- NRC / Energiebedarf -->
+    <string name="label_energiebedarf">Energiebedarf</string>
+    <string name="label_nrc_analyse">NRC-Analyse</string>
+    <string name="label_futterrechner">Futterrechner</string>
+
+    <!-- ═══════════════════════════════════════════════
+         STATISTIK
+         ═══════════════════════════════════════════════ -->
+    <string name="statistik_symptom_verlauf">Symptom-Verlauf</string>
+    <string name="statistik_symptom_heatmap">Symptom-Heatmap</string>
+    <string name="statistik_schweregrad_verlauf">Schweregrad-Verlauf</string>
+    <string name="statistik_wochentag_muster">Wochentag-Muster</string>
+    <string name="statistik_pollen_korrelation">Pollen-Korrelation</string>
+    <string name="statistik_phasen_timeline">Phasen-Timeline</string>
+    <string name="statistik_wochentage">Wochentage</string>
+    <!-- Dynamisch: %1$d = Reaktionsstärke 1–5 -->
+    <string name="statistik_reaktionsstaerke">Reaktionsstärke: %1$d/5</string>
+    <!-- Dynamisch: %1$s = Schweregrad-Wert -->
+    <string name="statistik_schweregrad_wert">Schweregrad: %1$s/5</string>
+
+    <!-- ═══════════════════════════════════════════════
+         WETTER / UMWELT
+         ═══════════════════════════════════════════════ -->
+    <string name="label_standort">Standort</string>
+    <string name="label_stadt_ort">Stadt / Ort</string>
+    <string name="label_breitengrad">Breitengrad</string>
+    <string name="label_laengengrad">Längengrad</string>
+    <string name="label_temp_min">Temp Min (°C)</string>
+    <string name="label_temp_max">Temp Max (°C)</string>
+    <string name="label_regen_mm">Regen (mm)</string>
+    <string name="label_feuchte_pct">Feuchte (%)</string>
+    <string name="label_raumtemp">Raumtemp (°C)</string>
+    <string name="label_raumfeuchte">Raumfeuchte (%)</string>
+    <string name="label_pollen_staerke">Pollen (0–5)</string>
+    <string name="label_neue_pollenart">Neue Pollenart</string>
+    <string name="label_stark">Stark</string>
+    <string name="wetter_klicke_laden">Klicke ↓ um Wetterdaten zu laden</string>
+    <string name="placeholder_stadt">z.B. München, DE</string>
+    <!-- Dynamisch: %1$s = Stadtname -->
+    <string name="wetter_geladen">✅ Wetter geladen für %1$s</string>
+    <!-- Dynamisch: %1$s = Datum von, %2$s = Datum bis -->
+    <string name="zeitraum_von_bis">%1$s – %2$s</string>
+
+    <!-- ═══════════════════════════════════════════════
+         AUFGABEN (Tasks)
+         ═══════════════════════════════════════════════ -->
+    <string name="tasks_title">Aufgaben</string>
+    <string name="label_titel">Titel *</string>
+    <string name="label_haeufigkeit">Häufigkeit (z.B. täglich, 2× täglich)</string>
+    <string name="label_wiederholung">Wiederholung</string>
+    <string name="label_erinnerungszeit">Erinnerungszeit (HH:MM)</string>
+    <string name="label_push_aktivieren">Push-Benachrichtigung aktivieren</string>
+    <string name="label_ziel_hund">Ziel-Hund</string>
+    <string name="label_beschreibung_kategorie">Beschreibung Kategorie</string>
+    <string name="placeholder_symptome">z.B. Symptome</string>
+
+    <!-- ═══════════════════════════════════════════════
+         EXPORT
+         ═══════════════════════════════════════════════ -->
+    <string name="export_title">Export</string>
+    <string name="export_csv_symptome">CSV-Export (Symptome)</string>
+    <string name="export_pdf_bericht">PDF-Bericht erstellen &amp; teilen</string>
+    <string name="export_pdf_sektionen">PDF-Sektionen</string>
+    <string name="export_tipp_csv">• CSV enthält alle Symptomeinträge im gewählten Zeitraum</string>
+    <string name="export_tipp_backup">• Datenbank-Backup kann zur Wiederherstellung genutzt werden</string>
+    <string name="export_tipp_pdf">• PDF wird via Share-Intent geteilt (Email, Drive, etc.)</string>
+
+    <!-- ═══════════════════════════════════════════════
+         BACKUP
+         ═══════════════════════════════════════════════ -->
+    <string name="backup_title">Backup &amp; Wiederherstellung</string>
+    <string name="backup_erstellen">Backup erstellen</string>
+    <string name="backup_erstellen_teilen">Backup erstellen &amp; teilen</string>
+    <string name="backup_wiederherstellen">Backup wiederherstellen</string>
+    <string name="backup_datei_auswaehlen">Backup-Datei auswählen</string>
+    <string name="backup_format">Datenbank-Backup (.db)</string>
+    <string name="dialog_backup_wiederherstellen_title">Backup wiederherstellen?</string>
+    <string name="backup_wiederherstellung_erfolgreich">Wiederherstellung erfolgreich</string>
+    <string name="backup_db_wiederhergestellt">Die Datenbank wurde wiederhergestellt.</string>
+    <string name="error_inkompatible_version">Inkompatible Version</string>
+
+    <!-- ═══════════════════════════════════════════════
+         GOOGLE SHEETS
+         ═══════════════════════════════════════════════ -->
+    <string name="sheets_title">Google Sheets Import</string>
+    <string name="sheets_daten_importieren">Daten aus Sheets importieren</string>
+    <string name="label_spreadsheet_id">Spreadsheet-ID</string>
+    <string name="sheets_id_hinweis">Aus der Google Sheets URL: /spreadsheets/d/[ID]/edit</string>
+    <string name="sheets_vorschau_laden">Datenvorschau (erste 3 Zeilen)</string>
+    <string name="sheets_lade_vorschau">Lade Vorschau…</string>
+    <string name="sheets_importiere">Importiere…</string>
+    <string name="sheets_manuell_zuordnen">Manuell zuordnen 🔧</string>
+    <string name="sheets_auto_erkannt">Automatisch erkannt ✅</string>
+    <string name="sheets_nicht_zuordnen">— nicht zuordnen —</string>
+
+    <!-- ═══════════════════════════════════════════════
+         EINSTELLUNGEN
+         ═══════════════════════════════════════════════ -->
+    <string name="einstellungen_title">Einstellungen</string>
+
+    <!-- ═══════════════════════════════════════════════
+         UNTERSUCHUNGEN / TIERARZT
+         ═══════════════════════════════════════════════ -->
+    <string name="label_untersuchungen">Untersuchungen</string>
+    <string name="label_praxis_tierarzt">Praxis / Tierarzt</string>
+    <string name="label_verordnet_von">Verordnet von</string>
+    <string name="label_folgebesuch">Folgebesuch (JJJJ-MM-TT)</string>
+    <string name="label_typ_medikament">Typ (z.B. Antihistaminikum)</string>
+
+    <!-- ═══════════════════════════════════════════════
+         TOLERANZBALKEN
+         ═══════════════════════════════════════════════ -->
+    <string name="toleranz_title">Toleranz bearbeiten</string>
+    <string name="toleranz_min">Mindest-Versorgung (Min)</string>
+    <string name="toleranz_ziel">Ziel / Empfehlung</string>
+    <string name="toleranz_max">Maximum (Überschuss-Grenze)</string>
+    <string name="toleranz_vorschau">Vorschau</string>
+    <string name="toleranz_ul_hinweis">NRC Upper Limit (UL) vorhanden. Max-Slider bezieht sich auf den Prozentwert relativ zum Bedarf.</string>
+    <string name="toleranz_fehler">Min ≤ Ziel ≤ Max muss gelten</string>
+
+    <!-- ═══════════════════════════════════════════════
+         MANUELLER KCAL-BEDARF
+         ═══════════════════════════════════════════════ -->
+    <string name="kcal_manuell_title">Manueller Kcal-Bedarf</string>
+    <string name="kcal_manuell_aktivieren">Aktivieren</string>
+    <string name="kcal_manuell_aktualisieren">Aktualisieren</string>
+    <string name="kcal_manuell_aktiv">Manuell aktiv</string>
+    <string name="kcal_manuell_hinweis">Optional: z.B. vom Tierarzt empfohlen</string>
+    <string name="kcal_manuell_ueberschreibt">Überschreibt MER-Berechnung</string>
+
+</resources>

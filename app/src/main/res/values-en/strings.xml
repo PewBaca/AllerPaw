@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ═══════════════════════════════════════════════
+         APP
+         ═══════════════════════════════════════════════ -->
+    <string name="app_name">AllerPaw</string>
+    <string name="app_tagline">Allergy management for your dog</string>
+
+    <!-- ═══════════════════════════════════════════════
+         NAVIGATION
+         ═══════════════════════════════════════════════ -->
+    <string name="nav_tagebuch">Journal</string>
+    <string name="nav_rechner">Calculator</string>
+    <string name="nav_stammdaten">Dogs</string>
+    <string name="nav_statistik">Statistics</string>
+    <string name="nav_export">Export</string>
+    <string name="nav_tasks">Tasks</string>
+
+    <!-- ═══════════════════════════════════════════════
+         BUTTONS
+         ═══════════════════════════════════════════════ -->
+    <string name="btn_speichern">Save</string>
+    <string name="btn_abbrechen">Cancel</string>
+    <string name="btn_loeschen">Delete</string>
+    <string name="btn_bearbeiten">Edit</string>
+    <string name="btn_hinzufuegen">Add</string>
+    <string name="btn_zuruecksetzen">Reset</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_neu">New</string>
+    <string name="btn_filter">Filter</string>
+    <string name="btn_filter_zuruecksetzen">Reset filter</string>
+    <string name="btn_vorschau_laden">Load preview</string>
+    <string name="btn_import_starten">Start import</string>
+    <string name="btn_wiederherstellen">Restore</string>
+    <string name="btn_neu_starten">Restart</string>
+    <string name="btn_jetzt_hinzufuegen">Add now</string>
+    <string name="btn_koordinaten_uebernehmen">Apply coordinates</string>
+    <string name="btn_standort_aktuell">Use current location</string>
+    <string name="btn_wetter_laden">Auto-fill weather</string>
+
+    <!-- ═══════════════════════════════════════════════
+         ACCESSIBILITY
+         ═══════════════════════════════════════════════ -->
+    <string name="cd_bearbeiten">Edit</string>
+    <string name="cd_loeschen">Delete</string>
+    <string name="cd_hinzufuegen">Add</string>
+    <string name="cd_schliessen">Close</string>
+    <string name="cd_zurueck">Back</string>
+    <string name="cd_suchen">Search</string>
+    <string name="cd_laden">Load</string>
+    <string name="cd_entfernen">Remove</string>
+    <string name="cd_kamera">Camera</string>
+    <string name="cd_video">Video</string>
+    <string name="cd_aus_galerie">From gallery</string>
+    <string name="cd_standort">Location</string>
+    <string name="cd_einstellungen">Settings</string>
+    <string name="cd_hund_hinzufuegen">Add dog</string>
+    <string name="cd_neuer_eintrag">New entry</string>
+    <string name="cd_neues_rezept">New recipe</string>
+    <string name="cd_neue_aufgabe">New task</string>
+    <string name="cd_neue_zutat">New ingredient</string>
+    <string name="cd_zutat_hinzufuegen">Add ingredient</string>
+    <string name="cd_naehrstoffe">Nutrients</string>
+    <string name="cd_zutaten">Ingredients</string>
+
+    <!-- ═══════════════════════════════════════════════
+         COMMON LABELS
+         ═══════════════════════════════════════════════ -->
+    <string name="label_name">Name *</string>
+    <string name="label_beschreibung">Description</string>
+    <string name="label_notiz">Note (optional)</string>
+    <string name="label_notizen">Notes</string>
+    <string name="label_notizen_freitext">Notes / free text</string>
+    <string name="label_typ">Type</string>
+    <string name="label_kategorie">Category</string>
+    <string name="label_datum_von">From (YYYY-MM-DD)</string>
+    <string name="label_datum_bis">To (YYYY-MM-DD)</string>
+    <string name="label_datum_start">Start (YYYY-MM-DD)</string>
+    <string name="label_datum_ende">End (YYYY-MM-DD)</string>
+    <string name="label_anlass">Occasion</string>
+    <string name="label_grund">Reason</string>
+    <string name="label_hund">Dog</string>
+    <string name="label_alle">All</string>
+    <string name="label_kein">None</string>
+    <string name="label_keine">None</string>
+    <string name="label_zeitraum">Period</string>
+    <string name="label_ergebnis">Result</string>
+    <string name="label_hinweise">Notes</string>
+    <string name="label_aktiv">Active</string>
+    <string name="label_inaktiv">Inactive</string>
+    <string name="label_tab_name">Tab name</string>
+
+    <!-- ═══════════════════════════════════════════════
+         EMPTY STATES
+         ═══════════════════════════════════════════════ -->
+    <string name="empty_hunde">No dog added yet</string>
+    <string name="empty_hunde_detail">No dog added yet.</string>
+    <string name="empty_rezepte">No recipes available</string>
+    <string name="empty_rezept_hund">No recipe for this dog yet.</string>
+    <string name="empty_aufgaben">No tasks yet</string>
+    <string name="empty_statistik">Add a dog first to see statistics.</string>
+    <string name="empty_kein_hund">No dog selected.</string>
+
+    <!-- ═══════════════════════════════════════════════
+         AUTH
+         ═══════════════════════════════════════════════ -->
+    <string name="auth_mit_google">Sign in with Google</string>
+    <string name="auth_demo_modus">Demo mode (without account)</string>
+    <string name="auth_angemeldet">Signed in</string>
+    <string name="auth_abmelden">Sign out</string>
+
+    <!-- ═══════════════════════════════════════════════
+         DOGS
+         ═══════════════════════════════════════════════ -->
+    <string name="stammdaten_title">My Dogs</string>
+    <string name="stammdaten_hund_erstellen">Create or import backup</string>
+    <string name="stammdaten_erste_aufgabe">Create first task</string>
+    <string name="label_rasse">Breed</string>
+    <string name="label_gewicht_kg">Weight (kg)</string>
+    <string name="label_geschlecht">Sex: </string>
+    <string name="label_ruede">Male</string>
+    <string name="label_huendin">Female</string>
+    <string name="label_kastriert">Neutered / spayed</string>
+    <string name="label_bett">Bed: </string>
+    <string name="label_aktivitaetsfaktor">Activity factor</string>
+    <string name="label_arbeitshund">Working dog (3.0)</string>
+    <string name="label_inaktiv_faktor">Inactive (1.0)</string>
+    <string name="dialog_hund_loeschen_title">Delete dog?</string>
+    <string name="dialog_hund_loeschen_text">%1$s and all related data will be deleted.</string>
+    <string name="hund_auswahl">Select dog</string>
+
+    <!-- ═══════════════════════════════════════════════
+         JOURNAL
+         ═══════════════════════════════════════════════ -->
+    <string name="tagebuch_title">Journal</string>
+    <string name="tagebuch_futter_eintrag">Food entry</string>
+    <string name="tagebuch_wie_geht_es">How are you feeling today?</string>
+    <string name="tagebuch_zustand_speichern">Save condition</string>
+    <string name="tagebuch_symptome_beobachtet">Observed symptoms</string>
+    <string name="tagebuch_fotos_videos">Photos / Videos</string>
+    <string name="tagebuch_video_wiedergabe">Video playback\nnot yet implemented</string>
+    <string name="tagebuch_video_label">▶ Video</string>
+    <string name="tagebuch_phase_fortschritt">Day %1$d of %2$d · %3$d remaining</string>
+    <string name="tagebuch_phasentyp">Phase type</string>
+    <string name="tagebuch_ausschluss">Elimination</string>
+    <string name="tagebuch_provokation">Provocation</string>
+    <string name="tagebuch_reaktion">Reaction</string>
+
+    <string name="label_koerperstelle">Body area</string>
+    <string name="label_koerperstelle_freitext">Body area (free text)</string>
+    <string name="label_schweregrad">Severity</string>
+    <string name="label_schweregrad_wert">%1$d/5</string>
+    <string name="label_auffaellig">Notable</string>
+
+    <string name="label_allergen">Allergen</string>
+    <string name="label_allergen_stoff">Allergen / substance *</string>
+
+    <!-- ═══════════════════════════════════════════════
+         RECIPE / CALCULATOR
+         ═══════════════════════════════════════════════ -->
+    <string name="rezept_title">Recipe</string>
+    <string name="rezept_neu">New recipe</string>
+    <string name="rezept_anlegen">Create recipe</string>
+    <string name="rezept_waehlen">Select recipe</string>
+    <string name="rezept_aktuelles">Current food (Recipe A)</string>
+    <string name="rezept_neues">New food (Recipe B)</string>
+    <string name="rezept_vergleich">Compare with Recipe B</string>
+    <string name="rezept_kein_vergleich">No comparison</string>
+    <string name="placeholder_rezept_suche">Search recipe…</string>
+    <string name="label_portionen_tag">Portions/day</string>
+    <string name="label_gekocht">Cooked (B-vitamins -30%)</string>
+    <string name="label_vitamin_e_form">Vitamin E form</string>
+    <string name="label_eingabe_ie">Input in IU possible</string>
+    <string name="label_eingabemodus">Input mode</string>
+    <string name="label_skalierung_energie">Scaling &amp; energy</string>
+    <string name="label_empfehlung">Recommendation</string>
+    <string name="label_naehrstoffe_pro100g">Nutrients (per 100 g)</string>
+
+    <string name="label_zutat_stoff">Ingredient / substance *</string>
+    <string name="label_zutat_hinzufuegen">Add ingredient</string>
+    <string name="label_zutaten">Ingredients</string>
+    <string name="dialog_zutat_loeschen">Delete ingredient?</string>
+    <string name="label_hersteller">Manufacturer</string>
+    <string name="label_dosierung">Dosage</string>
+    <string name="label_erstgabe">First dose</string>
+    <string name="label_volumen_tropfen">Volume per drop (ml)</string>
+    <string name="label_gewicht_tablette">Weight per tablet (g) *</string>
+    <string name="label_gewicht_tropfen">Weight per drop (g) *</string>
+    <string name="placeholder_tropfen_gewicht">e.g. 0.05 g per drop</string>
+    <string name="placeholder_tablette_gewicht">e.g. 0.5 for a 500mg tablet</string>
+    <string name="placeholder_tropfen_volumen">Optional, e.g. 0.05 ml</string>
+
+    <string name="umstellung_title">Food transition calculator</string>
+    <string name="umstellung_plan">Transition plan</string>
+    <string name="umstellung_geschwindigkeit">Transition speed</string>
+    <string name="umstellung_sanft">Gentle switch from Recipe A → B</string>
+    <string name="umstellung_tipps">💡 Transition tips</string>
+    <string name="umstellung_plan_erstellen">Create %1$d-day plan</string>
+    <string name="label_tage">Days</string>
+    <string name="label_alle_n_tage">Every N days</string>
+    <string name="label_eigene_tageanzahl">Custom number of days (5–14)</string>
+
+    <string name="label_energiebedarf">Energy requirement</string>
+    <string name="label_nrc_analyse">NRC analysis</string>
+    <string name="label_futterrechner">Food calculator</string>
+
+    <!-- ═══════════════════════════════════════════════
+         STATISTICS
+         ═══════════════════════════════════════════════ -->
+    <string name="statistik_symptom_verlauf">Symptom trend</string>
+    <string name="statistik_symptom_heatmap">Symptom heatmap</string>
+    <string name="statistik_schweregrad_verlauf">Severity trend</string>
+    <string name="statistik_wochentag_muster">Weekday pattern</string>
+    <string name="statistik_pollen_korrelation">Pollen correlation</string>
+    <string name="statistik_phasen_timeline">Phase timeline</string>
+    <string name="statistik_wochentage">Weekdays</string>
+    <string name="statistik_reaktionsstaerke">Reaction strength: %1$d/5</string>
+    <string name="statistik_schweregrad_wert">Severity: %1$s/5</string>
+
+    <!-- ═══════════════════════════════════════════════
+         WEATHER / ENVIRONMENT
+         ═══════════════════════════════════════════════ -->
+    <string name="label_standort">Location</string>
+    <string name="label_stadt_ort">City / place</string>
+    <string name="label_breitengrad">Latitude</string>
+    <string name="label_laengengrad">Longitude</string>
+    <string name="label_temp_min">Temp min (°C)</string>
+    <string name="label_temp_max">Temp max (°C)</string>
+    <string name="label_regen_mm">Rain (mm)</string>
+    <string name="label_feuchte_pct">Humidity (%)</string>
+    <string name="label_raumtemp">Room temp (°C)</string>
+    <string name="label_raumfeuchte">Room humidity (%)</string>
+    <string name="label_pollen_staerke">Pollen (0–5)</string>
+    <string name="label_neue_pollenart">New pollen type</string>
+    <string name="label_stark">Strong</string>
+    <string name="wetter_klicke_laden">Tap ↓ to load weather data</string>
+    <string name="placeholder_stadt">e.g. Munich, DE</string>
+    <string name="wetter_geladen">✅ Weather loaded for %1$s</string>
+    <string name="zeitraum_von_bis">%1$s – %2$s</string>
+
+    <!-- ═══════════════════════════════════════════════
+         TASKS
+         ═══════════════════════════════════════════════ -->
+    <string name="tasks_title">Tasks</string>
+    <string name="label_titel">Title *</string>
+    <string name="label_haeufigkeit">Frequency (e.g. daily, twice daily)</string>
+    <string name="label_wiederholung">Repeat</string>
+    <string name="label_erinnerungszeit">Reminder time (HH:MM)</string>
+    <string name="label_push_aktivieren">Enable push notification</string>
+    <string name="label_ziel_hund">Target dog</string>
+    <string name="label_beschreibung_kategorie">Category description</string>
+    <string name="placeholder_symptome">e.g. Symptoms</string>
+
+    <!-- ═══════════════════════════════════════════════
+         EXPORT
+         ═══════════════════════════════════════════════ -->
+    <string name="export_title">Export</string>
+    <string name="export_csv_symptome">CSV export (symptoms)</string>
+    <string name="export_pdf_bericht">Create &amp; share PDF report</string>
+    <string name="export_pdf_sektionen">PDF sections</string>
+    <string name="export_tipp_csv">• CSV contains all symptom entries for the selected period</string>
+    <string name="export_tipp_backup">• Database backup can be used for restoration</string>
+    <string name="export_tipp_pdf">• PDF is shared via share intent (email, Drive, etc.)</string>
+
+    <!-- ═══════════════════════════════════════════════
+         BACKUP
+         ═══════════════════════════════════════════════ -->
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_erstellen">Create backup</string>
+    <string name="backup_erstellen_teilen">Create &amp; share backup</string>
+    <string name="backup_wiederherstellen">Restore backup</string>
+    <string name="backup_datei_auswaehlen">Select backup file</string>
+    <string name="backup_format">Database backup (.db)</string>
+    <string name="dialog_backup_wiederherstellen_title">Restore backup?</string>
+    <string name="backup_wiederherstellung_erfolgreich">Restore successful</string>
+    <string name="backup_db_wiederhergestellt">The database has been restored.</string>
+    <string name="error_inkompatible_version">Incompatible version</string>
+
+    <!-- ═══════════════════════════════════════════════
+         GOOGLE SHEETS
+         ═══════════════════════════════════════════════ -->
+    <string name="sheets_title">Google Sheets Import</string>
+    <string name="sheets_daten_importieren">Import data from Sheets</string>
+    <string name="label_spreadsheet_id">Spreadsheet ID</string>
+    <string name="sheets_id_hinweis">From the Google Sheets URL: /spreadsheets/d/[ID]/edit</string>
+    <string name="sheets_vorschau_laden">Data preview (first 3 rows)</string>
+    <string name="sheets_lade_vorschau">Loading preview…</string>
+    <string name="sheets_importiere">Importing…</string>
+    <string name="sheets_manuell_zuordnen">Map manually 🔧</string>
+    <string name="sheets_auto_erkannt">Auto-detected ✅</string>
+    <string name="sheets_nicht_zuordnen">— do not map —</string>
+
+    <!-- ═══════════════════════════════════════════════
+         SETTINGS
+         ═══════════════════════════════════════════════ -->
+    <string name="einstellungen_title">Settings</string>
+
+    <!-- ═══════════════════════════════════════════════
+         VET / EXAMINATIONS
+         ═══════════════════════════════════════════════ -->
+    <string name="label_untersuchungen">Examinations</string>
+    <string name="label_praxis_tierarzt">Practice / vet</string>
+    <string name="label_verordnet_von">Prescribed by</string>
+    <string name="label_folgebesuch">Follow-up visit (YYYY-MM-DD)</string>
+    <string name="label_typ_medikament">Type (e.g. antihistamine)</string>
+
+    <!-- ═══════════════════════════════════════════════
+         TOLERANCE BARS
+         ═══════════════════════════════════════════════ -->
+    <string name="toleranz_title">Edit tolerance</string>
+    <string name="toleranz_min">Minimum supply (Min)</string>
+    <string name="toleranz_ziel">Target / Recommendation</string>
+    <string name="toleranz_max">Maximum (excess threshold)</string>
+    <string name="toleranz_vorschau">Preview</string>
+    <string name="toleranz_ul_hinweis">NRC Upper Limit (UL) available. Max slider refers to the percentage relative to the requirement.</string>
+    <string name="toleranz_fehler">Min ≤ Target ≤ Max must hold</string>
+
+    <!-- ═══════════════════════════════════════════════
+         MANUAL KCAL REQUIREMENT
+         ═══════════════════════════════════════════════ -->
+    <string name="kcal_manuell_title">Manual kcal requirement</string>
+    <string name="kcal_manuell_aktivieren">Activate</string>
+    <string name="kcal_manuell_aktualisieren">Update</string>
+    <string name="kcal_manuell_aktiv">Manual active</string>
+    <string name="kcal_manuell_hinweis">Optional: e.g. recommended by vet</string>
+    <string name="kcal_manuell_ueberschreibt">Overrides MER calculation</string>
+
+</resources>

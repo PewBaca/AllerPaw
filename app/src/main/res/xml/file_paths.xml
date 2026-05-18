@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Export: PDF, CSV, Backup -->
+    <cache-path name="exports" path="." />
+    <external-cache-path name="external_exports" path="." />
+    <!-- Medien: Fotos und Videos für Symptome -->
+    <files-path name="media" path="media/" />
+</paths>
