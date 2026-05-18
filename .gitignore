@@ -1,0 +1,18 @@
+# Android Build-Artefakte
+build/
+app/build/
+*.apk
+*.aab
+*.dex
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Gradle
+.gradle/
+local.properties
+gradle/wrapper/gradle-wrapper.jar
