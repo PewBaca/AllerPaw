@@ -1,6 +1,6 @@
-# AllerPaw – FAQ (v0.10.0)
+# AllerPaw – FAQ (v0.11.0)
 
-> Stand: 2026-05-07
+> Stand: 2026-05-19
 
 ---
 
@@ -191,3 +191,43 @@ Ab Android 16 schützt Android den Zugriff aufs lokale Netzwerk. AllerPaw kommun
 
 **Muss ich wegen `scheduleAtFixedRate`-Änderungen etwas tun?**
 Nein. AllerPaw verwendet `scheduleAtFixedRate` nicht direkt. WorkManager ist davon nicht betroffen.
+
+---
+
+## Android 17 / API Level 37
+
+**Was ändert sich mit Android 17 (API Level 37)?**
+Android 17 entfernt den Developer-Opt-out für Orientierungs- und Größenänderungsbeschränkungen auf Large Screens (sw ≥ 600 dp). Das bedeutet: `screenOrientation`, `resizableActivity`, `minAspectRatio`, `maxAspectRatio` und `setRequestedOrientation()` werden auf Geräten mit sw ≥ 600 dp vollständig ignoriert. Das Manifest-Attribut `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`, das in API 36 noch als temporärer Opt-out dient, ist ab API 37 wirkungslos.
+
+**Bis wann muss auf API 37 umgestellt werden?**
+Für Google Play gilt: neue Apps und Updates müssen ab **August 2027** auf API Level 37 ausgerichtet sein. AllerPaw sollte spätestens Q1 2027 auf API 37 umgestellt und alle adaptiven Layouts validiert sein.
+
+**Welche Screens in AllerPaw sind potenziell problematisch?**
+Screens mit fixierten Breiten (z.B. `fillMaxWidth` auf Tablets ohne `widthIn`-Begrenzung) oder Layouts, die nur für das Hochformat designt wurden:
+- `RezeptScreen` – lange Nährstoffbalken könnten auf Landscape-Tablets strecken
+- `TagebuchScreen` – 9-Tab-Leiste auf schmalem Landscape-Fenster prüfen
+- Alle Screens mit unteren Action-Buttons (`Save`, `Speichern`) → `verticalScroll` + `widthIn(max = 600.dp)` prüfen
+
+**Was ist die Lösung für gestreckte Layouts?**
+Compose `widthIn(max = 480.dp)` + `Alignment.Center` in einem `Box(fillMaxSize)` verhindert Strecken auf großen Bildschirmen. Für Buttons am unteren Rand `verticalScroll(rememberScrollState())` auf der übergeordneten `Column` ergänzen.
+
+**Wie teste ich API 37-Verhalten heute schon?**
+Mit dem App-Kompatibilitäts-Framework via ADB:
+```bash
+adb shell am compat enable UNIVERSAL_RESIZABLE_BY_DEFAULT com.allerpaw.app
+```
+Alternativ: Android 17 Beta 1 mit Pixel Tablet / Pixel Fold Emulator in Android Studio + `targetSdkPreview = "CinnamonBun"`.
+
+**Hat AllerPaw eine Kamera — ist die Kamera-Preview-Warnung relevant?**
+Nein. AllerPaw verwendet keine Kamera-Preview. Der Coil-Import lädt nur bereits aufgenommene Bilder aus dem Dateisystem. Keine Action nötig.
+
+**Was passiert mit `NEARBY_WIFI_DEVICES` bei erzwungener LNP-Enforcement (26Q2)?**
+Ab Android 17 (voraussichtlich 26Q2) wird Local Network Protection erzwungen. AllerPaw kommuniziert ausschließlich über Internet-APIs (BrightSky, Open-Meteo, Google Sheets) — kein LAN-Zugriff. Der deklarierte `NEARBY_WIFI_DEVICES`-Permission-Eintrag ist vorsorglich korrekt. Ein Laufzeit-Request ist nur dann nötig, wenn AllerPaw zukünftig LAN-Features (z.B. lokale NAS-Backups) ergänzt.
+
+**Wie soll der API 37-Migrationspfad aussehen?**
+1. Compose UI Check in Android Studio ausführen → automatisches Audit aller Screens
+2. `widthIn` + `verticalScroll` in betroffenen Screens ergänzen (RezeptScreen, TagebuchScreen)
+3. State-Preservation bei Konfigurations-Änderungen prüfen (ViewModel reicht für die meisten Screens)
+4. ADB-Flag `UNIVERSAL_RESIZABLE_BY_DEFAULT` aktivieren und alle Screens auf Pixel Tablet Emulator testen
+5. `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` aus Manifest entfernen
+6. `targetSdk` von 36 auf 37 anheben, `versionCode` + `versionName` erhöhen

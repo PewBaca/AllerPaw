@@ -1,6 +1,6 @@
-# AllerPaw – Feature-Übersicht (v0.10.0)
+# AllerPaw – Feature-Übersicht (v0.11.0)
 
-> Stand: 2026-05-07 · ✅ fertig · 🟡 teilweise · 🔲 geplant
+> Stand: 2026-05-19 · ✅ fertig · 🟡 teilweise · 🔲 geplant
 
 ---
 
@@ -245,3 +245,9 @@
 | Edge-to-Edge (`enableEdgeToEdge()`) | ✅ |
 | Predictive Back Gesture (`enableOnBackInvokedCallback=true`) | ✅ |
 | NEARBY_WIFI_DEVICES (LNP-Vorbereitung) | ✅ deklariert |
+| **Android 17 (API 37) target** | ✅ |
+| Adaptive Navigation (NavigationRail auf Medium/Expanded Screens) | ✅ |
+| LoginScreen `widthIn(max=480dp)` auf Tablets | ✅ |
+| State-Preservation bei Konfigurations-Änderungen | ✅ ViewModel vorhanden |
+| `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` nicht verwendet | ✅ nie nötig |
+| Adaptive Layouts Audit (restliche Screens) | 🔲 folgt in v0.12 |

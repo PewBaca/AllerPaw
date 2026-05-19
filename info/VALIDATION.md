@@ -1,6 +1,6 @@
-# AllerPaw – Validierungsplan (v0.2)
+# AllerPaw – Validierungsplan (v0.3)
 
-> Letzte Aktualisierung: 2026-04-24
+> Letzte Aktualisierung: 2026-05-19
 
 ---
 
@@ -75,3 +75,19 @@
 - Nährstoff-Werte intern immer als per-100g gespeichert
 - IE immer sofort beim Speichern in µg/mg konvertiert — nie als IE in DB
 - Symptom-Heatmap: ab 14 Einträgen — darunter keine Anzeige
+
+---
+
+## Phase 5 – API 37 Adaptive Layout Audit 🟡
+
+> Voraussetzung: ADB-Flag `UNIVERSAL_RESIZABLE_BY_DEFAULT` aktiv oder Android 17 Beta Emulator
+
+| Test | Erwartetes Ergebnis | Status |
+|------|---------------------|--------|
+| LoginScreen auf Pixel Tablet Landscape | Buttons max 480dp, zentriert | ✅ implementiert |
+| NavigationRail auf Medium/Expanded Screen | Rail links statt BottomBar | ✅ implementiert |
+| RezeptScreen auf Pixel Tablet Landscape | Nährstoffbalken ohne unkontrolliertes Strecken | 🔲 |
+| TagebuchScreen 9 Tabs auf schmalem Landscape-Fenster | Tabs scrollen horizontal | 🔲 |
+| Alle Screens mit „Speichern"-Button unten | Button erreichbar | 🔲 |
+| App-Neustart nach Gerät-Rotation | Kein Datenverlust, ViewModel-State bleibt | 🔲 |
+| App in Split-Screen (50:50) auf Tablet | Keine gestreckte oder abgeschnittene UI | 🔲 |

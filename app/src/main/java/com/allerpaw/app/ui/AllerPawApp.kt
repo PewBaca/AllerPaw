@@ -1,11 +1,13 @@
 package com.allerpaw.app.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.allerpaw.app.ui.auth.LoginScreen
 import com.allerpaw.app.ui.auth.LoginViewModel
 import com.allerpaw.app.ui.export.ExportScreen
@@ -56,37 +59,16 @@ fun AllerPawApp() {
 
     val navBackStackEntry  by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = bottomNavItems.any { it.screen.route == currentDestination?.route }
+    val showNav = bottomNavItems.any { it.screen.route == currentDestination?.route }
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        NavigationBarItem(
-                            icon     = { Icon(item.icon(), stringResource(item.labelRes)) },
-                            label    = { Text(stringResource(item.labelRes)) },
-                            selected = currentDestination?.hierarchy
-                                ?.any { it.route == item.screen.route } == true,
-                            onClick  = {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState    = true
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
+    // Adaptive: NavigationRail auf Medium/Expanded, NavigationBar auf Compact
+    val windowInfo = currentWindowAdaptiveInfo()
+    val useRail = windowInfo.windowSizeClass.windowWidthSizeClass != WindowWidthSizeClass.COMPACT
+
+    val navContent: @Composable () -> Unit = {
         NavHost(
             navController    = navController,
             startDestination = startDestination,
-            modifier         = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(viewModel = loginViewModel, onLoginSuccess = {
@@ -142,13 +124,68 @@ fun AllerPawApp() {
             }
             composable(Screen.FoodImport.route) {
                 FoodImportScreen(
-                    onNavigateUp       = { navController.navigateUp() },
+                    onNavigateUp        = { navController.navigateUp() },
                     onNavigateToApiKeys = { navController.navigate(Screen.ApiKeys.route) }
                 )
             }
             composable(Screen.ApiKeys.route) {
                 ApiKeysScreen(onNavigateUp = { navController.navigateUp() })
             }
+        }
+    }
+
+    if (showNav && useRail) {
+        // ── Large screen: NavigationRail links ───────────────────────────
+        Row(Modifier.fillMaxSize()) {
+            NavigationRail {
+                bottomNavItems.forEach { item ->
+                    NavigationRailItem(
+                        icon     = { Icon(item.icon(), stringResource(item.labelRes)) },
+                        label    = { Text(stringResource(item.labelRes)) },
+                        selected = currentDestination?.hierarchy
+                            ?.any { it.route == item.screen.route } == true,
+                        onClick  = {
+                            navController.navigate(item.screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState    = true
+                            }
+                        }
+                    )
+                }
+            }
+            Box(Modifier.weight(1f)) { navContent() }
+        }
+    } else {
+        // ── Phone: NavigationBar unten ────────────────────────────────────
+        Scaffold(
+            bottomBar = {
+                if (showNav) {
+                    NavigationBar {
+                        bottomNavItems.forEach { item ->
+                            NavigationBarItem(
+                                icon     = { Icon(item.icon(), stringResource(item.labelRes)) },
+                                label    = { Text(stringResource(item.labelRes)) },
+                                selected = currentDestination?.hierarchy
+                                    ?.any { it.route == item.screen.route } == true,
+                                onClick  = {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState    = true
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Box(Modifier.padding(innerPadding)) { navContent() }
         }
     }
 }

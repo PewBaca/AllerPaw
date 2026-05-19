@@ -1,7 +1,7 @@
-# AllerPaw – Projektbeschreibung (v0.10.0)
+# AllerPaw – Projektbeschreibung (v0.11.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen.**
-> Letzte Aktualisierung: 2026-05-17 · Status: v0.10.0 – **alle Features vollständig implementiert** 🎉
+> Letzte Aktualisierung: 2026-05-19 · Status: v0.11.0 – **alle Features implementiert · API 37 Vorbereitung dokumentiert** 🎉
 
 ---
 
@@ -18,7 +18,7 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 
 | Bereich | Technologie | Version |
 |---------|-------------|---------|
-| Plattform | Android | API 26+ (Target 36) |
+| Plattform | Android | API 26+ (Target 37 · Android 17) |
 | Sprache | Kotlin | 2.2.10 |
 | UI | Jetpack Compose + Material You | BOM 2025.05.00 |
 | Datenbank | Room (SQLite) | 2.7.1 |
@@ -27,6 +27,7 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 | HTTP | Retrofit 2 + OkHttp | 2.11.0 |
 | Auth | Google Credential Manager | 1.5.0 |
 | Charts | Vico | 2.0.0-beta.3 |
+| Adaptive UI | Material3 Adaptive + androidx.window | 1.1.0 / 1.4.0 |
 | DataStore | Preferences DataStore | 1.1.4 |
 | Build | Gradle KDS + Version Catalog | AGP 8.9.1 |
 | CI | GitHub Actions | — |
@@ -37,7 +38,7 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 
 ---
 
-## Implementierungsstand (v0.7)
+## Implementierungsstand (v0.11)
 
 ### Datenschicht (Room DB Version 3 — 22 Entities)
 
@@ -145,13 +146,15 @@ Zustand · Umwelt · Symptom · Futter · Ausschluss · Allergen · Tierarzt · 
 | Notification | POST_NOTIFICATIONS Permission ab Android 13 |
 | Phasen-Defaults | Elimination 42T · Provokation 14T · Ergebnis 7T |
 | Umstellung | 5–14 Tage · linear · Gramm = Anteil% × Tagesration |
+| API 37 Opt-out | `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` nie verwendet — nicht nötig |
+| Adaptive Layouts | `NavigationRail` auf sw≥Medium, `widthIn(max=480dp)` auf Login |
 
 ---
 
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
 ```
-Kontext: AllerPaw v0.7 – Android, Kotlin + Compose, Room v3, AGP 9.1.1.
+Kontext: AllerPaw v0.11 – Android, Kotlin + Compose, Room v3, AGP 9.1.1.
 [PROJECT.md als Kontext einfügen]
 
 Aufgabe: [Beschreibung]

@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId = "com.allerpaw.app"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 10
-        versionName = "0.10.0"
+        targetSdk = 37
+        versionCode = 11
+        versionName = "0.11.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -102,6 +102,10 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
+
+    // Adaptive Layout (API 37 — NavigationRail auf großen Screens)
+    implementation(libs.compose.material3.adaptive)
+    implementation(libs.androidx.window)
 
     // Testing
     testImplementation(libs.junit)
