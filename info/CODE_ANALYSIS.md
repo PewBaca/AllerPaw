@@ -1,212 +1,108 @@
-# AllerPaw – Code-Analyse: Ist-Zustand vs. MD-Dokumentation
+# AllerPaw – Code-Analyse & Implementierungsabgleich (v0.2)
 
-> Erstellt: 2026-04-23  
-> Analysierte Dateien: `index.html`, alle `js/*.js` (v2.3.1) vs. `FEATURE.md`, `PROJECT.md`, `FAQ.md`
-
----
-
-## Methodik
-
-Vollständige Durchsicht von `index.html` (DOM-Struktur, Formulare, Event-Handler) und allen JS-Modulen (Funktionssignaturen, Implementierungsdetails). Abgleich gegen die aktuellen MD-Dokumente.
+> Letzte Aktualisierung: 2026-04-24  
+> Analysierte Basis: Web-App v2.3.1 + Android-Implementierung v0.2
 
 ---
 
-## ✅ Korrekt dokumentiert – Code stimmt mit MD überein
+## Android v0.2 – Implementierte Dateien
 
-| Feature | Quelle |
-|---------|--------|
-| 8 Tagebuch-Tabs (Umwelt, Symptom, Futter, Ausschluss, Phasen, Allergen, Tierarzt, Medikament) | `index.html` Tab-Bar |
-| Phasentracker (PHASEN_DEFAULTS: elimination=42, provokation=14, ergebnis=7) | `tagebuch.js:PHASEN_DEFAULTS` |
-| Soft-Delete + Undo (max. 5 Stack, 8 Sek. Banner) | `stammdaten.js`, `tagebuch.js` |
-| Rezept-Mix (max. 5 Ebenen, Zykluserkennung) | `rechner.js:resolveRezept()` |
-| Nährstoff-Import USDA + Open Food Facts parallel | `stammdaten.js:_searchUSDA()`, `_searchOpenFoodFacts()` |
-| Import überschreibt keine Werte | `stammdaten.js:applyImportToFields()` |
-| Pollen-Log pro Pollenart eine Zeile | `wetter.js:_writePollenLog()` |
-| Ca:P-Verhältnis + Omega 6:3 als Badge | `rechner.js:recalc()` |
-| Rezept-Vergleich A vs. B | `rechner.js:calcVergleich()`, `initVergleich()` |
-| Symptom-Muster-Heatmap (ab 14 Einträgen) | `statistik.js:_renderSymptomMuster()` |
-| Korrelationsanalyse (min. 3 Datenpunkte) | `statistik.js:_renderKorrelation()` |
-| Zutaten-Reaktionsscore | `statistik.js:_renderReaktionsscore()` |
-| Hund-2-Vergleich in Statistik | `statistik.js:onHund2Changed()` |
-| 9 Export-Sektionen (Tierarzt-PDF) | `export.js:SECTIONS[]` |
-| BrightSky + DWD + Open-Meteo Pollen | `wetter.js:loadAll()` |
-| Kochverlust nur B-Vitamine | `rechner.js:COOKING_LOSS_NUTR` (7 B-Vitamine + Langform-Aliase) |
-| Tablette als Eingabemodus | `stammdaten.js:PER_OPTIONS[tabletteMode:true]` |
-| IE-Konvertierung (Vitamin A, D, E) | `stammdaten.js:IE_FACTORS{}` |
-| Sprache DE / EN via i18n-Sheet | `i18n.js:loadSheet('Translations')` |
-| `saveWithFeedback()` Einstellungen-Button | `config.js`, `index.html` |
-| Pollen-Popup-Dialog (Bottom Sheet) | `statistik.js:showPollenPopup()` |
-| Phasen-Timeline in Statistik | `statistik.js:_renderPhasenTimeline()` |
-
----
-
-## 🔴 In MD fehlend oder falsch – im Code vorhanden
-
-### 1. Zutat-zu-Zutat-Vergleich (Stammdaten)
-
-**Code:** `stammdaten.js` enthält `selectZutatForCompare()`, `showZutatVergleich()`, `_updateCmpBanner()`. In der Zutaten-Liste gibt es einen ⚖️-Button. Nutzer tippt bei zwei Zutaten auf ⚖️ → Vergleichs-Modal öffnet sich mit allen 39 Nährstoffen, Ampelfarben und Delta-Pfeil (▲/▼ in %).
-
-**MD:** Nicht erwähnt. Weder in FEATURE.md noch in FAQ.md.
+| Datei | Inhalt | Anmerkungen |
+|-------|--------|-------------|
+| `build.gradle.kts` (root + app) | AGP 8.5, Kotlin 2.0, KSP | Version Catalog |
+| `libs.versions.toml` | Alle Abhängigkeiten zentral | Hilt, Room, Retrofit, Vico, Moshi |
+| `AppDatabase.kt` | 19 Entities, Room Version 1 | TypeConverters für Instant + LocalDate |
+| `StammdatenEntities.kt` | Hund, HundGewicht, Zutat, ZutatNaehrstoff, Rezept, RezeptZutat, Parameter, Toleranz | Soft-Delete überall |
+| `TagebuchEntities.kt` | Umwelt, PollenLog, EigenePollenart, Symptom, Futter, FutterItem, Ausschluss, Allergen, Tierarzt, Medikament, AusschlussPhase | Alle 8 Tabs abgedeckt |
+| `Daos.kt` | HundDao, ZutatenDao, RezeptDao, TagebuchDao, ParameterDao | Flow-basiert, Soft-Delete |
+| `NaehrstoffDomain.kt` | 29 NRC-Nährstoffe, EnergieBedarf (RER/MER), RezeptAnalyseUseCase, NaehrstoffErgebnis | Ampelstatus: OK/MANGEL/UEBERSCHUSS/UEBERSCHRITTEN |
+| `HundRepository.kt` | CRUD + Gewichtsverlauf | Flow-basiert |
+| `SessionRepository.kt` | Login-State via DataStore | |
+| `DatabaseModule.kt` | Hilt-Provider für DB + DAOs | |
+| `NetworkModule.kt` | Retrofit, OkHttp, DataStore | Basis-URL Platzhalter |
+| `DomainModule.kt` | RezeptAnalyseUseCase als Singleton | |
+| `AllerPawApp.kt` | Root-Composable, Scaffold, NavHost, Bottom Nav | |
+| `NavGraph.kt` | Screen-Routes, BottomNavItem-Enum | 5 Tabs + Settings |
+| `Theme.kt` | Material You, Dynamic Color | Dark Mode via System |
+| `LoginScreen.kt` + `LoginViewModel.kt` | Demo-Login, DataStore-Session | Google-Token = Platzhalter |
+| `StammdatenScreen.kt` + `StammdatenViewModel.kt` | Hund-Liste, HundCard, Edit-Dialog | Geschlecht, Kastration, Gewicht |
+| `RechnerScreen.kt` + `RechnerViewModel.kt` | RER/MER, Aktivitätsfaktor-Slider, NRC-Tabelle | Rezept-Analyse noch leer |
+| `TagebuchScreen.kt` | Placeholder | Phase 2 |
+| `StatistikScreen.kt` | Placeholder | Phase 3 |
+| `ExportScreen.kt` | Placeholder | Phase 4 |
+| `SettingsScreen.kt` | Grundgerüst | Ausbau Phase 2 |
+| `strings.xml` (DE + EN) | App-Name, 5 Nav-Labels | Ausbau folgt |
 
 ---
 
-### 2. Kochverlust-Faktor ist ein konfigurierbarer Parameter — nicht fix 0.75
+## Korrekturen gegenüber Web-App-Dokumentation
 
-**Code:** `rechner.js:681`: `const cookFactor = 1 - (params['kochverlust_b_vitamine'] || 0.30)`
+### 1. Kochverlust-Faktor (kritisch)
 
-Der Standardfaktor beträgt **0.30** (= 30 % Verlust, Faktor 0.70), **nicht 0.75** wie in FEATURE.md und FAQ.md dokumentiert. Der Wert ist außerdem über den Parameter-Tab (`Stammdaten → Parameter`) konfigurierbar.
+**Web-App-Code:** `rechner.js:681`: `const cookFactor = 1 - (params['kochverlust_b_vitamine'] || 0.30)`
 
-**MD (FEATURE.md):** „Kochverlustfaktor 0,75 für B-Vitamine" → **Falsch**. Korrekt: Verlustfaktor 0.30 → angewendeter Faktor 0.70. Außerdem: konfigurierbar.
+- Standardverlust: **30 %** → angewendeter Faktor: **0.70**
+- Konfigurierbar via `ParameterEntity` (Schlüssel: `kochverlust_b_vitamine`)
+- Gilt nur für: B1, B2, B3, B5, B6, B9, B12
 
-**MD (FAQ.md):** „Der Kochverlust gilt ausschließlich für B-Vitamine" → korrekt, aber der Wert fehlt.
-
----
-
-### 3. Skalierungsfaktor im Futterrechner (×0.25 / ×0.5 / ×1 / ×2 + eigener Wert)
-
-**Code:** `index.html` zeigt Scale-Buttons `×0.25`, `×0.5`, `×1`, `×2` plus ein freies Eingabefeld für beliebige Faktoren. `rechner.js:setScale()`, `applyScale()`.
-
-**MD:** Nicht erwähnt in FEATURE.md.
+**Alte MD (falsch):** „Kochverlustfaktor 0,75"  
+**Neue MD (korrekt):** Verlust 0.30, Faktor 0.70, konfigurierbar ✅ korrigiert in FEATURE.md
 
 ---
 
-### 4. Portionen pro Tag (Parameter)
+### 2. Skalierungsfaktor (fehlte in MD)
 
-**Code:** `rechner.js:707-710` liest `params['portionen_pro_tag'] || 2` und zeigt im Rechner „g je Portion" an. Konfigurierbar im Parameter-Tab.
-
-**MD:** Nicht erwähnt. Im Rechner-Panel wird die Tagesration automatisch durch die Portionszahl geteilt.
-
----
-
-### 5. IE-Konvertierung: Vitamin D2 wird gleich wie D3 behandelt — und Vitamin E hat keine Form-Auswahl
-
-**Code:** `IE_FACTORS` hat nur einen einzigen Eintrag für `Vitamin E` (0.67 mg/IE). Es gibt **keine** Unterscheidung zwischen natürlicher (d-Alpha) und synthetischer Form (dl-Alpha) oder Acetat-Form.
-
-**MD (FEATURE.md v0.1):** Beschreibt 4 verschiedene Faktoren für Vitamin E und eine Auswahl der E-Form. Das ist **noch nicht implementiert** — in der Web-App gibt es diese Ausdifferenzierung nicht.
-
-**Handlungsbedarf für Android:** Die FEATURE.md beschreibt hier bereits den Soll-Zustand der Android-App, der über die Web-App hinausgeht. Das ist richtig so — muss aber als „neu in Android, nicht in Web vorhanden" markiert werden.
+**Web-App-Code:** Scale-Buttons ×0.25, ×0.5, ×1, ×2 + freies Eingabefeld  
+**Jetzt dokumentiert** in FEATURE.md ✅
 
 ---
 
-### 6. `PER_OPTIONS`: Eingabe auch per 1g, 1kg, 1000g — nicht nur 100g und Tablette
+### 3. Portionen pro Tag (fehlte in MD)
 
-**Code:** `stammdaten.js:PER_OPTIONS`:
-- `/ 100g` (Faktor 1)
-- `/ 1kg` (Faktor 0.1)
-- `/ 1g` (Faktor 100)
-- `/ 1000g` (Faktor 0.1)
-- `/ Tablette` (tabletteMode: true)
-
-**MD:** Nur „pro 100 g" und „pro Einheit (Tablette)" erwähnt. Die anderen Bezugsmengen fehlen.
+**Web-App-Code:** `rechner.js`: `params['portionen_pro_tag'] || 2` → „g je Portion"  
+**Jetzt dokumentiert** in FEATURE.md + Entity `ParameterEntity` vorhanden ✅
 
 ---
 
-### 7. Tablette: Nährstoffwert-Eingabe „pro Tablette" — interne Speicherung als /100g-Äquivalent
+### 4. Zutat-zu-Zutat-Vergleich (fehlte in MD)
 
-**Code:** Wenn `tabletteMode: true` und Tablettengewicht > 0, berechnet `_tablettePerFactor(gewichtProTabl)` den Umrechnungsfaktor. Die Nährstoffe werden in der DB immer als Äquivalent pro 100g gespeichert, nicht als Rohwert pro Tablette.
-
-Im Futterrechner (`renderIngredients()`): Zeigt Anzahl Tabletten an (`anzahl = ing.grams / tabG`), darunter den äquivalenten Grammwert.
-
-**MD:** FEATURE.md sagt „Nährstoffangaben immer in der Speichereinheit (µg/mg/g) abgelegt" — das ist für die Android-Version korrekt als Ziel, aber die Web-App speichert **als /100g-Äquivalent** (nicht als Rohwert pro Tablette). Dieser Unterschied sollte in der Migrations-Entscheidung beachtet werden.
+**Web-App-Code:** `selectZutatForCompare()`, `showZutatVergleich()`, ⚖️-Button in Zutaten-Liste  
+**Jetzt dokumentiert** in FEATURE.md, geplant für Phase 3 ✅
 
 ---
 
-### 8. Export: Reaktionsscore und Korrelation sind standardmäßig DEAKTIVIERT
+### 5. Architektur-Entscheidung: Room statt Sheets als Primär-DB
 
-**Code:** `export.js:SECTIONS[]`:
-- `reaktion`: `default: false`
-- `korrelation`: `default: false`
-- Alle anderen 7 Sektionen: `default: true`
-
-**MD (FEATURE.md):** „9 Toggle-Sektionen" ohne Hinweis auf Standardzustand.
+Gegenüber dem ursprünglichen v0.1-Plan (Sheets als Primär-DB) wurde auf **Room SQLite als Primärspeicher** umgestellt. Sheets bleibt Export-Kanal. Alle MD-Dokumente aktualisiert ✅
 
 ---
 
-### 9. Symptom-Kategorien sind fest im HTML kodiert (nicht aus Sheets)
+## Offene Punkte / TODOs für Phase 2
 
-**Code:** `index.html` Tab-Symptom: Die Kategorie-Buttons (Juckreiz, Ohrentzündung, Hautrötung, Pfoten lecken, Durchfall, Erbrechen, Schütteln, Sonstiges) sind direkt im HTML. Es gibt ein zusätzliches Freitext-Feld „Eigene Kategorie…".
-
-**MD:** Nicht erwähnt. Für die Android-App relevant: Sollen die Kategorien konfigurierbar sein?
-
----
-
-### 10. Körperstellen sind fest im HTML kodiert
-
-**Code:** `index.html`: Ohren, Pfoten, Bauch, Rücken, Beine, Gesicht + Freitext-Feld.
-
-**MD:** Nicht erwähnt. Gleiche Frage wie oben.
-
----
-
-### 11. Futter-Tab: Multi-Futter mit dynamischen Rezept-Items + Freitext-Ergänzung
-
-**Code:** `tagebuch.js` exportiert `addFutterItem()`, `removeFutterItem()`, `futterItemRezeptChanged()`, `futterItemPortionenChanged()`, `futterItemGrammChanged()`, `renderFutterItems()`. Es können mehrere Rezepte mit je Gramm-Angabe eingetragen werden. Zusätzlich gibt es ein Freitext-Ergänzungsfeld.
-
-**MD:** FEATURE.md Tagebuch-Tab Futter beschreibt nur „Rezept-/Futtername, Produkt, Erstgabe, 2-Wochen-Phase, Provokation, Reaktion". Die Multi-Futter-Struktur und Kcal-Berechnung aus mehreren Rezepten fehlt.
+| Punkt | Datei | Priorität |
+|-------|-------|-----------|
+| FloatParser.kt | util/ | Hoch – DE Komma-Dezimaltrenner |
+| Google Credential Manager (echter Flow) | AuthRepository | Hoch |
+| ZutatenRepository | data/repository/ | Hoch |
+| TagebuchRepository | data/repository/ | Hoch |
+| NRC Welpen/Senioren Bedarfswerte | NaehrstoffDomain | Mittel |
+| IE-Konvertierung UI | NaehrstoffDialog | Mittel |
+| LocaleHelper.kt | util/ | Niedrig |
+| Kochverlust-Faktor in RezeptAnalyseUseCase | NaehrstoffDomain | Hoch (Phase 3) |
+| resolveRezept() rekursiv | domain/ | Hoch (Phase 3) |
 
 ---
 
-### 12. Stammdaten: 4 Tabs (Hunde, Zutaten, Toleranzen, Parameter)
+## NRC-Nährstoff-Abdeckung
 
-**Code:** `index.html` Stammdaten-Panel hat 4 Tabs: `Hunde`, `Zutaten`, `Toleranzen`, `Parameter`.
+Implementiert in `NaehrstoffKatalog` (29 Nährstoffe):
 
-**MD:** FEATURE.md erwähnt nur Hunde und Zutaten explizit. Toleranzen sind als Feature beschrieben, aber nicht als eigener Tab. Parameter-Tab fehlt ganz.
+| Gruppe | Implementiert | Vollständig NRC 2006 |
+|--------|--------------|---------------------|
+| Makronährstoffe | Protein, Fett, LA, ALA, EPA+DHA | 5/5 Kern |
+| Mineralstoffe | Ca, P, K, Na, Cl, Mg, Fe, Zn, Cu, Mn, Se, J | 12/12 |
+| Vitamine | A, D, E, K, B1–B6, B9, B12, Biotin, Cholin | 12/12 |
+| Aminosäuren | — | 0/10 geplant |
+| Weitere Fettsäuren | — | 0/2 geplant |
 
----
-
-### 13. Ausschluss-Tab: Verdachtsstufe geht von 0–3, nicht 1–3
-
-**Code:** `index.html` Ausschluss-Tab: Toggle-Grid mit `0 – Sicher`, `1 – Leichter Verdacht`, `2 – Mittlerer Verdacht`, `3 – Starker Verdacht`.
-
-**MD (FEATURE.md):** „Verdachtsstufe 1–3" → **Falsch**. Korrekt: 0–3 (0 = Sicher getestet).
-
----
-
-### 14. Bett-Feld im Umwelt-Tab: Toggle „Unverändert / Gewechselt"
-
-**Code:** `index.html` Umwelt-Tab: Toggle-Grid mit „Unverändert" / „Gewechselt".
-
-**MD:** FEATURE.md erwähnt „Bett" als Feld ohne Beschreibung der Auswahloptionen.
-
----
-
-### 15. Statistik startet ohne vorausgewählte Parameter
-
-**Code:** `statistik.js`: `_selected` startet als leeres Set.
-
-**MD:** In PROJECT.md korrekt dokumentiert. In FEATURE.md nicht erwähnt.
-
----
-
-## 🟡 Dokumentiert aber im Code noch nicht / anders implementiert (Android-Soll vs. Web-Ist)
-
-| Feature (MD-Beschreibung) | Status im Web-Code | Handlung |
-|---------------------------|-------------------|---------|
-| SQLite als Primärspeicher | ❌ Nicht vorhanden (Web nutzt Sheets) | Android-Neu-Implementation |
-| CSV / SQLite Export | ❌ Nicht vorhanden | Android-Neu-Implementation |
-| Google Drive Sync | ❌ Nicht vorhanden | Android-Neu-Implementation |
-| Kein Google-Login für Grundfunktion | ❌ Web erfordert Login | Android-Änderung |
-| Vitamin-E-Form-Auswahl (d-Alpha / dl-Alpha / Acetat) | ❌ Nur 1 Faktor in Web | Android-Erweiterung |
-| Tablet: Speicherung pro Tablette (Rohwert) | ⚠️ Web speichert als /100g-Äquivalent | Android-Entscheidung nötig |
-| Supplement-Tagesübersicht im Rechner | ❌ Nicht vorhanden | Android-Erweiterung |
-| Supplement-Verlauf in Statistik (IE-Kurve) | ❌ Nicht vorhanden | Android-Erweiterung |
-
----
-
-## 📋 Empfohlene MD-Korrekturen
-
-| Datei | Korrektur |
-|-------|-----------|
-| FEATURE.md | Zutat-zu-Zutat-Vergleich in Stammdaten ergänzen |
-| FEATURE.md | Kochverlustfaktor: 0.75 → 0.30 (= 70 % angewendet), konfigurierbar |
-| FEATURE.md | Skalierungsfaktor im Futterrechner (×0.25 / ×0.5 / ×1 / ×2 / eigener Wert) |
-| FEATURE.md | Portionen pro Tag als Parameter |
-| FEATURE.md | PER_OPTIONS: alle Bezugsmengen (100g, 1g, 1kg, 1000g, Tablette) |
-| FEATURE.md | Multi-Futter im Tagebuch-Futter-Tab + Freitext-Ergänzung |
-| FEATURE.md | Stammdaten: 4 Tabs inkl. Toleranzen und Parameter beschreiben |
-| FEATURE.md | Ausschluss-Verdachtsstufe: 0–3 (nicht 1–3) |
-| FEATURE.md | Export: Reaktionsscore und Korrelation standardmäßig deaktiviert |
-| FEATURE.md | Symptom-Kategorien: fest + Freitext-Ergänzung |
-| FAQ.md | Kochverlust-Faktor-Wert ergänzen |
-| FAQ.md | Zutat-Vergleich erklären |
-| MIGRATION.md | Tablet-Speicherentscheidung: Rohwert/Tablette vs. /100g-Äquivalent klären |
+Ausbau auf 39 Nährstoffe in Phase 2/3.

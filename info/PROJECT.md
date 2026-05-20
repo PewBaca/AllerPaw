@@ -1,13 +1,13 @@
-# AllerPaw – Projektbeschreibung (v0.11.0)
+# AllerNutri – Projektbeschreibung (v0.11.0)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen.**
-> Letzte Aktualisierung: 2026-05-19 · Status: v0.11.0 – **alle Features implementiert · API 37 Vorbereitung dokumentiert** 🎉
+> Letzte Aktualisierung: 2026-05-20 · Status: v0.11.0 – **Umbenannt zu AllerNutri · targetSdk 37 · API 37-ready** 🎉
 
 ---
 
 ## Überblick
 
-**AllerPaw** ist eine native Android-App zur Ernährungs- und Gesundheitsverwaltung für Hunde. Zielgruppe: BARF-Hundebesitzer mit Allergieverdacht oder aktiver Ausschlussdiät.
+**AllerNutri** ist eine native Android-App zur Ernährungs- und Gesundheitsverwaltung für Hunde. Zielgruppe: BARF-Hundebesitzer mit Allergieverdacht oder aktiver Ausschlussdiät.
 
 **Primärspeicher: SQLite (Room) — vollständig lokal, kein Backend-Zwang.**
 Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
@@ -55,8 +55,8 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 ## Ordnerstruktur
 
 ```
-app/src/main/java/com/allerpaw/app/
-├── AllerPawApplication.kt       ← @HiltAndroidApp + HiltWorkerFactory
+app/src/main/java/com/allernutri/app/
+├── AllerNutriApplication.kt       ← @HiltAndroidApp + HiltWorkerFactory
 ├── MainActivity.kt              ← Notification Permission + WorkManager
 ├── di/
 │   ├── DatabaseModule.kt        ← Room DB + 7 DAOs
@@ -96,7 +96,7 @@ app/src/main/java/com/allerpaw/app/
 │   ├── LocaleHelper.kt          ← Sprachschalter ohne Neustart
 │   └── TaskNotificationService.kt ← WorkManager, Intervall-Push
 └── ui/
-    ├── AllerPawApp.kt           ← Root, 6 Bottom-Nav-Tabs
+    ├── AllerNutriApp.kt           ← Root, 6 Bottom-Nav-Tabs
     ├── nav/NavGraph.kt          ← Screens + BottomNavItem
     ├── theme/
     ├── auth/                    ← LoginScreen, LoginViewModel
@@ -142,7 +142,7 @@ Zustand · Umwelt · Symptom · Futter · Ausschluss · Allergen · Tierarzt · 
 | Reaktionsscore | 48h-Fenster · min. 3 Beobachtungen |
 | NRC | 30 Einträge (inkl. kcal) · Bedarfswerte je 1000 kcal ME |
 | Room DB | Version 3 · 22 Entities · Wildcard-Import `entity.*` |
-| WorkManager | HiltWorkerFactory in AllerPawApplication pflichtmäßig |
+| WorkManager | HiltWorkerFactory in AllerNutriApplication pflichtmäßig |
 | Notification | POST_NOTIFICATIONS Permission ab Android 13 |
 | Phasen-Defaults | Elimination 42T · Provokation 14T · Ergebnis 7T |
 | Umstellung | 5–14 Tage · linear · Gramm = Anteil% × Tagesration |
@@ -154,7 +154,7 @@ Zustand · Umwelt · Symptom · Futter · Ausschluss · Allergen · Tierarzt · 
 ## Typischer Prompt bei Einzelmodul-Arbeit
 
 ```
-Kontext: AllerPaw v0.11 – Android, Kotlin + Compose, Room v3, AGP 9.1.1.
+Kontext: AllerNutri v0.11 – Android, Kotlin + Compose, Room v3, AGP 9.1.1.
 [PROJECT.md als Kontext einfügen]
 
 Aufgabe: [Beschreibung]

@@ -1,0 +1,327 @@
+package com.allernutri.app.data.local.dao
+
+import androidx.room.*
+import com.allernutri.app.data.local.entity.*
+import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
+
+// ─────────────────────────────────────────────
+// HundDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface HundDao {
+    @Query("SELECT * FROM hunde WHERE deleted = 0 ORDER BY name ASC")
+    fun getAlleHunde(): Flow<List<HundEntity>>
+
+    @Query("SELECT * FROM hunde WHERE id = :id AND deleted = 0")
+    suspend fun getById(id: Long): HundEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(hund: HundEntity): Long
+
+    @Update
+    suspend fun update(hund: HundEntity)
+
+    @Query("UPDATE hunde SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+
+    // Gewicht
+    @Query("SELECT * FROM hund_gewicht WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC LIMIT 15")
+    suspend fun getLetzteGewichte(hundId: Long): List<HundGewichtEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGewicht(gewicht: HundGewichtEntity): Long
+
+    @Query("UPDATE hund_gewicht SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteGewicht(id: Long, now: Long = System.currentTimeMillis())
+
+    @Query("UPDATE hunde SET gewichtKg = :kg WHERE id = :hundId")
+    suspend fun updateHundGewicht(hundId: Long, kg: Double)
+
+    @Query("UPDATE hunde SET kcalBedarfManuell = :kcal WHERE id = :hundId")
+    suspend fun updateKcalBedarfManuell(hundId: Long, kcal: Double?)
+}
+
+// ─────────────────────────────────────────────
+// ZutatenDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface ZutatenDao {
+    @Query("SELECT * FROM zutaten WHERE deleted = 0 ORDER BY name ASC")
+    fun getAlleZutaten(): Flow<List<ZutatEntity>>
+
+    @Query("SELECT * FROM zutaten WHERE id = :id AND deleted = 0")
+    suspend fun getById(id: Long): ZutatEntity?
+
+    @Query("SELECT * FROM zutaten WHERE deleted = 0 AND typ = :typ ORDER BY name ASC")
+    suspend fun getByTyp(typ: String): List<ZutatEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(zutat: ZutatEntity): Long
+
+    @Update
+    suspend fun update(zutat: ZutatEntity)
+
+    @Query("UPDATE zutaten SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+
+    // Nährstoffe
+    @Query("SELECT * FROM zutat_naehrstoffe WHERE zutatId = :zutatId")
+    suspend fun getNaehrstoffe(zutatId: Long): List<ZutatNaehrstoffEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertNaehrstoff(naehrstoff: ZutatNaehrstoffEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertNaehrstoffe(naehrstoffe: List<ZutatNaehrstoffEntity>)
+
+    @Query("DELETE FROM zutat_naehrstoffe WHERE zutatId = :zutatId")
+    suspend fun deleteNaehrstoffe(zutatId: Long)
+}
+
+// ─────────────────────────────────────────────
+// RezeptDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface RezeptDao {
+    @Query("SELECT * FROM rezepte WHERE hundId = :hundId AND deleted = 0 ORDER BY name ASC")
+    fun getRezepteForHund(hundId: Long): Flow<List<RezeptEntity>>
+
+    @Query("SELECT * FROM rezepte WHERE deleted = 0 ORDER BY name ASC")
+    suspend fun getAlleRezepte(): List<RezeptEntity>
+
+    @Query("SELECT * FROM rezepte WHERE id = :id AND deleted = 0")
+    suspend fun getById(id: Long): RezeptEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(rezept: RezeptEntity): Long
+
+    @Update
+    suspend fun update(rezept: RezeptEntity)
+
+    @Query("UPDATE rezepte SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+
+    // Rezept-Zutaten
+    @Query("SELECT * FROM rezept_zutaten WHERE rezeptId = :rezeptId ORDER BY reihenfolge ASC")
+    suspend fun getZutatenForRezept(rezeptId: Long): List<RezeptZutatEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertZutat(item: RezeptZutatEntity): Long
+
+    @Update
+    suspend fun updateZutat(item: RezeptZutatEntity)
+
+    @Query("DELETE FROM rezept_zutaten WHERE id = :id")
+    suspend fun deleteZutat(id: Long)
+
+    @Query("DELETE FROM rezept_zutaten WHERE rezeptId = :rezeptId")
+    suspend fun deleteAllZutatenForRezept(rezeptId: Long)
+}
+
+// ─────────────────────────────────────────────
+// TagebuchDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface TagebuchDao {
+
+    // Umwelt
+    @Query("SELECT * FROM tagebuch_umwelt WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getUmweltForHund(hundId: Long): Flow<List<TagebuchUmweltEntity>>
+
+    @Query("SELECT * FROM tagebuch_umwelt WHERE hundId = :hundId AND datum BETWEEN :von AND :bis AND deleted = 0")
+    suspend fun getUmweltRange(hundId: Long, von: LocalDate, bis: LocalDate): List<TagebuchUmweltEntity>
+
+    @Insert suspend fun insertUmwelt(e: TagebuchUmweltEntity): Long
+    @Update suspend fun updateUmwelt(e: TagebuchUmweltEntity)
+    @Query("UPDATE tagebuch_umwelt SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteUmwelt(id: Long, now: Long = System.currentTimeMillis())
+
+    // Pollen-Log
+    @Query("SELECT * FROM tagebuch_pollen_log WHERE umweltId = :umweltId AND deleted = 0")
+    suspend fun getPollenForUmwelt(umweltId: Long): List<TagebuchPollenLogEntity>
+
+    @Query("SELECT * FROM tagebuch_pollen_log WHERE umweltId IN (SELECT id FROM tagebuch_umwelt WHERE hundId = :hundId AND datum BETWEEN :von AND :bis AND deleted = 0) AND deleted = 0")
+    suspend fun getPollenRange(hundId: Long, von: LocalDate, bis: LocalDate): List<TagebuchPollenLogEntity>
+
+    @Insert suspend fun insertPollenLog(e: TagebuchPollenLogEntity): Long
+    @Query("DELETE FROM tagebuch_pollen_log WHERE umweltId = :umweltId")
+    suspend fun deletePollenForUmwelt(umweltId: Long)
+
+    // Eigene Pollenarten
+    @Query("SELECT * FROM eigene_pollenarten ORDER BY name ASC")
+    fun getEigenePollenarten(): Flow<List<EigenePollenartEntity>>
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertEigenePollenart(e: EigenePollenartEntity)
+    @Query("DELETE FROM eigene_pollenarten WHERE name = :name") suspend fun deleteEigenePollenart(name: String)
+
+    // Symptom
+    @Query("SELECT * FROM tagebuch_symptom WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getSymptomForHund(hundId: Long): Flow<List<TagebuchSymptomEntity>>
+
+    @Query("SELECT * FROM tagebuch_symptom WHERE hundId = :hundId AND datum BETWEEN :von AND :bis AND deleted = 0")
+    suspend fun getSymptomRange(hundId: Long, von: LocalDate, bis: LocalDate): List<TagebuchSymptomEntity>
+
+    @Insert suspend fun insertSymptom(e: TagebuchSymptomEntity): Long
+    @Update suspend fun updateSymptom(e: TagebuchSymptomEntity)
+    @Query("UPDATE tagebuch_symptom SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteSymptom(id: Long, now: Long = System.currentTimeMillis())
+
+    // Futter
+    @Query("SELECT * FROM tagebuch_futter WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getFutterForHund(hundId: Long): Flow<List<TagebuchFutterEntity>>
+
+    @Query("SELECT * FROM tagebuch_futter WHERE hundId = :hundId AND datum BETWEEN :von AND :bis AND deleted = 0")
+    suspend fun getFutterRange(hundId: Long, von: LocalDate, bis: LocalDate): List<TagebuchFutterEntity>
+
+    @Insert suspend fun insertFutter(e: TagebuchFutterEntity): Long
+    @Update suspend fun updateFutter(e: TagebuchFutterEntity)
+    @Query("UPDATE tagebuch_futter SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteFutter(id: Long, now: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM tagebuch_futter_item WHERE futterId = :futterId ORDER BY reihenfolge ASC")
+    suspend fun getFutterItems(futterId: Long): List<TagebuchFutterItemEntity>
+    @Insert suspend fun insertFutterItem(e: TagebuchFutterItemEntity): Long
+    @Query("DELETE FROM tagebuch_futter_item WHERE futterId = :futterId") suspend fun deleteFutterItems(futterId: Long)
+
+    // Ausschluss
+    @Query("SELECT * FROM tagebuch_ausschluss WHERE hundId = :hundId AND deleted = 0 ORDER BY createdAt DESC")
+    fun getAusschlussForHund(hundId: Long): Flow<List<TagebuchAusschlussEntity>>
+    @Insert suspend fun insertAusschluss(e: TagebuchAusschlussEntity): Long
+    @Update suspend fun updateAusschluss(e: TagebuchAusschlussEntity)
+    @Query("UPDATE tagebuch_ausschluss SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteAusschluss(id: Long, now: Long = System.currentTimeMillis())
+
+    // Allergen
+    @Query("SELECT * FROM tagebuch_allergen WHERE hundId = :hundId AND deleted = 0 ORDER BY allergen ASC")
+    fun getAllergenForHund(hundId: Long): Flow<List<TagebuchAllergenEntity>>
+    @Insert suspend fun insertAllergen(e: TagebuchAllergenEntity): Long
+    @Update suspend fun updateAllergen(e: TagebuchAllergenEntity)
+    @Query("UPDATE tagebuch_allergen SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteAllergen(id: Long, now: Long = System.currentTimeMillis())
+
+    // Tierarzt
+    @Query("SELECT * FROM tagebuch_tierarzt WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getTierarztForHund(hundId: Long): Flow<List<TagebuchTierarztEntity>>
+    @Insert suspend fun insertTierarzt(e: TagebuchTierarztEntity): Long
+    @Update suspend fun updateTierarzt(e: TagebuchTierarztEntity)
+    @Query("UPDATE tagebuch_tierarzt SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteTierarzt(id: Long, now: Long = System.currentTimeMillis())
+
+    // Medikament
+    @Query("SELECT * FROM tagebuch_medikament WHERE hundId = :hundId AND deleted = 0 ORDER BY vonDatum DESC")
+    fun getMedikamentForHund(hundId: Long): Flow<List<TagebuchMedikamentEntity>>
+    @Insert suspend fun insertMedikament(e: TagebuchMedikamentEntity): Long
+    @Update suspend fun updateMedikament(e: TagebuchMedikamentEntity)
+    @Query("UPDATE tagebuch_medikament SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeleteMedikament(id: Long, now: Long = System.currentTimeMillis())
+
+    // Ausschluss-Phasen
+    @Query("SELECT * FROM ausschluss_phasen WHERE hundId = :hundId AND deleted = 0 ORDER BY startdatum DESC")
+    fun getPhasenForHund(hundId: Long): Flow<List<AusschlussPhasEntity>>
+    @Insert suspend fun insertPhase(e: AusschlussPhasEntity): Long
+    @Update suspend fun updatePhase(e: AusschlussPhasEntity)
+    @Query("UPDATE ausschluss_phasen SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDeletePhase(id: Long, now: Long = System.currentTimeMillis())
+}
+
+// ─────────────────────────────────────────────
+// ParameterDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface ParameterDao {
+    @Query("SELECT * FROM parameter")
+    suspend fun getAll(): List<ParameterEntity>
+
+    @Query("SELECT wert FROM parameter WHERE schluessel = :key")
+    suspend fun get(key: String): String?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(p: ParameterEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(params: List<ParameterEntity>)
+}
+
+// ─────────────────────────────────────────────
+// HundZustandDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface HundZustandDao {
+    @Query("SELECT * FROM tagebuch_hund_zustand WHERE hundId = :hundId AND deleted = 0 ORDER BY datum DESC")
+    fun getForHund(hundId: Long): Flow<List<TagebuchHundZustandEntity>>
+
+    @Query("SELECT * FROM tagebuch_hund_zustand WHERE hundId = :hundId AND datum = :datum AND deleted = 0 LIMIT 1")
+    suspend fun getForDate(hundId: Long, datum: LocalDate): TagebuchHundZustandEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(e: TagebuchHundZustandEntity): Long
+
+    @Update
+    suspend fun update(e: TagebuchHundZustandEntity)
+
+    @Query("UPDATE tagebuch_hund_zustand SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+}
+
+// ─────────────────────────────────────────────
+// TaskDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks WHERE hundId = :hundId AND deleted = 0 AND aktiv = 1 ORDER BY titel ASC")
+    fun getActiveForHund(hundId: Long): Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM tasks WHERE deleted = 0 AND aktiv = 1 AND pushAktiv = 1")
+    suspend fun getAllWithPush(): List<TaskEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(task: TaskEntity): Long
+
+    @Update
+    suspend fun update(task: TaskEntity)
+
+    @Query("UPDATE tasks SET deleted = 1, deletedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long = System.currentTimeMillis())
+
+    // Erledigungen
+    @Query("SELECT * FROM task_erledigungen WHERE taskId = :taskId ORDER BY datum DESC LIMIT 30")
+    suspend fun getErledigungenForTask(taskId: Long): List<TaskErledigung>
+
+    @Query("SELECT * FROM task_erledigungen WHERE taskId = :taskId AND datum = :datum LIMIT 1")
+    suspend fun getErledigung(taskId: Long, datum: LocalDate): TaskErledigung?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertErledigung(e: TaskErledigung): Long
+
+    @Query("SELECT * FROM task_erledigungen WHERE datum BETWEEN :von AND :bis ORDER BY datum DESC")
+    suspend fun getErledigungenRange(von: LocalDate, bis: LocalDate): List<TaskErledigung>
+}
+
+// ─────────────────────────────────────────────
+// SymptomMediaDao
+// ─────────────────────────────────────────────
+
+@Dao
+interface SymptomMediaDao {
+    @Query("SELECT * FROM symptom_media WHERE symptomId = :symptomId ORDER BY createdAt ASC")
+    fun getForSymptom(symptomId: Long): Flow<List<SymptomMediaEntity>>
+
+    @Query("SELECT * FROM symptom_media WHERE symptomId = :symptomId ORDER BY createdAt ASC")
+    suspend fun getForSymptomOnce(symptomId: Long): List<SymptomMediaEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(media: SymptomMediaEntity): Long
+
+    @Query("DELETE FROM symptom_media WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM symptom_media WHERE symptomId = :symptomId")
+    suspend fun deleteAllForSymptom(symptomId: Long)
+}

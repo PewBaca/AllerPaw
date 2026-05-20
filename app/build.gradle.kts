@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.allerpaw.app"
+    namespace = "com.allernutri.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.allerpaw.app"
+        applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
         versionCode = 11
