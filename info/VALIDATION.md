@@ -1,6 +1,6 @@
 # AllerPaw – Validierungsplan (v0.3)
 
-> Letzte Aktualisierung: 2026-05-19
+> Letzte Aktualisierung: 2026-05-21
 
 ---
 
