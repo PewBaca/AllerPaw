@@ -14,8 +14,8 @@ android {
         applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.11.0"
+        versionCode = 18
+        versionName = "0.11.0007"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,8 +35,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 
     buildFeatures {
@@ -103,9 +103,13 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
+    implementation(libs.gson)
+
     // Adaptive Layout (API 37 — NavigationRail auf großen Screens)
     implementation(libs.compose.material3.adaptive)
     implementation(libs.androidx.window)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.accompanist.permissions)
 
     // Testing
     testImplementation(libs.junit)
