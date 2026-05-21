@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.allernutri.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 19
-        versionName = "0.11.0008"
+        versionCode = 20
+        versionName = "0.11.0009"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
