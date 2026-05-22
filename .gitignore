@@ -16,3 +16,6 @@ captures/
 .gradle/
 local.properties
 gradle/wrapper/gradle-wrapper.jar
+
+# Java Heap Dumps
+*.hprof

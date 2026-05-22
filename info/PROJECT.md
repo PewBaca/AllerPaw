@@ -1,7 +1,7 @@
-# AllerNutri – Projektbeschreibung (v0.11.0)
+# AllerNutri – Projektbeschreibung (v0.11.0006)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen.**
-> Letzte Aktualisierung: 2026-05-20 · Status: v0.11.0 – **Umbenannt zu AllerNutri · targetSdk 37 · API 37-ready** 🎉
+> Letzte Aktualisierung: 2026-05-21 · Status: v0.11.0006 – **Umbenannt zu AllerNutri · targetSdk 37 · API 37-ready** 🎉
 
 ---
 

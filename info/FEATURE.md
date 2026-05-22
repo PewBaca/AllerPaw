@@ -1,6 +1,6 @@
 # AllerPaw – Feature-Übersicht (v0.11.0)
 
-> Stand: 2026-05-19 · ✅ fertig · 🟡 teilweise · 🔲 geplant
+> Stand: 2026-05-21 · ✅ fertig · 🟡 teilweise · 🔲 geplant
 
 ---
 
