@@ -1,4 +1,4 @@
-# AllerNutri – FAQ (v0.11.0012)
+# AllerNutri – FAQ (v0.11.0013)
 
 > Stand: 2026-05-22
 
@@ -242,4 +242,4 @@ In `local.properties` (Key: `google.web.client.id`). Diese Datei ist in `.gitign
 Nur im Debug-Build. `HttpLoggingInterceptor` in `NetworkModule.kt` ist hinter `if (BuildConfig.DEBUG)` gesperrt. Im Release-APK werden keine Netzwerkanfragen in Logcat geschrieben.
 
 **Wie sicher ist der DataStore?**
-Aktuell unverschlüsselt (Standard `PreferencesDataStore`). Der Auth-Token und API-Keys liegen in Klartext in den App-internen Dateien — zugreifbar auf gerooteten Geräten. Phase D der Sicherheits-Roadmap sieht `EncryptedDataStore` vor. Siehe `info/SECURITY.md`.
+Sensible Daten (Auth-Token, API-Keys) sind in `EncryptedSharedPreferences` gespeichert (`allernutri_secure`) — verschlüsselt mit AES256-GCM via Android Keystore. Nicht-sensible Einstellungen (Standort, Sprache) bleiben im normalen DataStore. Die verschlüsselte Datei ist vom ADB-Backup ausgeschlossen. Siehe `info/SECURITY.md`.

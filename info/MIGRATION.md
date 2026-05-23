@@ -1,7 +1,7 @@
 # AllerNutri – Migration & Entwicklungsplan (v0.11.0012)
 
 > Stand: 2026-05-22 · Ausgangsbasis: Web-App v2.3.1 (Vanilla HTML + ES Modules)
-> Aktuelle Version: **0.11.0012** · AGP 9.1.1 · Sicherheits-Baseline implementiert
+> Aktuelle Version: **0.11.0013** · AGP 9.1.1 · Sicherheits-Phase D abgeschlossen
 
 ---
 

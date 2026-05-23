@@ -1,6 +1,6 @@
 # AllerNutri – Sicherheitsanalyse & Roadmap
 
-> Stand: 2026-05-22 · Version: v0.11.0012  
+> Stand: 2026-05-22 · Version: v0.11.0013  
 > Erstellt auf Basis vollständiger Code-Analyse des GitHub-Repositories.
 
 ---
@@ -9,13 +9,13 @@
 
 | ID | Problem | Priorität | Status |
 |----|---------|-----------|--------|
-| S1 | Auth-Token unverschlüsselt im DataStore | 🔴 KRITISCH | 🔲 offen |
+| S1 | Auth-Token (Google JWT) unverschlüsselt im DataStore | 🔴 KRITISCH | ✅ behoben in v0.11.0013 |
 | S2 | Hardcoded WEB_CLIENT_ID | 🔴 KRITISCH | ✅ behoben in v0.11.0012 |
 | S3 | HTTP-Logging im Release-Build aktiv | 🟠 HOCH | ✅ behoben in v0.11.0012 |
-| S4 | API-Keys unverschlüsselt im DataStore | 🟠 HOCH | 🔲 offen |
+| S4 | API-Keys (USDA, Edamam) unverschlüsselt im DataStore | 🟠 HOCH | ✅ behoben in v0.11.0013 |
 | S5 | ProGuard falscher Paketname (allerpaw) | 🟡 MITTEL | ✅ behoben in v0.11.0012 |
-| S6 | allowBackup ohne Ausschlussregeln | 🟡 MITTEL | 🔲 offen |
-| S7 | play-services-auth ungenutzte Dependency | 🟡 MITTEL | 🔲 offen |
+| S6 | allowBackup ohne Ausschlussregeln | 🟡 MITTEL | ✅ behoben in v0.11.0013 |
+| S7 | play-services-auth ungenutzte Legacy-Dependency | 🟡 MITTEL | ✅ behoben in v0.11.0013 |
 
 ---
 
@@ -66,7 +66,7 @@ Ohne diese Regel würden DTO-Klassen im R8-Release-Build umbenannt → Retrofit-
 
 ## Offene Sicherheitsprobleme
 
-### 🔴 S1 – Auth-Token unverschlüsselt im DataStore
+### ✅ S1 – Auth-Token verschlüsselt (behoben in v0.11.0013)
 
 **Betroffene Datei:** `data/repository/SessionRepository.kt`
 
@@ -104,7 +104,7 @@ Alternativ: `androidx.security:security-crypto-ktx` mit DataStore-Integration.
 
 ---
 
-### 🟠 S4 – API-Keys unverschlüsselt im DataStore
+### ✅ S4 – API-Keys verschlüsselt (behoben in v0.11.0013)
 
 **Betroffene Datei:** `data/repository/SettingsRepository.kt`
 
@@ -121,7 +121,7 @@ private val KEY_EDAMAM_KEY = stringPreferencesKey("edamam_app_key")
 
 ---
 
-### 🟡 S6 – allowBackup ohne Ausschlussregeln
+### ✅ S6 – Backup-Regeln implementiert (behoben in v0.11.0013)
 
 **Betroffene Datei:** `app/src/main/AndroidManifest.xml`
 
@@ -156,7 +156,7 @@ Ohne `android:fullBackupContent`-Regelwerk werden alle App-Daten (inkl. DataStor
 
 ---
 
-### 🟡 S7 – play-services-auth ungenutzte Dependency
+### ✅ S7 – play-services-auth entfernt (behoben in v0.11.0013)
 
 **Betroffene Datei:** `app/build.gradle.kts`
 
