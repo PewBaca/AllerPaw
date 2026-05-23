@@ -31,7 +31,7 @@ android {
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
-            ""${localProperties.getProperty("google.web.client.id", "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com")}""
+            "\"${localProperties.getProperty("google.web.client.id", "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com")}\""
         )
     }
 
