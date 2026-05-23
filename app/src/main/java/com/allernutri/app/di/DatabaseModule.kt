@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.allernutri.app.data.local.AppDatabase
 import com.allernutri.app.data.local.DatabaseMigrations
 import com.allernutri.app.data.local.dao.*
+import com.allernutri.app.data.local.SecureStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,4 +33,9 @@ object DatabaseModule {
     @Provides fun provideTaskDao(db: AppDatabase): TaskDao = db.taskDao()
     @Provides fun provideSymptomMediaDao(db: AppDatabase): SymptomMediaDao = db.symptomMediaDao()
     @Provides fun provideToleranzDao(db: AppDatabase): ToleranzDao = db.toleranzDao()
+
+    @Provides
+    @Singleton
+    fun provideSecureStorage(@ApplicationContext ctx: Context): SecureStorage =
+        SecureStorage(ctx)
 }

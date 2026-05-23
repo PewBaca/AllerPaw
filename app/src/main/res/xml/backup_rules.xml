@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup-Regeln für AllerNutri.
+
+    EncryptedSharedPreferences (allernutri_secure) wird AUSGESCHLOSSEN:
+    Der Android-Keystore-Schlüssel ist gerätespezifisch und nicht
+    portierbar. Eine wiederhergestellte verschlüsselte Datei auf einem
+    anderen Gerät ist unlesbar und würde beim Start einen
+    KeyStoreException verursachen.
+
+    Gilt für:
+      android:fullBackupContent  → Android 5.0–11 (API 21–30)
+      android:dataExtractionRules → Android 12+ (API 31+)
+
+    Dokumentation: https://developer.android.com/guide/topics/data/autobackup
+-->
+<full-backup-content>
+
+    <!-- SENSIBEL: EncryptedSharedPreferences ausschließen -->
+    <exclude domain="sharedpref" path="allernutri_secure.xml" />
+
+    <!-- DB: Room-Datenbank einschließen (enthält keine Tokens) -->
+    <include domain="database" path="allernutri.db" />
+
+    <!-- DataStore: nicht-sensible Einstellungen einschließen -->
+    <!-- allernutri_prefs.preferences_pb: Standort, Sprache, IE-Modus -->
+
+    <!-- Medien: Symptom-Fotos und Videos einschließen -->
+    <include domain="file" path="media/" />
+
+</full-backup-content>

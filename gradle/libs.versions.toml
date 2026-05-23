@@ -17,6 +17,7 @@ hilt-work = "1.2.0"
 adaptive = "1.1.0"
 appcompat = "1.7.0"
 accompanist = "0.36.0"
+security-crypto = "1.0.0"
 
 [libraries]
 # AndroidX Core
@@ -60,11 +61,13 @@ moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", v
 # DataStore
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# Security
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
+
 # Google Sign-In / Credential Manager
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.3.0" }
 
 # Vico Charts
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }

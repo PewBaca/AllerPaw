@@ -107,3 +107,20 @@
 | Gradle sync nach AGP 9.1.1 | Sync ohne Fehler | 🔲 |
 | assembleRelease nach AGP 9.1.1 | APK erstellt ohne Fehler | 🔲 |
 | gson entfernt: Build | Kein "unresolved reference: gson" | 🔲 |
+
+---
+
+## v0.11.0013 – EncryptedSharedPreferences & Backup-Regeln
+
+| Test | Erwartetes Ergebnis | Status |
+|------|---------------------|--------|
+| Google Sign-In + App-Neustart | Nutzer bleibt eingeloggt | 🔲 |
+| Auth-Token nicht im Klartext-DataStore | `adb shell run-as ... cat allernutri_prefs.xml` → kein Token | 🔲 |
+| SecureStorage verschlüsselt | `cat allernutri_secure.xml` → keine lesbaren Strings | 🔲 |
+| USDA-Key eingeben + Neustart | Key bleibt erhalten | 🔲 |
+| Edamam-Keys eingeben + Neustart | Keys bleiben erhalten | 🔲 |
+| ADB-Backup: allernutri_secure fehlt | `abe unpack` → keine allernutri_secure.xml | 🔲 |
+| Abmelden löscht Token | Neustart → LoginScreen erscheint | 🔲 |
+| play-services-auth entfernt | `./gradlew assembleDebug` ohne Fehler | 🔲 |
+| security-crypto: assembleDebug | Kein Linker-Fehler | 🔲 |
+| security-crypto: assembleRelease | APK ohne R8-Fehler, Größe geprüft | 🔲 |

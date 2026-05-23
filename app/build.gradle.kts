@@ -22,8 +22,8 @@ android {
         applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 23
-        versionName = "0.11.0012"
+        versionCode = 24
+        versionName = "0.11.0013"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -94,12 +94,12 @@ dependencies {
 
     // DataStore
     implementation(libs.datastore.preferences)
+    implementation(libs.androidx.security.crypto)
 
     // Google Sign-In
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
-    implementation(libs.play.services.auth)
 
     // Vico Charts
     implementation(libs.vico.compose)

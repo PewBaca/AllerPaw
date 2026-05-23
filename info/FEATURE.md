@@ -1,4 +1,4 @@
-# AllerNutri – Feature-Übersicht (v0.11.0012)
+# AllerNutri – Feature-Übersicht (v0.11.0013)
 
 > Stand: 2026-05-22 · ✅ fertig · 🟡 teilweise · 🔲 geplant
 
@@ -245,6 +245,10 @@
 | AGP 9.1.1 Upgrade | ✅ |
 | HTTP-Logging nur im Debug-Build | ✅ |
 | WEB_CLIENT_ID aus BuildConfig (local.properties) | ✅ |
+| Auth-Token verschlüsselt (EncryptedSharedPreferences) | ✅ |
+| API-Keys verschlüsselt (EncryptedSharedPreferences) | ✅ |
+| Backup-Regeln: SecureStorage ausgeschlossen | ✅ |
+| play-services-auth (Legacy GMS) entfernt | ✅ |
 | Edge-to-Edge (`enableEdgeToEdge()`) | ✅ |
 | Predictive Back Gesture (`enableOnBackInvokedCallback=true`) | ✅ |
 | NEARBY_WIFI_DEVICES (LNP-Vorbereitung) | ✅ deklariert |
