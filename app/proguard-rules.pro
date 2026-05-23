@@ -24,7 +24,7 @@
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
 # ── AllerPaw DTOs ─────────────────────────────────────────────────────────────
--keep class com.allerpaw.app.data.remote.dto.** { *; }
+-keep class com.allernutri.app.data.remote.dto.** { *; }
 
 # ── DataStore ─────────────────────────────────────────────────────────────────
 -keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { *; }

@@ -1,6 +1,6 @@
-# AllerPaw – FAQ (v0.11.0)
+# AllerNutri – FAQ (v0.11.0012)
 
-> Stand: 2026-05-21
+> Stand: 2026-05-22
 
 ---
 
@@ -231,3 +231,15 @@ Ab Android 17 (voraussichtlich 26Q2) wird Local Network Protection erzwungen. Al
 4. ADB-Flag `UNIVERSAL_RESIZABLE_BY_DEFAULT` aktivieren und alle Screens auf Pixel Tablet Emulator testen
 5. `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` aus Manifest entfernen
 6. `targetSdk` von 36 auf 37 anheben, `versionCode` + `versionName` erhöhen
+---
+
+## Sicherheit
+
+**Wo wird die Google Web-Client-ID gespeichert?**
+In `local.properties` (Key: `google.web.client.id`). Diese Datei ist in `.gitignore` eingetragen und wird nie ins Repository committed. Über `buildConfigField` in `build.gradle.kts` landet der Wert zur Build-Zeit in `BuildConfig.GOOGLE_WEB_CLIENT_ID`. Anleitung: siehe `info/SECURITY.md`.
+
+**Werden HTTP-Requests geloggt?**
+Nur im Debug-Build. `HttpLoggingInterceptor` in `NetworkModule.kt` ist hinter `if (BuildConfig.DEBUG)` gesperrt. Im Release-APK werden keine Netzwerkanfragen in Logcat geschrieben.
+
+**Wie sicher ist der DataStore?**
+Aktuell unverschlüsselt (Standard `PreferencesDataStore`). Der Auth-Token und API-Keys liegen in Klartext in den App-internen Dateien — zugreifbar auf gerooteten Geräten. Phase D der Sicherheits-Roadmap sieht `EncryptedDataStore` vor. Siehe `info/SECURITY.md`.

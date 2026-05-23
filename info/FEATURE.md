@@ -1,6 +1,6 @@
-# AllerPaw – Feature-Übersicht (v0.11.0)
+# AllerNutri – Feature-Übersicht (v0.11.0012)
 
-> Stand: 2026-05-21 · ✅ fertig · 🟡 teilweise · 🔲 geplant
+> Stand: 2026-05-22 · ✅ fertig · 🟡 teilweise · 🔲 geplant
 
 ---
 
@@ -238,10 +238,13 @@
 | Soft-Delete überall (`deleted` + `deletedAt`) | ✅ |
 | FloatParser (DE Komma + EN Punkt) | ✅ |
 | HiltWorkerFactory in Application-Klasse | ✅ |
-| ProGuard/R8 konfiguriert | ✅ |
+| ProGuard/R8 konfiguriert (Paketname allernutri korrekt) | ✅ |
 | GitHub Actions CI (Debug + Release APK) | ✅ |
 | Unit-Tests: RER, MER, Analyse, FloatParser | ✅ |
 | **Android 16 (API 36) target** | ✅ |
+| AGP 9.1.1 Upgrade | ✅ |
+| HTTP-Logging nur im Debug-Build | ✅ |
+| WEB_CLIENT_ID aus BuildConfig (local.properties) | ✅ |
 | Edge-to-Edge (`enableEdgeToEdge()`) | ✅ |
 | Predictive Back Gesture (`enableOnBackInvokedCallback=true`) | ✅ |
 | NEARBY_WIFI_DEVICES (LNP-Vorbereitung) | ✅ deklariert |

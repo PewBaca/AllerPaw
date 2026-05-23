@@ -91,3 +91,19 @@
 | Alle Screens mit „Speichern"-Button unten | Button erreichbar | 🔲 |
 | App-Neustart nach Gerät-Rotation | Kein Datenverlust, ViewModel-State bleibt | 🔲 |
 | App in Split-Screen (50:50) auf Tablet | Keine gestreckte oder abgeschnittene UI | 🔲 |
+
+---
+
+## v0.11.0012 – Sicherheits-Baseline & AGP 9.1.1
+
+| Test | Erwartetes Ergebnis | Status |
+|------|---------------------|--------|
+| Release-Build: Logcat HTTP-Log | Kein HTTP-Log in Logcat bei Release-APK | 🔲 |
+| Debug-Build: Logcat HTTP-Log | HTTP-Requests sichtbar in Logcat | 🔲 |
+| SettingsScreen: Versionsanzeige | Zeigt "AllerNutri v0.11.0012" | 🔲 |
+| local.properties fehlt: Build | Build erfolgreich (Fallback-ID greift) | 🔲 |
+| local.properties vorhanden: Google Sign-In | Sign-In-Dialog erscheint | 🔲 |
+| ProGuard Release-Build | Kein R8-Warning für allernutri.dto-Paket | 🔲 |
+| Gradle sync nach AGP 9.1.1 | Sync ohne Fehler | 🔲 |
+| assembleRelease nach AGP 9.1.1 | APK erstellt ohne Fehler | 🔲 |
+| gson entfernt: Build | Kein "unresolved reference: gson" | 🔲 |

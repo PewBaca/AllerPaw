@@ -1,3 +1,11 @@
+import java.util.Properties
+
+// Lese local.properties fuer sensible Konfigurationswerte
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -14,10 +22,17 @@ android {
         applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 22
-        versionName = "0.11.0011"
+        versionCode = 23
+        versionName = "0.11.0012"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Google OAuth Web-Client-ID aus local.properties (nie hardcoden!)
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            ""${localProperties.getProperty("google.web.client.id", "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com")}""
+        )
     }
 
     buildTypes {
@@ -99,7 +114,6 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
-    implementation(libs.gson)
 
     // Adaptive Layout (API 37 — NavigationRail auf großen Screens)
     implementation(libs.compose.material3.adaptive)

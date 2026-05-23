@@ -2,7 +2,7 @@
 
 Native Android-App zur Ernährungs- und Allergieverwaltung für Hunde.
 
-> Version: 0.2.0 (Phase 1 abgeschlossen) · Stand: 2026-04-24
+> Version: 0.11.0012 · Stand: 2026-05-22
 
 ---
 
@@ -30,6 +30,7 @@ Native Android-App zur Ernährungs- und Allergieverwaltung für Hunde.
 | Charts | Vico |
 | Async | Coroutines + Flow |
 | Min SDK | API 26 (Android 8.0) |
+| Build | AGP 9.1.1 |
 
 ---
 
@@ -58,11 +59,12 @@ Native Android-App zur Ernährungs- und Allergieverwaltung für Hunde.
 
 ## Implementierungsstand
 
-**Phase 1 ✅** – Projektgerüst, Room-DB (19 Entities), Hilt, Navigation, Hunde-CRUD, RER/MER-Rechner, NRC-Domänenlogik  
-**Phase 2 🔲** – Zutaten, Tagebuch vollständig  
-**Phase 3 🔲** – Rezept-Editor, Statistik  
-**Phase 4 🔲** – Wetter/Pollen, PDF-Export, Backup  
-**Phase 5 🔲** – Auth, i18n, Tests, Store-Release  
+**Phase 1 ✅** – Projektgerüst, Room-DB, Hilt, Navigation, Hunde-CRUD, RER/MER-Rechner  
+**Phase 2 ✅** – Zutaten, Tagebuch vollständig (9 Tabs)  
+**Phase 3 ✅** – Rezept-Editor, Statistik, Kreuzallergen-Analyse  
+**Phase 4 ✅** – Wetter/Pollen, PDF-Export, Backup, Google Sheets  
+**Phase 5 ✅** – Auth, i18n (DE/EN), Tests, WorkManager, targetSdk 37  
+**v0.11 ✅** – Adaptive UI (NavigationRail), AGP 9.1.1, Sicherheits-Baseline  
 
 ---
 

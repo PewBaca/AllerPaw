@@ -171,7 +171,7 @@ fun SettingsScreen(
 
             item {
                 Text(
-                    "AllerPaw v0.10.0 · Alle Daten lokal gespeichert",
+                    "AllerNutri v0.11.0012 · Alle Daten lokal gespeichert",
                     style    = MaterialTheme.typography.labelSmall,
                     color    = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(horizontal = 4.dp)

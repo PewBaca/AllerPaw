@@ -1,7 +1,7 @@
-# AllerPaw – Migration & Entwicklungsplan (v0.10.0)
+# AllerNutri – Migration & Entwicklungsplan (v0.11.0012)
 
-> Stand: 2026-05-07 · Ausgangsbasis: Web-App v2.3.1 (Vanilla HTML + ES Modules)
-> Aktuelle Version: **0.10.0** · API Level 36 Migration abgeschlossen
+> Stand: 2026-05-22 · Ausgangsbasis: Web-App v2.3.1 (Vanilla HTML + ES Modules)
+> Aktuelle Version: **0.11.0012** · AGP 9.1.1 · Sicherheits-Baseline implementiert
 
 ---
 
@@ -21,7 +21,7 @@ Android  →  Kotlin / Compose  →  Room SQLite v3 (Primär-DB)
 
 | Bereich | Technologie | Status |
 |---------|-------------|--------|
-| Sprache | Kotlin 2.2.10 | ✅ |
+| Sprache | Kotlin 2.1.21 | ✅ |
 | UI | Jetpack Compose + Material You | ✅ |
 | Datenbank | Room 2.7.1 (Version 3, 22 Entities) | ✅ |
 | DI | Hilt 2.56 | ✅ |

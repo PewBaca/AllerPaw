@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.allernutri.app.BuildConfig
 import com.allernutri.app.data.remote.api.BrightSkyApi
 import com.allernutri.app.data.remote.api.OpenMeteoApi
 import com.squareup.moshi.Moshi
@@ -36,7 +37,13 @@ object NetworkModule {
     fun provideOkHttp(): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(
+                    HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
+                )
+            }
+        }
         .build()
 
     @Provides @Singleton @Named("brightsky")
