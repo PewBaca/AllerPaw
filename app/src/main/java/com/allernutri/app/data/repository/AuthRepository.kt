@@ -1,6 +1,7 @@
 package com.allernutri.app.data.repository
 
 import android.content.Context
+import com.allernutri.app.BuildConfig
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -97,7 +98,8 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() = session.clearSession()
 
     companion object {
-        // HIER DEINE WEB-CLIENT-ID eintragen (Google Cloud Console)
-        const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+        // Web-Client-ID kommt aus BuildConfig (Quelle: local.properties → google.web.client.id)
+        // Nie hardcoden. Anleitung: siehe info/SECURITY.md
+        val WEB_CLIENT_ID: String get() = BuildConfig.GOOGLE_WEB_CLIENT_ID
     }
 }

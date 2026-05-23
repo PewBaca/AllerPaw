@@ -1,7 +1,7 @@
-# AllerNutri – Projektbeschreibung (v0.11.0006)
+# AllerNutri – Projektbeschreibung (v0.11.0012)
 
 > **Dieses Dokument als Kontext in jeden Prompt einfügen.**
-> Letzte Aktualisierung: 2026-05-21 · Status: v0.11.0006 – **Umbenannt zu AllerNutri · targetSdk 37 · API 37-ready** 🎉
+> Letzte Aktualisierung: 2026-05-22 · Status: v0.11.0012 – **Umbenannt zu AllerNutri · targetSdk 37 · API 37-ready** 🎉
 
 ---
 
@@ -19,7 +19,7 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 | Bereich | Technologie | Version |
 |---------|-------------|---------|
 | Plattform | Android | API 26+ (Target 37 · Android 17) |
-| Sprache | Kotlin | 2.2.10 |
+| Sprache | Kotlin | 2.1.21 |
 | UI | Jetpack Compose + Material You | BOM 2025.05.00 |
 | Datenbank | Room (SQLite) | 2.7.1 |
 | DI | Hilt | 2.56 |
@@ -29,7 +29,7 @@ Google Sheets, CSV, PDF: nur optionale Export-/Backup-Kanäle.
 | Charts | Vico | 2.0.0-beta.3 |
 | Adaptive UI | Material3 Adaptive + androidx.window | 1.1.0 / 1.4.0 |
 | DataStore | Preferences DataStore | 1.1.4 |
-| Build | Gradle KDS + Version Catalog | AGP 8.9.1 |
+| Build | Gradle KDS + Version Catalog | AGP 9.1.1 |
 | CI | GitHub Actions | — |
 | Push | WorkManager + HiltWorkerFactory | 2.10.0 |
 | Wetter | BrightSky API (DWD) | kein Key |
