@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import androidx.security.crypto.MasterKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,6 +14,7 @@ import javax.inject.Singleton
  *
  * Verwendet AES256-GCM (Schlüssel im Android Keystore) für die
  * Datenverschlüsselung und AES256-SIV für die Key-Verschlüsselung.
+ * API: security-crypto 1.0.0 (stabile Version, MasterKeys-API).
  *
  * Gespeicherte Daten:
  *  - Google Auth-Token (JWT)
@@ -54,32 +55,27 @@ class SecureStorage @Inject constructor(
 
     private fun createPrefs(): SharedPreferences {
         return try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
+            // security-crypto 1.0.0: MasterKeys statt MasterKey.Builder
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
             EncryptedSharedPreferences.create(
-                context,
                 PREFS_NAME,
-                masterKey,
+                masterKeyAlias,
+                context,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
             // Keystore-Fehler: beschädigte Datei löschen und neu erstellen.
-            // Tritt auf nach: Factory Reset mit Backup-Restore, oder
-            // korruptem Keystore. Ergebnis: Nutzer muss sich neu anmelden.
+            // Tritt auf nach: Factory Reset mit Backup-Restore, oder korruptem
+            // Keystore. Ergebnis: Nutzer muss sich neu anmelden.
             Log.w(TAG, "EncryptedSharedPreferences init fehlgeschlagen – Reset: ${e.message}")
             context.deleteSharedPreferences(PREFS_NAME)
 
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
             EncryptedSharedPreferences.create(
-                context,
                 PREFS_NAME,
-                masterKey,
+                masterKeyAlias,
+                context,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
