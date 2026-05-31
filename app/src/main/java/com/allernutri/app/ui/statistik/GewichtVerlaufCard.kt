@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.allernutri.app.R
 import com.allernutri.app.data.local.entity.HundGewichtEntity
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomCartesianAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartCartesianAxis
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
@@ -150,13 +150,13 @@ fun GewichtVerlaufCard(
                 CartesianChartHost(
                     chart = rememberCartesianChart(
                         rememberLineCartesianLayer(),
-                        startAxis = rememberStartAxis(
+                        startAxis = rememberStartCartesianAxis(
                             label = rememberTextComponent(
                                 textSize = 10.sp,
                                 color    = MaterialTheme.colorScheme.outline
                             )
                         ),
-                        bottomAxis = rememberBottomAxis(
+                        bottomAxis = rememberBottomCartesianAxis(
                             label = rememberTextComponent(
                                 textSize = 9.sp,
                                 color    = MaterialTheme.colorScheme.outline

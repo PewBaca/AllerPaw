@@ -201,7 +201,7 @@ class StatistikViewModel @Inject constructor(
         val korrelationVerfuegbar = korrelationen.isNotEmpty()
 
         // ── Reaktionsscore (48h-Fenster) ──────────────────────────────────
-        val futterImZeitraum        = tagebuchRepo.futterRange(hundId, von, bis)
+        val futterImZeitraum        = tagebuchRepo.futterRange(hundId, von, heute)
         val scoreEintraege          = ReaktionsScoreAnalyse.analysiere(futterImZeitraum, symptome)
         val reaktionsScores         = scoreEintraege.map { e ->
             ReaktionsScore(

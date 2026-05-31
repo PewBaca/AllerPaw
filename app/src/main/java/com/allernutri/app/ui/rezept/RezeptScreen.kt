@@ -1,5 +1,7 @@
 package com.allernutri.app.ui.rezept
 
+import com.allernutri.app.ui.rezept.RezeptEditorState
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -235,7 +237,7 @@ fun RezeptScreen(vm: RezeptViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RezeptSucheUndFilter(
-    state: RezeptUiState,
+    state: RezeptEditorState,
     gefiltert: List<com.allernutri.app.data.local.entity.RezeptEntity>,
     vm: RezeptViewModel
 ) {

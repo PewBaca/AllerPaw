@@ -153,10 +153,10 @@ private fun UmweltEditDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(tempMin, { tempMin = it },
+                    OutlinedTextField(tempMin, { tempMinC = it },
                         label = { Text(stringResource(R.string.label_temp_min)) },
                         modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(tempMax, { tempMax = it },
+                    OutlinedTextField(tempMax, { tempMaxC = it },
                         label = { Text(stringResource(R.string.label_temp_max)) },
                         modifier = Modifier.weight(1f), singleLine = true)
                 }
@@ -164,7 +164,7 @@ private fun UmweltEditDialog(
                     OutlinedTextField(feuchte, { feuchte = it },
                         label = { Text(stringResource(R.string.label_feuchte_pct)) },
                         modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(regenMm, { regenMm = it },
+                    OutlinedTextField(regenMm, { niederschlagMm = it },
                         label = { Text(stringResource(R.string.label_regen_mm)) },
                         modifier = Modifier.weight(1f), singleLine = true)
                 }
@@ -216,11 +216,11 @@ private fun UmweltEditDialog(
         confirmButton = {
             TextButton(onClick = {
                 onSave(eintrag.copy(
-                    tempMin        = tempMin.toDoubleOrNull(),
-                    tempMax        = tempMax.toDoubleOrNull(),
-                    feuchte        = feuchte.toDoubleOrNull(),
-                    regenMm        = regenMm.toDoubleOrNull(),
-                    raumtemperatur = raumTemp.toDoubleOrNull(),
+                    tempMinC = tempMin.toDoubleOrNull(),
+                    tempMaxC = tempMax.toDoubleOrNull(),
+                    luftfeuchte = feuchte.toDoubleOrNull(),
+                    niederschlagMm = regenMm.toDoubleOrNull(),
+                    raumtempC = raumTemp.toDoubleOrNull(),
                     raumfeuchte    = raumFeuchte.toDoubleOrNull(),
                     pollenMap      = pollenMap
                 ))

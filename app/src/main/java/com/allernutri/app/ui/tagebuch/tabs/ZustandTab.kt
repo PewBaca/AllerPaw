@@ -17,8 +17,8 @@ import com.allernutri.app.ui.tagebuch.TagebuchViewModel
 @Composable
 fun ZustandTab(state: TagebuchUiState, vm: TagebuchViewModel) {
     val emojis = listOf("😊" to 5, "🙂" to 4, "😐" to 3, "😟" to 2, "😰" to 1)
-    var gewaehlt by remember { mutableStateOf<Int?>(state.heutigenZustand?.zustand) }
-    var notiz    by remember { mutableStateOf(state.heutigenZustand?.notiz ?: "") }
+    var gewaehlt by remember { mutableStateOf<Int?>(state.zustandVerlauf.lastOrNull()?.zustand) }
+    var notiz    by remember { mutableStateOf(state.zustandVerlauf.lastOrNull()?.notizen ?: "") }
 
     Column(
         modifier            = Modifier.fillMaxSize().padding(16.dp),
@@ -63,7 +63,7 @@ fun ZustandTab(state: TagebuchUiState, vm: TagebuchViewModel) {
         )
 
         Button(
-            onClick  = { gewaehlt?.let { vm.saveZustand(it, notiz) } },
+            onClick  = { gewaehlt?.let { vm.setZustand(it); vm.setZustandNotiz(notiz); vm.saveZustand() } },
             enabled  = gewaehlt != null,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -72,7 +72,7 @@ fun ZustandTab(state: TagebuchUiState, vm: TagebuchViewModel) {
             Text(stringResource(R.string.tagebuch_zustand_speichern))
         }
 
-        state.heutigenZustand?.let { zustand ->
+        state.zustandVerlauf.lastOrNull()?.let { zustand ->
             HorizontalDivider()
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
@@ -82,8 +82,8 @@ fun ZustandTab(state: TagebuchUiState, vm: TagebuchViewModel) {
                     Column {
                         Text("Heute gespeichert", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline)
-                        if (zustand.notiz.isNotBlank())
-                            Text(zustand.notiz, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        if (zustand.notizen.isNotBlank())
+                            Text(zustand.notizen, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                     }
                 }
             }

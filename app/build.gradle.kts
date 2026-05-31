@@ -22,8 +22,8 @@ android {
         applicationId = "com.allernutri.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 24
-        versionName = "0.11.0013"
+        versionCode = 25
+        versionName = "0.11.0014"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

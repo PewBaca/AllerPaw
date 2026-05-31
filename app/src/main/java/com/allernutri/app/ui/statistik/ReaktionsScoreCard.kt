@@ -1,5 +1,7 @@
 package com.allernutri.app.ui.statistik
 
+import kotlin.math.roundToInt
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -177,7 +179,7 @@ private fun ScoreZeile(score: ReaktionsScore) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MetaChip("${score.anzahlBeobachtungen}× Erstgabe")
                 MetaChip("Ø ${String.format("%.1f", score.durchschnittSchweregrad)}/5 Schweregrad")
-                MetaChip("${(score.haeufigkeit * 100).roundToInt()}% Häufigkeit")
+                MetaChip("${(score.haeufigkeit * 100).toInt()}% Häufigkeit")
             }
 
             // ── Ausgeklappt: Details ──────────────────────────────────────

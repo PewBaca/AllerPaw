@@ -289,13 +289,13 @@ class SheetsRepository @Inject constructor(
         umwelt.map { u ->
             listOf(
                 u.datum.format(datumFmt),
-                u.tempMin?.toString() ?: "",
-                u.tempMax?.toString() ?: "",
-                u.feuchte?.toString() ?: "",
-                u.regenMm?.toString() ?: "",
-                u.raumtemperatur?.toString() ?: "",
-                "",        // bett – Feld existiert nicht in Entity, Platzhalter
-                u.pollenMap.entries.joinToString(", ") { (k, v) -> "$k:$v" }
+                u.tempMinC?.toString() ?: "",
+                u.tempMaxC?.toString() ?: "",
+                u.luftfeuchte?.toString() ?: "",
+                u.niederschlagMm?.toString() ?: "",
+                u.raumtempC?.toString() ?: "",
+                u.bett,
+                ""  // Pollen: separate Entity, nicht in Umwelt-Zeile
             )
         }
 
@@ -313,10 +313,10 @@ class SheetsRepository @Inject constructor(
     private fun buildPhasenRows(phasen: List<AusschlussPhasEntity>): List<List<String>> =
         phasen.map { p ->
             listOf(
-                p.typ,
-                p.vonDatum.format(datumFmt),
-                p.bisDatum?.format(datumFmt) ?: "",
-                p.beschreibung
+                p.phasentyp,
+                p.startdatum.format(datumFmt),
+                p.enddatum.format(datumFmt),
+                p.ergebnis
             )
         }
 
@@ -338,7 +338,7 @@ class SheetsRepository @Inject constructor(
                 m.name,
                 m.typ,
                 m.dosierung,
-                m.vonDatum.format(datumFmt),
+                m.vonDatum?.format(datumFmt) ?: "",
                 m.bisDatum?.format(datumFmt) ?: "",
                 m.verordnetVon,
                 m.notizen

@@ -25,7 +25,7 @@ fun SheetsExportScreen(
     onNavigateUp: () -> Unit,
     vm: SheetsViewModel = hiltViewModel()
 ) {
-    val state   = by vm.state.collectAsState()
+    val state   by vm.state.collectAsState()
     val ctx     = LocalContext.current
 
     Scaffold(

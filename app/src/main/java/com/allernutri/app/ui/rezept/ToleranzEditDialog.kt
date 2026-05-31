@@ -12,11 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.allernutri.app.R
 import com.allernutri.app.data.local.entity.ToleranzEntity
-import androidx.compose.ui.res.stringResource
-import com.allernutri.app.R
 import com.allernutri.app.domain.NaehrstoffKatalog
-import androidx.compose.ui.res.stringResource
-import com.allernutri.app.R
 
 /**
  * Dialog zum Bearbeiten der individuellen Nährstoff-Toleranzen je Hund.

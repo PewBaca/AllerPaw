@@ -141,7 +141,8 @@ class FoodApiRepository @Inject constructor(
                 eintraege.add(ZutatNaehrstoffEntity(
                     zutatId       = zutatId,
                     naehrstoffKey = key,
-                    wertPer100g   = wert
+                    wertPer100g   = wert,
+                    einheit       = "g"
                 ))
             }
         }

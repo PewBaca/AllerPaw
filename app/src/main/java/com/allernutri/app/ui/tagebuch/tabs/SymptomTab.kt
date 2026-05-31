@@ -51,13 +51,7 @@ private fun SymptomCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error
                     )
-                    if (e.auffaellig) {
-                        Icon(
-                            Icons.Default.Warning, null,
-                            modifier = Modifier.size(14.dp),
-                            tint     = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
+
                 }
                 if (e.koerperstelle.isNotBlank())
                     Text(e.koerperstelle, style = MaterialTheme.typography.bodySmall,
@@ -65,7 +59,6 @@ private fun SymptomCard(
                 if (e.beschreibung.isNotBlank())
                     Text(e.beschreibung, style = MaterialTheme.typography.bodySmall, maxLines = 2)
             }
-            SymptomMediaRow(mediaUris = e.fotoUris)
             IconButton(onClick = onEdit)   { Icon(Icons.Default.Edit, stringResource(R.string.cd_bearbeiten)) }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, stringResource(R.string.cd_loeschen),
@@ -85,7 +78,6 @@ private fun SymptomEditDialog(
     var koerperstelleFrei  by remember { mutableStateOf(eintrag.koerperstelleFreitext) }
     var schweregrad        by remember { mutableStateOf(eintrag.schweregrad.toFloat()) }
     var beschreibung       by remember { mutableStateOf(eintrag.beschreibung) }
-    var auffaellig         by remember { mutableStateOf(eintrag.auffaellig) }
 
     val koerperstelleOptionen = listOf(
         "Haut", "Pfoten", "Ohren", "Augen", "Magen/Darm",
@@ -146,10 +138,7 @@ private fun SymptomEditDialog(
                     minLines      = 2
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = auffaellig, onCheckedChange = { auffaellig = it })
-                    Text(stringResource(R.string.label_auffaellig))
-                }
+
             }
         },
         confirmButton = {
@@ -158,8 +147,7 @@ private fun SymptomEditDialog(
                     koerperstelle        = koerperstelle,
                     koerperstelleFreitext = koerperstelleFrei,
                     schweregrad          = schweregrad.toInt(),
-                    beschreibung         = beschreibung.trim(),
-                    auffaellig           = auffaellig
+                    beschreibung         = beschreibung.trim()
                 ))
             }) { Text(stringResource(R.string.btn_speichern)) }
         },
