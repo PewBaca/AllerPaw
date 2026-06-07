@@ -81,7 +81,7 @@ fun TaskScreen(vm: TaskViewModel = hiltViewModel()) {
                     "$erledigt / $gesamt erledigt",
                     style    = MaterialTheme.typography.labelSmall,
                     color    = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 12.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
                 )
 
                 LazyColumn(

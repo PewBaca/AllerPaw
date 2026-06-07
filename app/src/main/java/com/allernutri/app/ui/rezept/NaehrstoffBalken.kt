@@ -126,7 +126,7 @@ fun NaehrstoffBalken(
             if (vergleich != null) {
                 val vProzent = (vergleich.prozent / skalEnde).coerceIn(0.0, 1.0).toFloat()
                 drawRoundRect(
-                    color        = ampelFarbe(vergleich.prozent, min, max).copy(alpha = 0.3f),
+                    color        = ampelFarbeCanvas(vergleich.prozent, min, max).copy(alpha = 0.3f),
                     size         = Size(w * vProzent, h),
                     cornerRadius = radius
                 )
@@ -140,7 +140,7 @@ fun NaehrstoffBalken(
             )
 
             // ── Min-Markierung ─────────────────────────────────────────────
-            val markMin = (w * (min / skalEnde)).coerceIn(0f, w).toFloat()
+            val markMin = (w * (min / skalEnde).toFloat()).coerceIn(0f, w)
             drawLine(
                 color       = Color(0xFF1565C0).copy(alpha = 0.7f),
                 start       = Offset(markMin, 0f),
@@ -149,7 +149,7 @@ fun NaehrstoffBalken(
             )
 
             // ── Empfehlungs-Markierung ─────────────────────────────────────
-            val markEmpf = (w * (empf / skalEnde)).coerceIn(0f, w).toFloat()
+            val markEmpf = (w * (empf / skalEnde).toFloat()).coerceIn(0f, w)
             drawLine(
                 color       = Color(0xFF2E7D32).copy(alpha = 0.9f),
                 start       = Offset(markEmpf, 0f),
@@ -158,7 +158,7 @@ fun NaehrstoffBalken(
             )
 
             // ── Max-Markierung ─────────────────────────────────────────────
-            val markMax = (w * (max / skalEnde)).coerceIn(0f, w).toFloat()
+            val markMax = (w * (max / skalEnde).toFloat()).coerceIn(0f, w)
             drawLine(
                 color       = Color(0xFFB71C1C).copy(alpha = 0.7f),
                 start       = Offset(markMax, 0f),

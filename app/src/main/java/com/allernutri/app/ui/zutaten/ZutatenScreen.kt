@@ -120,7 +120,7 @@ fun ZutatenScreen(
                 ElevatedCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, bottom = 8.dp)
+                        .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
                 ) {
                     Column(
                         Modifier.padding(12.dp),
@@ -307,7 +307,7 @@ private fun ZutatCard(
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             title  = { Text(stringResource(R.string.dialog_zutat_loeschen)) },
-            text   = { Text("„${zutat.name}" wird gelöscht. Undo möglich.") },
+            text   = { Text("${zutat.name}" wird gelöscht. Undo möglich.") },
             confirmButton = {
                 TextButton(onClick = { showConfirm = false; onDelete() }) { Text(stringResource(R.string.btn_loeschen)) }
             },

@@ -1,6 +1,7 @@
 package com.allernutri.app.ui.rezept
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.*
@@ -12,11 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.allernutri.app.R
 import com.allernutri.app.data.local.entity.ToleranzEntity
-import androidx.compose.ui.res.stringResource
-import com.allernutri.app.R
 import com.allernutri.app.domain.NaehrstoffKatalog
-import androidx.compose.ui.res.stringResource
-import com.allernutri.app.R
 
 /**
  * Dialog zum Bearbeiten der individuellen Nährstoff-Toleranzen je Hund.

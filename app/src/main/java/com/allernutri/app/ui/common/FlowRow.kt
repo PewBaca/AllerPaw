@@ -16,12 +16,12 @@ fun FlowRow(
     modifier: Modifier = Modifier,
     horizontalGap: Dp = 8.dp,
     verticalGap: Dp = 4.dp,
-    content: @Composable () -> Unit
+    content: @Composable androidx.compose.foundation.layout.FlowRowScope.() -> Unit
 ) {
     androidx.compose.foundation.layout.FlowRow(
-        modifier             = modifier,
+        modifier              = modifier,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(horizontalGap),
-        verticalArrangement  = androidx.compose.foundation.layout.Arrangement.spacedBy(verticalGap),
-        content              = content
+        verticalArrangement   = androidx.compose.foundation.layout.Arrangement.spacedBy(verticalGap),
+        content               = content
     )
 }

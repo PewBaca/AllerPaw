@@ -326,4 +326,11 @@
     <string name="kcal_manuell_hinweis">Optional: e.g. recommended by vet</string>
     <string name="kcal_manuell_ueberschreibt">Overrides MER calculation</string>
 
+    <string name="placeholder_suche">Search…</string>
+    <string name="nrc_keine_analyse">No NRC analysis available</string>
+    <string name="nrc_hinweis_rezept_waehlen">Select a recipe in the recipe list</string>
+    <string name="nrc_analyse_titel">NRC Nutrient Analysis</string>
+    <string name="rezept_bearbeiten">Edit Recipe</string>
+    <string name="keine_rezepte_vorhanden">No recipes yet</string>
+    <string name="kein_hund_ausgewaehlt">No dog selected</string>
 </resources>

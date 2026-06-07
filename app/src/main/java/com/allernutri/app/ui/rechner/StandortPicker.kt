@@ -23,7 +23,7 @@ fun StandortPicker(
     modifier: Modifier = Modifier,
     vm: StandortPickerViewModel = hiltViewModel()
 ) {
-    val state             = by vm.state.collectAsState()
+    val state             by vm.state.collectAsState()
     var stadtInput        by remember { mutableStateOf("") }
     var latInput          by remember { mutableStateOf("") }
     var lonInput          by remember { mutableStateOf("") }
@@ -99,7 +99,7 @@ fun StandortPicker(
             }
 
             StandortModus.AKTUELL -> {
-                if (locationPermission.status.isGranted) {
+                if (locationPermission.status == com.google.accompanist.permissions.PermissionStatus.Granted) {
                     LaunchedEffect(Unit) { vm.holeAktuellenStandort(onStandortGewaehlt) }
                     if (state.isLoading) {
                         Row(

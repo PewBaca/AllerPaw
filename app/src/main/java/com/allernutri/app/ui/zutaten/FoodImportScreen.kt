@@ -80,7 +80,7 @@ fun FoodImportScreen(
                                     )
                                 },
                                 leadingIcon = if (!aktivierbar) {{
-                                    Icon(Icons.Default.LockOutline, null, Modifier.size(12.dp))
+                                    Icon(Icons.Default.Lock, null, Modifier.size(12.dp))
                                 }} else null
                             )
                         }

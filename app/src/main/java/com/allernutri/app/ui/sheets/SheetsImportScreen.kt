@@ -134,6 +134,7 @@ fun SheetsImportScreen(
                                             }} else null
                                         )
                                         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                            val nichtZuordnenLabel = stringResource(R.string.sheets_nicht_zuordnen)
                                             spaltenOptionen.forEach { opt ->
                                                 DropdownMenuItem(
                                                     text    = { Text(opt, style = MaterialTheme.typography.bodySmall) },

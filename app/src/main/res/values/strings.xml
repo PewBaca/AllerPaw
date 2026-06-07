@@ -339,4 +339,11 @@
     <string name="kcal_manuell_hinweis">Optional: z.B. vom Tierarzt empfohlen</string>
     <string name="kcal_manuell_ueberschreibt">Überschreibt MER-Berechnung</string>
 
+    <string name="placeholder_suche">Suchen…</string>
+    <string name="nrc_keine_analyse">Keine NRC-Analyse verfügbar</string>
+    <string name="nrc_hinweis_rezept_waehlen">Wähle ein Rezept in der Rezeptliste</string>
+    <string name="nrc_analyse_titel">NRC-Nährstoffanalyse</string>
+    <string name="rezept_bearbeiten">Rezept bearbeiten</string>
+    <string name="keine_rezepte_vorhanden">Noch keine Rezepte vorhanden</string>
+    <string name="kein_hund_ausgewaehlt">Keinen Hund ausgewählt</string>
 </resources>

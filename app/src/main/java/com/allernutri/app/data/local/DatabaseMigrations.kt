@@ -103,9 +103,6 @@ object DatabaseMigrations {
         }
     }
 
-    /** Alle Migrationen in korrekter Reihenfolge */
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-
     val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // zutaten: Datenquelle + externe ID für USDA/OFF/Edamam-Import
@@ -139,4 +136,8 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Alle Migrationen in korrekter Reihenfolge */
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
 }

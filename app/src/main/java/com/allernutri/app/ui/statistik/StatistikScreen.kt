@@ -1,6 +1,8 @@
-import androidx.compose.ui.res.stringResource
-import com.allernutri.app.R
 package com.allernutri.app.ui.statistik
+
+import com.allernutri.app.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

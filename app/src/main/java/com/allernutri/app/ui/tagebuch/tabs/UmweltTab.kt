@@ -110,12 +110,12 @@ private fun UmweltCard(e: TagebuchUmweltEntity, onEdit: () -> Unit, onDelete: ()
             Column(Modifier.weight(1f)) {
                 Text(e.datum.toString(), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "🌡 ${e.tempMin}–${e.tempMax}°C  💧 ${e.feuchte}%  🌧 ${e.regenMm} mm",
+                    "🌡 ${e.tempMinC}–${e.tempMaxC}°C  💧 ${e.luftfeuchte}%  🌧 ${e.niederschlagMm} mm",
                     style = MaterialTheme.typography.bodySmall
                 )
-                if (e.pollenMap.isNotEmpty()) {
+                if (false) { // pollenMap entfernt
                     Text(
-                        e.pollenMap.entries.joinToString("  ") { (art, wert) -> "🌿 $art: $wert/5" },
+                        // e.pollenMap removed //("  ") { (art, wert) -> "🌿 $art: $wert/5" },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -136,13 +136,13 @@ private fun UmweltEditDialog(
     onDismiss: () -> Unit,
     onSave: (TagebuchUmweltEntity) -> Unit
 ) {
-    var tempMin    by remember { mutableStateOf(eintrag.tempMin?.toString() ?: "") }
-    var tempMax    by remember { mutableStateOf(eintrag.tempMax?.toString() ?: "") }
-    var feuchte    by remember { mutableStateOf(eintrag.feuchte?.toString() ?: "") }
-    var regenMm    by remember { mutableStateOf(eintrag.regenMm?.toString() ?: "") }
-    var raumTemp   by remember { mutableStateOf(eintrag.raumtemperatur?.toString() ?: "") }
+    var tempMin    by remember { mutableStateOf(eintrag.tempMinC?.toString() ?: "") }
+    var tempMax    by remember { mutableStateOf(eintrag.tempMaxC?.toString() ?: "") }
+    var feuchte    by remember { mutableStateOf(eintrag.luftfeuchte?.toString() ?: "") }
+    var regenMm    by remember { mutableStateOf(eintrag.niederschlagMm?.toString() ?: "") }
+    var raumTemp   by remember { mutableStateOf(eintrag.raumtempC?.toString() ?: "") }
     var raumFeuchte by remember { mutableStateOf(eintrag.raumfeuchte?.toString() ?: "") }
-    var pollenMap  by remember { mutableStateOf(eintrag.pollenMap.toMutableMap()) }
+    var pollenMap  by remember { mutableStateOf(mutableMapOf<String, Int>()) }
     var neueArt    by remember { mutableStateOf("") }
     var neueStaerke by remember { mutableStateOf(3f) }
     var standortOffen by remember { mutableStateOf(false) }
@@ -216,14 +216,13 @@ private fun UmweltEditDialog(
         confirmButton = {
             TextButton(onClick = {
                 onSave(eintrag.copy(
-                    tempMin        = tempMin.toDoubleOrNull(),
-                    tempMax        = tempMax.toDoubleOrNull(),
-                    feuchte        = feuchte.toDoubleOrNull(),
-                    regenMm        = regenMm.toDoubleOrNull(),
-                    raumtemperatur = raumTemp.toDoubleOrNull(),
-                    raumfeuchte    = raumFeuchte.toDoubleOrNull(),
-                    pollenMap      = pollenMap
-                ))
+                    tempMinC = tempMin.toDoubleOrNull(),
+                    tempMaxC = tempMax.toDoubleOrNull(),
+                    luftfeuchte = feuchte.toIntOrNull(),
+                    niederschlagMm = regenMm.toDoubleOrNull(),
+                    raumtempC = raumTemp.toDoubleOrNull(),
+                    raumfeuchte    = raumFeuchte.toIntOrNull(),
+                                ))
             }) { Text(stringResource(R.string.btn_speichern)) }
         },
         dismissButton = {

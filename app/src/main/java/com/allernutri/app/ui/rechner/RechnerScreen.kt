@@ -80,7 +80,7 @@ fun RechnerScreen(vm: RechnerViewModel = hiltViewModel()) {
             rezept    = rezept,
             hundeList = state.hunde,
             onDismiss = vm::dismissEdit,
-            onSave    = vm::saveRezept
+            onSave    = { r -> vm.saveRezept(r, emptyList()) }
         )
     }
 }

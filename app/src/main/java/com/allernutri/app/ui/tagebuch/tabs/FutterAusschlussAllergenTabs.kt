@@ -54,7 +54,7 @@ fun FutterTab(state: TagebuchUiState, vm: TagebuchViewModel) {
         }
 
         AnimatedVisibility(visible = filterOffen) {
-            ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, bottom = 6.dp)) {
+            ElevatedCard(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 6.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically) {
@@ -90,7 +90,7 @@ fun FutterTab(state: TagebuchUiState, vm: TagebuchViewModel) {
     }
 
     state.editFutter?.let { e ->
-        FutterEditDialog(eintrag = e, onDismiss = vm::dismissFutter, onSave = vm::saveFutter)
+        FutterEditDialog(eintrag = e, onDismiss = vm::dismissFutter, onSave = { updated -> vm.saveFutter(updated, emptyList()) })
     }
 }
 
@@ -177,8 +177,8 @@ private fun AusschlussCard(e: TagebuchAusschlussEntity, onEdit: () -> Unit, onDe
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(e.zutatName, style = MaterialTheme.typography.titleSmall)
-                Text("${e.vonDatum} – ${e.bisDatum}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                if (e.grund.isNotBlank()) Text(e.grund, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                if (e.erstmalsGegebenDatum != null) Text("Ab: ${e.erstmalsGegebenDatum}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                if (e.notizen.isNotBlank()) Text(e.notizen, style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
             IconButton(onClick = onEdit)   { Icon(Icons.Default.Edit, stringResource(R.string.cd_bearbeiten)) }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, stringResource(R.string.cd_loeschen), tint = MaterialTheme.colorScheme.error) }
@@ -189,7 +189,7 @@ private fun AusschlussCard(e: TagebuchAusschlussEntity, onEdit: () -> Unit, onDe
 @Composable
 private fun AusschlussEditDialog(e: TagebuchAusschlussEntity, onDismiss: () -> Unit, onSave: (TagebuchAusschlussEntity) -> Unit) {
     var zutatName by remember { mutableStateOf(e.zutatName) }
-    var grund     by remember { mutableStateOf(e.grund) }
+    var notizen   by remember { mutableStateOf(e.notizen) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title   = { Text(stringResource(R.string.tagebuch_ausschluss)) },
@@ -197,13 +197,13 @@ private fun AusschlussEditDialog(e: TagebuchAusschlussEntity, onDismiss: () -> U
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(zutatName, { zutatName = it }, label = { Text(stringResource(R.string.label_zutat_stoff)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(grund, { grund = it }, label = { Text(stringResource(R.string.label_grund)) },
+                OutlinedTextField(notizen, { notizen = it }, label = { Text(stringResource(R.string.label_notizen)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
             TextButton(enabled = zutatName.isNotBlank(),
-                onClick = { onSave(e.copy(zutatName = zutatName.trim(), grund = grund)) }) {
+                onClick = { onSave(e.copy(zutatName = zutatName.trim(), notizen = notizen)) }) {
                 Text(stringResource(R.string.btn_speichern))
             }
         },
