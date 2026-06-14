@@ -171,7 +171,7 @@ fun SettingsScreen(
 
             item {
                 Text(
-                    "AllerNutri v0.11.0015 · Alle Daten lokal gespeichert",
+                    "AllerNutri v0.11.0016 · Alle Daten lokal gespeichert",
                     style    = MaterialTheme.typography.labelSmall,
                     color    = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(horizontal = 4.dp)

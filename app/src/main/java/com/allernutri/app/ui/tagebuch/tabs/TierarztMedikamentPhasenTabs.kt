@@ -1,7 +1,5 @@
 package com.allernutri.app.ui.tagebuch.tabs
 
-import com.allernutri.app.data.local.entity.AusschlussPhasEntity
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -38,13 +36,13 @@ private fun TierarztCard(e: TagebuchTierarztEntity, onEdit: () -> Unit, onDelete
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(e.datum.toString(), style = MaterialTheme.typography.titleSmall)
-                if (e.praxis.isNotBlank())
-                    Text("🏥 ${e.praxis}", style = MaterialTheme.typography.bodySmall)
+                if (e.praxisTierarzt.isNotBlank())
+                    Text("🏥 ${e.praxisTierarzt}", style = MaterialTheme.typography.bodySmall)
                 if (e.anlass.isNotBlank())
                     Text(e.anlass, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline, maxLines = 2)
-                if (e.folgebesuchDatum != null)
-                    Text("📅 Folgebesuch: ${e.folgebesuchDatum}",
+                if (e.folgebesuch != null)
+                    Text("📅 Folgebesuch: ${e.folgebesuch}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary)
             }
@@ -56,11 +54,11 @@ private fun TierarztCard(e: TagebuchTierarztEntity, onEdit: () -> Unit, onDelete
 
 @Composable
 private fun TierarztEditDialog(e: TagebuchTierarztEntity, onDismiss: () -> Unit, onSave: (TagebuchTierarztEntity) -> Unit) {
-    var praxis      by remember { mutableStateOf(e.praxis) }
+    var praxis      by remember { mutableStateOf(e.praxisTierarzt) }
     var anlass      by remember { mutableStateOf(e.anlass) }
     var ergebnis    by remember { mutableStateOf(e.ergebnis) }
-    var folgebesuchStr by remember { mutableStateOf(e.folgebesuchDatum?.toString() ?: "") }
-    var notizenText by remember { mutableStateOf(e.notizen) }
+    var folgebesuch by remember { mutableStateOf(e.folgebesuch?.toString() ?: "") }
+    var notizen     by remember { mutableStateOf(e.notizen) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -76,11 +74,11 @@ private fun TierarztEditDialog(e: TagebuchTierarztEntity, onDismiss: () -> Unit,
                 OutlinedTextField(ergebnis, { ergebnis = it },
                     label = { Text(stringResource(R.string.label_ergebnis)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(folgebesuchStr, { folgebesuchStr = it },
+                OutlinedTextField(folgebesuch, { folgebesuch = it },
                     label = { Text(stringResource(R.string.label_folgebesuch)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     placeholder = { Text("2026-06-15") })
-                OutlinedTextField(notizenText, { notizenText = it },
+                OutlinedTextField(notizen, { notizen = it },
                     label = { Text(stringResource(R.string.label_notizen)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
@@ -88,12 +86,12 @@ private fun TierarztEditDialog(e: TagebuchTierarztEntity, onDismiss: () -> Unit,
         confirmButton = {
             TextButton(onClick = {
                 onSave(e.copy(
-                    praxis         = praxis.trim(),
+                    praxisTierarzt = praxis.trim(),
                     anlass         = anlass.trim(),
                     ergebnis       = ergebnis.trim(),
-                    folgebesuchDatum = folgebesuchStr.trim().takeIf { it.isNotBlank() }
+                    folgebesuch    = folgebesuch.trim().takeIf { it.isNotBlank() }
                         ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() },
-                    notizen          = notizenText.trim()
+                    notizen        = notizen.trim()
                 ))
             }) { Text(stringResource(R.string.btn_speichern)) }
         },
@@ -129,7 +127,7 @@ private fun MedikamentCard(e: TagebuchMedikamentEntity, onEdit: () -> Unit, onDe
                 }
                 if (e.dosierung.isNotBlank())
                     Text(e.dosierung, style = MaterialTheme.typography.bodySmall)
-                Text("${e.startdatum} – ${e.enddatum ?: "laufend"}",
+                Text("${e.vonDatum} – ${e.bisDatum ?: "laufend"}",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                 if (e.verordnetVon.isNotBlank())
                     Text(stringResource(R.string.label_verordnet_von) + ": ${e.verordnetVon}",
@@ -145,12 +143,12 @@ private fun MedikamentCard(e: TagebuchMedikamentEntity, onEdit: () -> Unit, onDe
 @Composable
 private fun MedikamentEditDialog(e: TagebuchMedikamentEntity, onDismiss: () -> Unit, onSave: (TagebuchMedikamentEntity) -> Unit) {
     var name        by remember { mutableStateOf(e.name) }
-    var typ         by remember { mutableStateOf(e.phasentyp) }
+    var typ         by remember { mutableStateOf(e.typ) }
     var dosierung   by remember { mutableStateOf(e.dosierung) }
-    var vonDatum    by remember { mutableStateOf(e.startdatum.toString()) }
-    var bisDatum    by remember { mutableStateOf(e.enddatum?.toString() ?: "") }
+    var vonDatum    by remember { mutableStateOf(e.vonDatum.toString()) }
+    var bisDatum    by remember { mutableStateOf(e.bisDatum?.toString() ?: "") }
     var verordnet   by remember { mutableStateOf(e.verordnetVon) }
-    var notizenText by remember { mutableStateOf(e.notizen) }
+    var notizen     by remember { mutableStateOf(e.notizen) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -177,7 +175,7 @@ private fun MedikamentEditDialog(e: TagebuchMedikamentEntity, onDismiss: () -> U
                 OutlinedTextField(verordnet, { verordnet = it },
                     label = { Text(stringResource(R.string.label_verordnet_von)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(notizenText, { notizenText = it },
+                OutlinedTextField(notizen, { notizen = it },
                     label = { Text(stringResource(R.string.label_notizen)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
@@ -189,9 +187,10 @@ private fun MedikamentEditDialog(e: TagebuchMedikamentEntity, onDismiss: () -> U
                     typ          = typ.trim(),
                     dosierung    = dosierung.trim(),
                     vonDatum     = runCatching { java.time.LocalDate.parse(vonDatum) }.getOrElse { e.vonDatum },
-                    bisDatum     = runCatching { java.time.LocalDate.parse(bisDatum) }.getOrNull(),
+                    bisDatum     = bisDatum.trim().takeIf { it.isNotBlank() }
+                        ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() },
                     verordnetVon = verordnet.trim(),
-                    notizen      = notizenText.trim()
+                    notizen      = notizen.trim()
                 ))
             }) { Text(stringResource(R.string.btn_speichern)) }
         },
@@ -219,7 +218,7 @@ fun PhasenTab(state: TagebuchUiState, vm: TagebuchViewModel) {
 private fun PhasenCard(e: AusschlussPhasEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
     val heute         = java.time.LocalDate.now()
     val vonDate       = e.startdatum
-    val bisDate       = e.enddatum
+    val bisDate: java.time.LocalDate?       = e.enddatum
     val gesamtTage    = if (bisDate != null) (bisDate.toEpochDay() - vonDate.toEpochDay()).toInt() + 1 else null
     val vergangeneTage = if (heute.isAfter(vonDate)) (heute.toEpochDay() - vonDate.toEpochDay()).toInt().coerceAtMost(gesamtTage ?: Int.MAX_VALUE) else 0
     val istAktiv      = bisDate == null || (heute >= vonDate && heute <= bisDate)
@@ -243,7 +242,7 @@ private fun PhasenCard(e: AusschlussPhasEntity, onEdit: () -> Unit, onDelete: ()
             Column(Modifier.weight(1f)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment     = Alignment.CenterVertically) {
-                    Text(e.phasentyp.replaceFirstChar { it.uppercase() },
+                    Text(e.typ.replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.titleSmall)
                     if (istAktiv) {
                         Surface(color = MaterialTheme.colorScheme.primary,
@@ -255,8 +254,8 @@ private fun PhasenCard(e: AusschlussPhasEntity, onEdit: () -> Unit, onDelete: ()
                         }
                     }
                 }
-                if (e.notizen.isNotBlank())
-                    Text(e.notizen, style = MaterialTheme.typography.bodySmall,
+                if (e.beschreibung.isNotBlank())
+                    Text(e.beschreibung, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline, maxLines = 2)
                 if (gesamtTage != null) {
                     Spacer(Modifier.height(4.dp))
@@ -287,10 +286,10 @@ private fun PhasenCard(e: AusschlussPhasEntity, onEdit: () -> Unit, onDelete: ()
 
 @Composable
 private fun PhasenEditDialog(e: AusschlussPhasEntity, onDismiss: () -> Unit, onSave: (AusschlussPhasEntity) -> Unit) {
-    var typ          by remember { mutableStateOf(e.phasentyp) }
-    var notizen by remember { mutableStateOf(e.notizen) }
+    var phasentyp    by remember { mutableStateOf(e.phasentyp) }
+    var beschreibung by remember { mutableStateOf(e.notizen) }
     var vonDatum     by remember { mutableStateOf(e.startdatum.toString()) }
-    var bisDatum     by remember { mutableStateOf(e.enddatum?.toString() ?: "") }
+    var bisDatum     by remember { mutableStateOf(e.enddatum.toString()) }
 
     val typen = listOf(
         "ausschluss"  to "${stringResource(R.string.tagebuch_ausschluss)} 🚫",
@@ -306,11 +305,11 @@ private fun PhasenEditDialog(e: AusschlussPhasEntity, onDismiss: () -> Unit, onS
                 Text(stringResource(R.string.tagebuch_phasentyp), style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     typen.forEach { (v, l) ->
-                        FilterChip(selected = typ == v, onClick = { typ = v },
+                        FilterChip(selected = phasentyp == v, onClick = { phasentyp = v },
                             label = { Text(l, style = MaterialTheme.typography.labelSmall) })
                     }
                 }
-                OutlinedTextField(notizen, { notizen = it },
+                OutlinedTextField(beschreibung, { beschreibung = it },
                     label = { Text(stringResource(R.string.label_beschreibung)) },
                     modifier = Modifier.fillMaxWidth(), minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -326,8 +325,10 @@ private fun PhasenEditDialog(e: AusschlussPhasEntity, onDismiss: () -> Unit, onS
         confirmButton = {
             TextButton(onClick = {
                 onSave(e.copy(
+                    phasentyp    = phasentyp,
+                    notizen      = beschreibung.trim(),
                     startdatum   = runCatching { java.time.LocalDate.parse(vonDatum) }.getOrElse { e.startdatum },
-                    enddatum     = runCatching { java.time.LocalDate.parse(bisDatum) }.getOrNull()
+                    enddatum     = runCatching { java.time.LocalDate.parse(bisDatum) }.getOrElse { e.enddatum }
                 ))
             }) { Text(stringResource(R.string.btn_speichern)) }
         },

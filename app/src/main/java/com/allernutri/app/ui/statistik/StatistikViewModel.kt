@@ -134,7 +134,7 @@ class StatistikViewModel @Inject constructor(
         val phasen    = tagebuchRepo.phasenList(hundId)
 
         // ── KPIs ─────────────────────────────────────────────────────────
-        val symptomTage = symptome.map { it.umweltId }.distinct().size
+        val symptomTage = symptome.map { it.datum }.distinct().size
         val durchschnitt = if (symptome.isEmpty()) 0.0
                            else symptome.map { it.schweregrad.toDouble() }.average()
         val pollenTage = umwelt.count { eintrag ->
@@ -201,7 +201,7 @@ class StatistikViewModel @Inject constructor(
         val korrelationVerfuegbar = korrelationen.isNotEmpty()
 
         // ── Reaktionsscore (48h-Fenster) ──────────────────────────────────
-        val futterImZeitraum        = tagebuchRepo.futterRange(hundId, von, heute)
+        val futterImZeitraum        = tagebuchRepo.futterRange(hundId, von, bis)
         val scoreEintraege          = ReaktionsScoreAnalyse.analysiere(futterImZeitraum, symptome)
         val reaktionsScores         = scoreEintraege.map { e ->
             ReaktionsScore(
@@ -246,11 +246,14 @@ class StatistikViewModel @Inject constructor(
                 .groupBy { it.datum }
                 .map { (datum, liste) -> datum to liste.map { it.schweregrad.toDouble() }.average() }
                 .sortedBy { it.first }
-            val vSymptomTage   = vSymptome.map { it.umweltId }.distinct().size
+            val vSymptomTage   = vSymptome.map { it.datum }.distinct().size
             val vDurchschnitt  = if (vSymptome.isNotEmpty())
                 vSymptome.map { it.schweregrad.toDouble() }.average() else 0.0
-            val vPollenTage    = tagebuchRepo.pollenRange(vergleichsId, von, heute)
-                .map { it.umweltId }.distinct().size
+            val vPollenLog     = tagebuchRepo.pollenRange(vergleichsId, von, heute)
+            val vUmwelt        = tagebuchRepo.umweltRange(vergleichsId, von, heute)
+            val vPollenTage    = vUmwelt.count { eintrag ->
+                vPollenLog.any { it.umweltId == eintrag.id && it.staerke > 0 }
+            }
             val vAllergenCount = tagebuchRepo.allergenCount(vergleichsId)
             _state.update { it.copy(
                 vergleichsKpi = KpiState(
