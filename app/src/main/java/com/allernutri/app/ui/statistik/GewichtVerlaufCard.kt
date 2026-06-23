@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.allernutri.app.R
 import com.allernutri.app.data.local.entity.HundGewichtEntity
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
@@ -28,7 +28,6 @@ import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
-import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -162,7 +161,9 @@ fun GewichtVerlaufCard(
                                 textSize = 9.sp,
                                 color    = MaterialTheme.colorScheme.outline
                             ),
-
+                            valueFormatter = { _, value, _ ->
+                                datumLabels.getOrElse(value.toInt()) { "" }
+                            }
                         )
                     ),
                     modelProducer   = modelProducer,
